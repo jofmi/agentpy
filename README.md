@@ -2,7 +2,7 @@
 
 Agentpy is a package for the development and analysis of agent-based models in Python. The packages is still in a very early stage of development. If you need help using Agentpy or want to contribute, feel free to write me via joel.foramitti@uab.cat.
 
-** Main features: **
+**Main features:**
 
 - Creation of custom agent types, environments, and networks.
 - Design of models with complex procedures and multiple environments.
