@@ -12,7 +12,7 @@ To install the package, run the following command on your console::
 
 Alternatively, you can also clone the latest version from GitHub::
 
-	$ git clone hhttps://github.com/JoelForamitti/agentpy.git
+	$ git clone https://github.com/JoelForamitti/agentpy.git
 
 The agentpy packet can then be imported as follows (recommended)::
 

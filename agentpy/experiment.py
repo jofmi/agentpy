@@ -24,16 +24,19 @@ from SALib.sample import saltelli as SALibSaltelli
 
 class experiment():
     
-    """ Experiment for an agent-based model. Can also be called as exp().
+    """ Experiment for an agent-based model.
+    Allows for multiple iterations, parameter samples, and distict scenarios.
     
     Arguments:
         model(class): The model that the experiment should use.
         parameters(dict or list): Parameters or parameter sample.
         name(str,optional): Name of the experiment. Takes model name at default.
         scenarios(str or list,optional): Scenarios that should be tested, if any.
-        iterations(int,optional): How often to repeat the experiment. Default 1.
+        iterations(int,optional): How often to repeat the experiment (default 1).
         output_vars(bool,optional): Whether to record dynamic variables. Default False.
-        display(bool,optional): Whether to display simulation progress. Default False.
+        
+    Attributes:
+        output(data_dict): Recorded experiment data
     
     """
     
@@ -67,8 +70,16 @@ class experiment():
     
     def run(self, display=True):
              
-        """ Performs the experiment and generates `output`. """
+        """ Executes the simulation of the experiment. 
+        It will run the model once for each set of parameters, 
+        and will repeat this process for each iteration.
         
+        Arguments:
+            display(bool,optional): Whether to display simulation progress (default True). 
+            
+        Returns:
+            data_dict: Recorded experiment data, also stored in `experiment.output`.
+        """
         parameter_sample = make_list(self.parameters,keep_none=True)
         scenarios = make_list(self.scenarios,keep_none=True)
         runs = parameter_sample * self.iterations
@@ -183,13 +194,11 @@ def sample(param_ranges,mode='discrete',**kwargs):
     """
     Returns parameter sample (list of dict)
     
-    Arguments
-    ---------
-    param_ranges: dict
-    mode: str
-        'discrete' - tuples are given of style (value1,value2,...)
-        'saltelli' - tuples are given of style (min_value,max_value)
-
+    Arguments:
+        param_ranges(dict)
+        mode(str): Sampling method. Options are:
+            'discrete' - tuples are given of style (value1,value2,...); 
+            'saltelli' - tuples are given of style (min_value,max_value)
     """
     
     if mode == 'discrete': parameters = create_sample_discrete(param_ranges,**kwargs)

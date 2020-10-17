@@ -1,5 +1,6 @@
 # IPython Notebook Checkpoints
 **/.ipynb_checkpoints
+**/__pycache__
 
 # Documentation builds
 **/_build

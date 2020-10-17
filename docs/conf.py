@@ -51,7 +51,7 @@ html_sourcelink_suffix = ''
 nbsphinx_prolog = """
 .. currentmodule:: agentpy
 .. note::
-	You can download this tutorial as a Jupyter Notebook :download:`here<{{ env.doc2path(env.docname,base=None) }}>` (Save link to file)
+	You can download this tutorial as a Jupyter Notebook :download:`here<{{ env.doc2path(env.docname,base=None) }}>`
 """
 
 # Intersphinx mapping

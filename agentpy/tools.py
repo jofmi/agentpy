@@ -10,6 +10,8 @@ Copyright (c) 2020 Joël Foramitti
 class AgentpyError(Exception):
     pass
 
+
+
 class attr_dict(dict):
     
     """ Dictionary where attributes and dict entries are identical. """
@@ -49,8 +51,6 @@ class func_list(list):
         
         try: return [ func_obj(*args,**kwargs) for func_obj in self ]
         except TypeError: raise TypeError(f"Not all objects in '{type(self._super).__name__}' are callable.")
-    
-    # Operators, see https://docs.python.org/3/library/operator.html
     
     def __eq__(self, other):
         

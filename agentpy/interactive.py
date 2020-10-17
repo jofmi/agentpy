@@ -17,7 +17,7 @@ def animate(model, parameters, fig, axs, plot, skip_t0 = False, **kwargs):
     """ Returns an animation of the model simulation """
     
     m = model(parameters)
-    m.stopped = False
+    m._stop = False
     m.setup()
     m.update()
 
@@ -28,7 +28,7 @@ def animate(model, parameters, fig, axs, plot, skip_t0 = False, **kwargs):
 
         nonlocal m, step0, step00
 
-        while not m.stop_if() and not m.stopped:
+        while not m.stop_if() and not m._stop:
 
             if step0: step0 = False
             elif step00: step00 = False

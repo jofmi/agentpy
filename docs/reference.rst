@@ -60,8 +60,8 @@ Parameter sampling
 
 .. autofunction:: sample
 
-Multi-run experiments
----------------------
+Experiment class
+----------------
 
 .. autoclass:: experiment
    :members:

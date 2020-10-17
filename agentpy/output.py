@@ -16,10 +16,7 @@ from .tools import attr_dict, make_list
 
 class data_dict(attr_dict):
     
-    """
-    Agentpy dictionary for output data
-    
-    """
+    """ Dictionary for recorded data from :class:`model` and :class:`experiment` simulations. """
     
     def __init__(self):
         super().__init__() 
@@ -45,6 +42,7 @@ class data_dict(attr_dict):
                 rep += f"\n'{k}': Object of type {type(v)}"
                 
         return rep + "\n}"
+    
     
     def ps_keys(self):
         
@@ -76,6 +74,7 @@ class data_dict(attr_dict):
             
         return dfp  
     
+    
     def get_measures(self,measures=None,parameters=None,reset_index=True):
         
         """ Returns pandas dataframe with measures """
@@ -89,6 +88,7 @@ class data_dict(attr_dict):
             df = pd.concat([df,dfp],axis=1)   
             
         return df 
+    
     
     def get_vars(self,var_keys=None,obj_types=None,parameters=None,reset_index=True):
 

@@ -32,8 +32,9 @@ def record(self, var_keys, value = None):
     
     for var_key in make_list(var_keys):
     
-        # Create empty list if var_key is new (!) should have none until t
-        if var_key not in self.log: self.log[var_key] = [None] * len(self.log['t'])
+        # Create empty list if var_key is new 
+        if var_key not in self.log: 
+            self.log[var_key] = [None] * len(self.log['t'])
 
         if self.model.t not in self.log['t']:
 
@@ -59,9 +60,7 @@ def setup(self):
 
 class agent(attr_dict):   
     
-    """ 
-    
-    Individual agent of an agent-based model.
+    """ Individual agent of an agent-based model.
     This class can be used as a parent class for custom agent types.  
     Attributes can be accessed as items (see :class:`attr_dict`).
     Methods of :class:`agent_list` can also be used for individual agents.
@@ -127,9 +126,9 @@ class agent(attr_dict):
         elif key not in self.envs.keys(): AgentpyError(f"Agent {self.id} has no network '{key}'")
         if key == None: AgentpyError(f"No network found for agent {self.id}")
         
-        return agent_list([n for n in self.envs[key].neighbors(self)]) # (!) list comprehension necessary?
+        return agent_list([n for n in self.envs[key].neighbors(self)]) 
     
-    def remove(self,keys=None):
+    def leave(self,keys=None):
         
         """ Removes the agent from environments or the model 
         
@@ -142,7 +141,7 @@ class agent(attr_dict):
             envs = self.envs # Select all environments by default
             self.model.agents.remove(self) # Delete from model    
         else: 
-            envs = { k:v for k,v in self.envs if k in keys}
+            envs = { k:v for k,v in self.envs.items() if k in keys}
             
         for key,env in envs.items(): 
             env.agents.remove(self)
@@ -237,29 +236,29 @@ def add_agents(self, agents, agent_class=agent, **kwargs):
         agents(int or agent_list): Number of new agents or list of existing agents.
         agent_class(class): Type of agent to be created if int is passed for agents.
     """ 
+        
+    if isinstance(agents,int):
+        
+        # Create new agent instances
+        new_agents = agent_list([agent_class(self.model, {self.key:self}, **kwargs) for _ in range(agents)])   
+        
+        # Add agents to master list
+        if self != self.model:    
+            self.model.agents.extend( new_agents )
     
-    # (!) what if single agent is passed? 
-
-    if type(agents) == agent_list: # (!) or normal iterable with agents?
-
-        new_agents = agents
-        # (!) need to add new environment to agent
+    else:
         
-    elif type(agents) == int:
+        # Add existing agents
+        if isinstance(agents,agent_list): new_agents = agents
+        else: new_agents = agent_list(agents)
         
-        new_agents = agent_list()
-        
-        for i in range(agents): 
-            new_agents.append(agent_class(self.model, {self.key:self}, **kwargs))
-                 
-    else: raise ValueError("agents must be agent_list or int") # (!) improve error
+        # Add new environment to agents
+        if self != self.model: 
+            for agent in new_agents:
+                agent.envs[self.key] = self
         
     # Add agents to this env
     self.agents.extend( new_agents )
-
-    # Add agent to master list
-    if self != self.model: 
-            self.model.agents.extend( new_agents )
 
     return new_agents
     
@@ -340,26 +339,24 @@ class network(environment):
         Adds agents to the network environment.
 
         Arguments:
-            agents(int or agent_list): Number of new agents or list of existing agents.
+            agents(int or agent or list or agent_list): Number of new agents or existing agents.
             agent_class(class): Type of agent to be created if int is passed for agents.
             map_to_nodes(bool,optional): Map new agents to each node of the graph (default False).
                 Should be used if a graph with empty nodes has been passed at network creation.
         """         
-
+        
+        # Standard adding
         new_agents = add_agents(self,agents,agent_class,**kwargs)
         
-        if map_to_nodes:
-            
+        # Extra network features
+        if map_to_nodes: 
             # Map each agent to a node of the graph
-            
             if len(new_agents) != len(self.graph.nodes):
                 raise ValueError(f"Number of agents ({len(new_agents)}) does not match number of nodes ({len(self.graph.nodes)})")
-                
             mapping = { i : agent for i,agent in enumerate(new_agents) }
             nx.relabel_nodes( self.graph , mapping = mapping, copy=False )
-            
         else:
-            # Add agents to graph
+            # Add agents to graph as new nodes
             for agent in new_agents:
                 self.graph.add_node( agent ) 
         
@@ -383,35 +380,32 @@ class env_dict(dict):
     """
 
     def __init__(self,model):
+        
         super().__init__()
         self.model = model    
             
     def of_type(self,env_type):
         
-        """ Returns an env_dict with environments of `env_type`"""
+        """ Returns an env_dict with selected environments """
         
         new_dict = env_dict(self.model)
         selection = {k : v for k, v in self.items() if v.type == env_type}
         new_dict.update(selection)
         return new_dict
     
-    def do(self,action):
+    def do(self,method,*args,**kwargs):
         
-        """ Calls `action` for all environments """
+        """ Calls method for all environments """
         
-        for env in self.values(): getattr( env, action )() 
+        for env in self.values(): getattr(env, method)(*args, **kwargs) 
     
     def add_agents(self,*args,**kwargs):
         
-        """ Adds agents to all environments in self """
+        """ Adds agents to all environments """
         
-        # Depreciated (!)
-        
-        new_agents = agent_list(self.model)
-        new_agents.add(*args,**kwargs)
-        
-        for env in self.values():
-            env.agents.add(new_agents)
+        for i,env in enumerate(self.values()):
+            if i == 0: new_agents = env.add_agents(*args,**kwargs)
+            else: env.add_agents( new_agents )
 
 
 ### Level 1 - Model Class ###
@@ -492,20 +486,18 @@ class model(attr_dict):
 
     def add_env(self, env_key, env_class=environment, **kwargs):
 
-        """ Creates and returns a new environment """
-
-        self.envs[env_key] = env_class(self.model, env_key, **kwargs) 
-        return self.envs[env_key] 
-    
-    def add_envs(self,env_keys,*args,**kwargs):
-        for env_key in env_keys: self.add_env(env_key,*args,**kwargs)
+        """ Creates a new environment """
+        
+        for env_key in make_list(env_key):
+            self.envs[env_key] = env_class(self.model, env_key, **kwargs) 
                     
     def add_network(self, env_key, graph = None, env_class=network , **kwargs):
-        self.add_env(env_key, env_class=network, graph=graph, **kwargs)
-            
-    def add_networks(self,env_keys,*args,**kwargs):      
-        for env_key in env_keys: self.add_network(env_key,*args,**kwargs)
-            
+        
+        """ Creates a new network environment """
+        
+        for env_key in make_list(env_key):
+            self.add_env(env_key, env_class=network, graph=graph, **kwargs)
+
     
     # Recording functions
             
@@ -514,27 +506,10 @@ class model(attr_dict):
         """ Records an evaluation measure """
         
         self.measure_log[measure_key] = [value]
-        
-    def record_graph(self, graph_keys):  
-        
-        """ Records a network """ # (!) unfinished
-        
-        for graph_key in make_list(graph_keys):
-            
-            G = self.envs[graph_key].graph
-            H = nx.relabel_nodes(G, lambda x: x.id)
-            # (!) graph attributes? H.graph.t = self.t
-            if 'graphs' not in self.model.output.keys():
-                self.model.output['graphs'] = [] #{'t':[]}
-            self.model.output['graphs'].append(H)
-            #if graph_key not in self.model.output['graphs'].keys():
-            #    self.model.output['graphs'][graph_key] = []
-            #self.model.output['graphs'][graph_key].append(H)
-            #self.model.output['graphs']['t'].append(self.t)
     
     def record_all(self):
         
-        """ Records all model variables """
+        """ Records all dynamic model variables """
         
         keys = list(self.keys())
         for key in self._int_keys:
@@ -545,63 +520,57 @@ class model(attr_dict):
     # Main simulation functions 
     
     def step(self):
-        """ 
-        Defines the model's actions during each simulation step.
-        Can be overwritten and used to perform the models' main dynamics.
-        """
+        """ Defines the model's actions during each simulation step.
+        Can be overwritten and used to perform the models' main dynamics."""
         pass
     
     def update(self):
-        """ 
-        Defines the model's actions after setup and each simulation step.
-        Can be overwritten and used for the recording of dynamic variables.
-        """
+        """ Defines the model's actions after setup and each simulation step.
+        Can be overwritten and used for the recording of dynamic variables. """
         pass  
     
     def end(self):
-        """ 
-        Defines the model's actions after the last simulation step.
-        Can be overwritten and used for final calculations and the recording of evaluation measures.
-        """
+        """ Defines the model's actions after the last simulation step.
+        Can be overwritten and used to calculate evaluation measures."""
         pass
     
     def stop_if(self):
         """ 
-        Stops the simulation if return value is `False`. 
-        Returns whether time-step 't' has reached the parameter 'steps'.
+        Stops :meth:`model.run` during an active simulation if it returns `False`. 
         Can be overwritten with a custom function.
+        
+        Returns:
+            bool: Whether time-step `t` has reached the parameter `model.p.steps`.
         """
         return self.t >= self.p.steps 
     
     def stop(self):
-        """ Stops the simulation. """
-        self.stopped = True       
+        """ Stops :meth:`model.run` during an active simulation. """
+        self._stop = True       
             
     def run(self,display=True):
         
         """ Executes the simulation of the model.
-        
-        The order of events is as follows:
-        
-        - setup()
-        - update()
-        - while stop_if() returns False and stop() hasn't been called:
-            - t += 1
-            - step()
-            - update()
-        - end()
+        The order of events is as follows.
+        The simulation starts at `t=0` and calls setup() and update().
+        While stop_if() returns False and stop() hasn't been called,
+        the simulation repeatedly calls t+=1, step(), and update().
+        After the last step, end() is called.
         
         Arguments:
             display(bool,optional): Whether to display simulation progress (default True).
+            
+        Returns:
+            data_dict: Recorded model data, also stored in `model.output`.
         """
         
         t0 = datetime.now() # Time-Stamp
         
-        self.stopped = False
+        self._stop = False
         self.setup() 
         self.update()
         
-        while not self.stop_if() and not self.stopped:
+        while not self.stop_if() and not self._stop:
             
             self.t += 1
             self.step()
@@ -609,7 +578,6 @@ class model(attr_dict):
             
             if display: print( f"\rCompleted: {self.t} steps" , end='' ) 
         
-        self.stopped = True
         self.end() 
         self.create_output()
         self.output.log['run_time'] = ct = str( datetime.now() - t0 )
