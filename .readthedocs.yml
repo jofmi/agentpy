@@ -3,5 +3,5 @@ formats: all
 python:
   version: 3
   install:
-    - requirements: doc/requirements.txt
+    - requirements: docs/requirements.txt
   system_packages: true
