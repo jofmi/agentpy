@@ -1,17 +1,20 @@
-# agentpy
+# Agentpy - Agent-based modeling in Python
 
-Agentpy is a framework for the development and analysis of agent-based models with multiple agent types and environments.
+Agentpy is a package for the development and analysis of agent-based models in Python. The packages is still in a very early stage of development. If you need help using Agentpy or want to contribute, feel free to write me via joel.foramitti@uab.cat.
 
-**Demonstration:** https://github.com/JoelForamitti/agentpy_demonstrations
+** Main features: **
 
-**Requirements:**  Python 3, NumPy, scipy, seaborn, matplotlib, pandas, SALib, ipywidgets
+- Creation of custom agent types, environments, and networks.
+- Design of models with complex procedures and multiple environments.
+- Standard operators can be used on whole groups of agents simultaneously.
+- Experiments with repeated iterations, large parameter samples, and distinct scenarios.
+- Output data that can be saved, loaded, and re-arranged for further analysis.
+- Tools for sensitivity analysis, interactive output, animations, and visualization.
+
+**Documentation:** https://agentpy.readthedocs.io
+
+**Tutorials:** https://agentpy.readthedocs.io/tutorials.html
+
+**Requirements:** Python 3, NumPy, scipy, matplotlib, networkx, pandas, SALib, and ipywidgets.
 
 **Installation:** `pip install agentpy`
-
-**Includes:**
-
-- Classes to create different types of agents and environments
-- A model class to define the interaction of agents over time
-- An experiment class to vary parameters over multiple runs
-- An interactive module to vary parameters values interactively
-- An analysis module to visualize outputs and test sensitivities

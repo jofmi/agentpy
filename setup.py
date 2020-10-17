@@ -5,9 +5,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="agentpy", 
-    version="0.0.1",
+    version="0.0.2",
     author="Joël Foramitti",
-    description="A framework for the development and analysis of agent-based models with multiple agent types and environments",
+    description="Agent-based modeling in Python",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/JoelForamitti/agentpy",

@@ -7,395 +7,677 @@ Copyright (c) 2020 Joël Foramitti
 
 """
 
-import numpy as np
 import pandas as pd
+import networkx as nx
+
+import random
+import operator
 import warnings 
 
+from datetime import datetime
+from .output import data_dict
+from .tools import make_list, attr_dict, attr_list, AgentpyError
 
+### Tools for all classes ###
 
-#### Parent Classes ###
-
-class attr_dict(dict):
+def record(self, var_keys, value = None):
     
-    """ Dictionary where keys and attributes are the same """
+    """ Records an objects variables. 
     
-    def __init__(self):
-        super().__init__()
-        self.__dict__ = self
-        
+    Arguments:
+        var_keys(str or list): Names of the variables
+        value(optional): Value to be recorded.
+            If no value is given, keys are used to look up the objects attribute values.
+    """
+    
+    for var_key in make_list(var_keys):
+    
+        # Create empty list if var_key is new (!) should have none until t
+        if var_key not in self.log: self.log[var_key] = [None] * len(self.log['t'])
+
+        if self.model.t not in self.log['t']:
+
+            # Create empty slot for new documented time step
+            for v in self.log.values(): v.append(None)
+
+            # Store time step
+            self.log['t'][-1] = self.model.t
+
+        if value is None: v = self[var_key]
+        else: v = value 
+
+        self.log[var_key][-1] = v     
+    
+def setup(self):
+    """Defines the object's actions after creation.
+    Can be overwritten and used for initialization."""
+    pass  
+
 
     
-### Custom Functions ###
-
-def make_list(element):
-    
-    """ Turns element into a list if it is not of type list or tuple """
-    
-    if not isinstance(element, (list, tuple)): element = [element]
-        
-    return element
-    
-    
-    
-#### Multi-Class Methods ###
-
-def init_vars(self,var_keys,values=0):
-
-    """ Initializes a set of variables """
-    
-    if not isinstance(var_keys, (list, tuple)): var_keys = [var_keys]
-    if not isinstance(values, (list, tuple)): values = [values] * len(var_keys)
-
-    for var_key, value in zip(var_keys,values): self[var_key] = value
-
-
-def init_recs(self,var_keys):
-
-    """ Declares a set of variables to be recorded """
-
-    var_keys = make_list(var_keys)
-
-    for var_key in var_keys: self.log[var_key] = []
-
-
-def record(self):
-    
-    """ Records all variables declared in the log """
-
-    for var_key in self.log.keys():
-        
-        self.log[var_key].append( self[var_key] )    
-    
-    
-
-### Main Classes ###
+### Level 3 - Agent class ###    
 
 class agent(attr_dict):   
     
     """ 
     
-    Agent Class 
+    Individual agent of an agent-based model.
+    This class can be used as a parent class for custom agent types.  
+    Attributes can be accessed as items (see :class:`attr_dict`).
+    Methods of :class:`agent_list` can also be used for individual agents.
     
-    Holds actions (methods) and variables (attributes)
-    Subclass of attr_dict: Variables can also be accessed as dict entries
+    Attributes:
+        model (model): The agents' model 
+        envs (env_dict): The agents' environments
+        p (attr_dict): The models' parameters
+        log (dict): The agents' recorded variables
+        type (str): The agents' type 
+        t0 (int): Time-step of the agent's creation
+        id (int): The agent's unique identifier
+        
+    Arguments:
+        model (model): The agents' model 
+        envs (dict or env_dict, optional): The agents' environments
     
     """
     
+    setup = setup
+    record = record
     
-    # Import Multi-Class Methods
-    init_vars, init_recs, record = init_vars, init_recs, record
-    
-    
-    def __init__(self,model,env_keys=[]):
+    def __init__(self,model,envs=None):
         
         super().__init__() 
         
         self.model = model
-        self.p = model.p      
+        self.p = model.p 
+        self.t0 = model.t 
+        self.id = model._get_id() 
+        
+        self.envs = env_dict(model)
+        if envs: self.envs.update(envs)
+        
+        self.log = {'t':[]} 
         self.type = type(self).__name__
-        self.t0 = model.t # Time of birth
-        self.log = {}     
         
-        self.id = model.get_id()
-        self.env = model.envs[env_keys[0]] # Main environment   
-        self.env_keys = env_keys # All environments
+        self.setup() # Custom initialization
         
-        if 'init' in dir(self): self.init() # Run init() if defined in subclass
-            
-        
-    def remove(self, env_keys=None):
-        
-        """ Removes the agent from 'env_keys' (default None) """
-            
-        if self.env_keys == []: 
-            warnings.warn("Failed to remove agent that is already removed from all environments")
-            return
-
-        if not env_keys: env_keys = self.env_keys # Select all environments by default
-        
-        else: env_keys = make_list(env_keys)
-        
-        for env_key in env_keys: 
-            self.env_keys.remove(env_key)
-            env = self.model.envs[env_key] # Remove from master environment
-            env.agents.remove(self) 
-            env.agents_by_type[self.type].remove(self)
-        
-        # Update main environment
-        if self.env.key in env_keys: 
-            if self.env_keys: self.env = model.envs[self.env_keys[0]] 
-            else: self.env = None
+    def __repr__(self): 
+        s = f"Agent {self.id}"
+        if self.type != 'agent': s += f" ({self.type})"
+        return s
     
+    def __hash__(self):
+        return self.id # Necessary for networkx
     
-class environment(attr_dict):
-    
-    """ 
-    
-    Environment Class 
-    
-    Holds a list of agents, as well as environment-specific actions (methods) and variables (attributes)
-    Subclass of attr_dict: Attributes can also be accessed as dict entries
-    
-    """
-
-    
-    # Import Multi-Class Methods
-    init_vars, init_recs, record = init_vars, init_recs, record
-    
-    
-    def __init__(self,model,env_key):
+    def neighbors(self,key=None):
         
-        super().__init__() 
-        
-        self.model = model
-        self.p = model.p    
-        self.type = type(self).__name__
-        self.t0 = model.t # Time of birth
-        self.log = {}
-        
-        self.key = env_key
-        self.agents = []
-        self.agents_by_type = {}
-    
-        if 'init' in dir(self): self.init()
-          
-    
-    def add_agents( self, n = 0, agent_class = agent, **kwargs ):
-        
-        """ Adds 'n' new agents of class 'agent_class' to this environment """ 
-        
-        # Create new agent category if agent_class is new
-        agent_type = agent_class.__name__
-        if agent_type not in self.agents_by_type: 
-            self.agents_by_type[ agent_type ] = []
-            
-        for i in range(n): 
-
-            new_agent = agent_class( self.model , [self.key] , **kwargs )
-
-            self.agents.append( new_agent )
-            self.agents_by_type[ agent_type ].append( new_agent )
-            self.model.agents.append( new_agent ) # Master environment
-        
-        
-    def action(self, action_key, agent_type = None, random=False ): 
-        
-        """ 
-        
-        Calls an action for selected agents in this environment
+        """ Returns the agents' neighbor's in a network
         
         Arguments:
-            action_key (string): name of the agent action to be called 
-            agent_type (string): specifies the type of agents (default None)
-            random (bool): shuffles the order of agents if True (default False)
-
+            key(str, optional): Name of the network. 
+                At default, the first network in the agents' environments is selected.
         """
-           
-        if agent_type: agents = self.agents_by_type[agent_type]
-        else: agents = self.agents
         
-        if random == True: 
+        # Select network
+        if key == None: 
+            for k,v in self.envs.items():
+                if v.topology == 'network':
+                    key = k
+                    break
+        elif key not in self.envs.keys(): AgentpyError(f"Agent {self.id} has no network '{key}'")
+        if key == None: AgentpyError(f"No network found for agent {self.id}")
+        
+        return agent_list([n for n in self.envs[key].neighbors(self)]) # (!) list comprehension necessary?
+    
+    def remove(self,keys=None):
+        
+        """ Removes the agent from environments or the model 
+        
+        Arguments:
+            keys(str or list, optional): Environments from which the agent should be removed.
+                If no keys are given, agent is removed from the model completely.
+        """
+        
+        if keys is None: 
+            envs = self.envs # Select all environments by default
+            self.model.agents.remove(self) # Delete from model    
+        else: 
+            envs = { k:v for k,v in self.envs if k in keys}
             
-            agents = list( agents ) # Shallow Copy
-            np.random.shuffle( agents )
-            
-        for agent in agents: getattr( agent, action_key )()   
+        for key,env in envs.items(): 
+            env.agents.remove(self)
+            del self.envs[key]
 
             
-    def count(self, agent_type):
+class agent_list(attr_list):
+    
+    """ List of agents. 
+    Attribute access (e.g. `agent_list.x`) is forwarded to each agent and returns a list of attribute values.
+    This also works for method calls (e.g. `agent_list.x()`) , which returns a list of method return values.
+    Assignments of attributes (e.g. `agent_list.x = 1`)  are forwarded to each agent in the list.
+    Basic operators can also be used (e.g. `agent_list.x += 1` or `agent_list.x = agent_list.y * 2`).
+    Comparison operators (e.g. `agent_list.x == 1`)  return a new agent_list with agents that fulfill the condition.
+    See :func:`attr_list` for more information.
+    
+    Arguments:
+        agents(agent or list, optional): Initial list entries
+    """
+    
+    def __init__(self, agents = None):
+        super().__init__()
+        if agents: self.extend( make_list(agents) )
+    
+    def __repr__(self): 
+        return f"<list of {len(self)} agents>"
+
+    def do(self, method, *args, order=None, return_value=False, **kwargs): 
         
-        """ Returns number of agents of type 'agent_type' in this environment """
+        """ 
+        Calls a method for all agents in the list
         
-        return len( self.agents_by_type[agent_type] )
-    
-    
-    def select_random( self, n=1 , agent_type=None ):
-    
-        """ Select 'n' (default 1) random agents of type 'agent_type' (default None) """
+        Arguments:
+            method (str): Name of the method
+            order (str, optional): If 'random', order in which agents are called will be shuffled
+            *args: Will be forwarded to the agents method
+            **kwargs: Will be forwarded to the agents method
+        """
         
-        if agent_type: agents = self.agents_by_type[agent_type]
-        else: agents = self.agents
+        agents = self
         
-        if agents == []: return []  
-        elif n == 1: return np.random.choice(agents,n)[0] # Return element, not list
-        else: return np.random.choice(agents,n)
-    
-    
-    def select_id( self, agent_ids ):
+        if order == 'random': 
+            agents = list( self ) # Copy
+            random.shuffle( agents )
                 
-        """ Select agents with id in agent_ids """
+        for agent in agents: 
+            getattr( agent, method )(*args,**kwargs)  
+    
+    def select(self,var_key,value=True,relation="=="):
         
-        return [ a for a in self.agents if a.id in make_list(agent_ids) ]                    
-       
+        """ Returns a new `agent_list` of selected agents.
+        
+        Arguments:
+            var_key (str): Variable for selection
+            value (optional): Value for selection, default `True`
+            relation (str, optional): Relation between variable and value
+                Options are '=='(default),'!=','<','<=','>','>=' """
+        
+        relations = {'==':operator.eq,'!=':operator.ne,
+                     '<':operator.lt,'<=':operator.le,
+                     '>':operator.gt,'>=':operator.ge}
+        
+        return agent_list([a for a in self if relations[relation](a[var_key],value)])
     
+    def assign(self,var_key,value):
+        
+        """ Assigns value to var_key for each agent."""
+        
+        for agent in self: setattr(agent,var_key,value)
+                        
+    def of_type(self,agent_type):
+        
+        """ Returns a new `agent_list` with agents of agent_type """
+                        
+        return self.select('type',agent_type)
     
-class model():
+    def random(self,n=1):
+        
+        """ Returns a new `agent_list` with n random agents """
+        
+        return agent_list(random.sample(self,n))
+           
     
+### Level 2 - Environment class ###        
+    
+def add_agents(self, agents, agent_class=agent, **kwargs):
+        
+    """ 
+    Adds agents to the environment.
+    
+    Arguments:
+        agents(int or agent_list): Number of new agents or list of existing agents.
+        agent_class(class): Type of agent to be created if int is passed for agents.
     """ 
     
-    Model Class 
+    # (!) what if single agent is passed? 
+
+    if type(agents) == agent_list: # (!) or normal iterable with agents?
+
+        new_agents = agents
+        # (!) need to add new environment to agent
+        
+    elif type(agents) == int:
+        
+        new_agents = agent_list()
+        
+        for i in range(agents): 
+            new_agents.append(agent_class(self.model, {self.key:self}, **kwargs))
+                 
+    else: raise ValueError("agents must be agent_list or int") # (!) improve error
+        
+    # Add agents to this env
+    self.agents.extend( new_agents )
+
+    # Add agent to master list
+    if self != self.model: 
+            self.model.agents.extend( new_agents )
+
+    return new_agents
     
-    Holds model parameters, a dictionary of the model environments, and a list of all agents
-    The method run() performs the simulation, which generates the dataframes 'output' and 'measures'
+def _env_init(self,model,key):
+    
+    attr_dict.__init__(self)
+    self.model = model
+    self.agents = agent_list()
+    self.p = model.p          
+    self.key = key
+    self.type = type(self).__name__
+    self.t0 = model.t 
+    self.log = {'t':[]}
+
+class environment(attr_dict):
+    
+    """ Standard environment that contains agents without a topology.
+    This class can be used as a parent class for custom environment types. 
+    Attributes can be accessed as items (see :class:`attr_dict`).
+    
+    Attributes:
+        model (model): The environments' model 
+        agents (agent_list): The environments' agents
+        p (attr_dict): The models' parameters
+        type (str): The environments' type 
+        key(str): The environments' name
+        topology(str): Topology of the environment
+        t0 (int): Time-step of the environments' creation
+        log (dict): The environments' recorded variables
+        
+    Arguments:
+        model (model): The environments' model 
+        key (dict or env_dict, optional):  The environments' name
     
     """
- 
+    
+    add_agents = add_agents
+    record = record
+    setup = setup
+    
+    def __init__(self,model,key):
+        
+        _env_init(self,model,key)
+        self.topology = None
+        self.setup()
+        
+    def __repr__(self): 
+        return f"<environment '{self.key}' of type '{self.type}'>"
+        
+        
+class network(environment): 
+    
+    """ Network environment that contains agents with a graph topology.
+    Unknown attribute and method calls are forwarded to the graph.
+    Inherits attributes and methods from :class:`environment`.
+    
+    Attributes:
+        graph(networkx.Graph): Networkx Graph instance
+    
+    Arguments:
+        model (model): The environments' model 
+        key (dict or env_dict, optional):  The environments' name
+        graph(networkx.Graph): The environments' graph
+    """
+  
+    def __init__(self,model,env_key,graph=None):
+          
+        _env_init(self,model,env_key)
+        self.topology = 'network'
+        if graph: self.graph = graph
+        else: self.graph = nx.Graph()
+            
+        self.setup()
+        
+    def add_agents(self, agents, agent_class=agent, map_to_nodes=False, **kwargs):
+        
+        """ 
+        Adds agents to the network environment.
 
-    def __init__(self,parameters,run_id=0,scenario='default'):
+        Arguments:
+            agents(int or agent_list): Number of new agents or list of existing agents.
+            agent_class(class): Type of agent to be created if int is passed for agents.
+            map_to_nodes(bool,optional): Map new agents to each node of the graph (default False).
+                Should be used if a graph with empty nodes has been passed at network creation.
+        """         
+
+        new_agents = add_agents(self,agents,agent_class,**kwargs)
         
-        self.agents = []
-        self.envs = attr_dict() 
+        if map_to_nodes:
+            
+            # Map each agent to a node of the graph
+            
+            if len(new_agents) != len(self.graph.nodes):
+                raise ValueError(f"Number of agents ({len(new_agents)}) does not match number of nodes ({len(self.graph.nodes)})")
+                
+            mapping = { i : agent for i,agent in enumerate(new_agents) }
+            nx.relabel_nodes( self.graph , mapping = mapping, copy=False )
+            
+        else:
+            # Add agents to graph
+            for agent in new_agents:
+                self.graph.add_node( agent ) 
+        
+    def __getattr__(self, method_name):
+        
+        # Forward unknown method call to self.graph
+        
+        def method(*args, **kwargs):
+            return getattr(self.graph, method_name)(*args, **kwargs)
+        
+        try: return method
+        except AttributeError:
+            raise AttributeError(f"module {__name__} has no attribute {name}")
+        
+class env_dict(dict):  
+    
+    """ Dictionary for environments
+    
+    Attributes:
+        model(model): The current model instance
+    """
+
+    def __init__(self,model):
+        super().__init__()
+        self.model = model    
+            
+    def of_type(self,env_type):
+        
+        """ Returns an env_dict with environments of `env_type`"""
+        
+        new_dict = env_dict(self.model)
+        selection = {k : v for k, v in self.items() if v.type == env_type}
+        new_dict.update(selection)
+        return new_dict
+    
+    def do(self,action):
+        
+        """ Calls `action` for all environments """
+        
+        for env in self.values(): getattr( env, action )() 
+    
+    def add_agents(self,*args,**kwargs):
+        
+        """ Adds agents to all environments in self """
+        
+        # Depreciated (!)
+        
+        new_agents = agent_list(self.model)
+        new_agents.add(*args,**kwargs)
+        
+        for env in self.values():
+            env.agents.add(new_agents)
+
+
+### Level 1 - Model Class ###
+    
+class model(attr_dict):
+    
+    """ An agent-based model.
+    This class can be used as a parent class for custom models. 
+    Attributes can be accessed as items (see :class:`attr_dict`).
+    Environments can be called as attributes by their keys.
+    
+    Attributes:
+        model(model): Reference to self
+        envs(env_dict): The models' environments
+        agents(agent_list): The models' agents
+        p(attr_dict): The models' parameters
+        type(str): The models' name
+        t (int): Current time-step of the model
+        log (dict): The models' recorded variables
+        output(data_dict): Simulation output data
+        
+    Arguments:
+        parameters(dict,optional): Model parameters
+        run_id(int,optional): Number of current run
+        scenario(str,optional): Current scenario
+    """
+    
+    setup = setup
+    record = record
+    add_agents = add_agents
+    
+    def __init__(self,
+                 parameters = None,
+                 run_id = None,
+                 scenario = None
+                ):
+        
+        super().__init__() 
+        
+        self.model = self
+        self.key = 'model'
+        self.envs = env_dict(self) 
+        self.agents = agent_list()
         self.p = attr_dict() 
-        self.p.update(parameters)
+        if parameters: self.p.update(parameters)
         
+        self.type = type(self).__name__
         self.run_id = run_id
         self.scenario = scenario
         
+        # Counters
         self.t = 0 
-        self.agent_id_counter = 0  
-  
-        self.log = {}
-        self.output = None
-        self.measures = None
+        self._id_counter = 0  
         
+        # Recording
+        self.log = {'t':[]}
+        self.measure_log = {}
+        self.output = data_dict()
+        self.output.log['name'] = self.type
+        self.output.log['time_stamp'] = str(datetime.now())
         
-    def get_id( self ):
+        # List of non-variable keys
+        self._int_keys = list(self.keys())
+ 
+    def _get_id(self):
+        
+        self._id_counter += 1 
+        return self._id_counter - 1   
     
-        """ Returns unique id for a new agent """
-        
-        agent_id = self.agent_id_counter
-        self.agent_id_counter += 1 
-        return agent_id
-    
-    
-    def add_environment( self, env_key, env_class=environment, return_env = True, **kwargs ):
-        
-        """ Creates and returns a new environment of class 'env_class' with the name 'env_key' """
-        
-        self.envs[env_key] = env_class(self,env_key,**kwargs)
-        return self.envs[env_key]
-    
-    
-    def add_agents( self, n, agent_class=agent, env_keys=[], **kwargs ):
-        
-        """ Adds 'n' new agents of class 'agent_class' to environments specified in 'env_keys' """ 
-        
-        env_keys = make_list(env_keys)
-        
-        for i in range(n): 
+    def __getattr__(self, name): 
             
-            new_agent = agent_class( self, list(env_keys), **kwargs) # Shallow copy of env_keys
-            self.agents.append( new_agent ) # Add agent to master environment
-            
-            for env_key in env_keys:
-                
-                env = self.envs[env_key]
-                
-                # Create new agent category if agent_class is new
-                if agent_class.__name__ not in env.agents_by_type: 
-                    env.agents_by_type[ agent_class.__name__ ] = []
+        try: # Access environments
+            return self.envs[name]  
+        except KeyError:
+            raise AttributeError(f"Model '{self.type}' has no attribute or environment '{name}'") 
+    
+    # Creation & Destruction
 
-                env.agents.append( new_agent )
-                env.agents_by_type[ agent_type ].append( new_agent )
+    def add_env(self, env_key, env_class=environment, **kwargs):
+
+        """ Creates and returns a new environment """
+
+        self.envs[env_key] = env_class(self.model, env_key, **kwargs) 
+        return self.envs[env_key] 
     
+    def add_envs(self,env_keys,*args,**kwargs):
+        for env_key in env_keys: self.add_env(env_key,*args,**kwargs)
+                    
+    def add_network(self, env_key, graph = None, env_class=network , **kwargs):
+        self.add_env(env_key, env_class=network, graph=graph, **kwargs)
+            
+    def add_networks(self,env_keys,*args,**kwargs):      
+        for env_key in env_keys: self.add_network(env_key,*args,**kwargs)
+            
     
-    def action(self, action_key, agent_type = None, env_keys = None, random = False):
+    # Recording functions
+            
+    def measure(self, measure_key, value):
         
-        """ Calls 'action' for agents in selected environments """
+        """ Records an evaluation measure """
         
-        if not env_keys: env_keys = self.envs
-        env_keys = make_list(env_keys)
+        self.measure_log[measure_key] = [value]
         
-        for env_key in env_keys:
-            self.envs[env_key].action(action_key,agent_type,random) 
+    def record_graph(self, graph_keys):  
+        
+        """ Records a network """ # (!) unfinished
+        
+        for graph_key in make_list(graph_keys):
+            
+            G = self.envs[graph_key].graph
+            H = nx.relabel_nodes(G, lambda x: x.id)
+            # (!) graph attributes? H.graph.t = self.t
+            if 'graphs' not in self.model.output.keys():
+                self.model.output['graphs'] = [] #{'t':[]}
+            self.model.output['graphs'].append(H)
+            #if graph_key not in self.model.output['graphs'].keys():
+            #    self.model.output['graphs'][graph_key] = []
+            #self.model.output['graphs'][graph_key].append(H)
+            #self.model.output['graphs']['t'].append(self.t)
     
+    def record_all(self):
+        
+        """ Records all model variables """
+        
+        keys = list(self.keys())
+        for key in self._int_keys:
+            keys.remove(key)
+        
+        self.record(keys)
+    
+    # Main simulation functions 
     
     def step(self):
-        
-        """ This method has to be over-written to define the model's action per simulation step """
-        
-        warnings.warn(f"Method step() is undefined")
-        
-        
-    def evaluation(self):
-        
-        """ This method can be over-written to record measures at the end of the simulation """
-        
+        """ 
+        Defines the model's actions during each simulation step.
+        Can be overwritten and used to perform the models' main dynamics.
+        """
         pass
+    
+    def update(self):
+        """ 
+        Defines the model's actions after setup and each simulation step.
+        Can be overwritten and used for the recording of dynamic variables.
+        """
+        pass  
+    
+    def end(self):
+        """ 
+        Defines the model's actions after the last simulation step.
+        Can be overwritten and used for final calculations and the recording of evaluation measures.
+        """
+        pass
+    
+    def stop_if(self):
+        """ 
+        Stops the simulation if return value is `False`. 
+        Returns whether time-step 't' has reached the parameter 'steps'.
+        Can be overwritten with a custom function.
+        """
+        return self.t >= self.p.steps 
+    
+    def stop(self):
+        """ Stops the simulation. """
+        self.stopped = True       
+            
+    def run(self,display=True):
         
+        """ Executes the simulation of the model.
         
-    def run(self):
+        The order of events is as follows:
         
-        """ Performs the agent-based simulation """
+        - setup()
+        - update()
+        - while stop_if() returns False and stop() hasn't been called:
+            - t += 1
+            - step()
+            - update()
+        - end()
         
-        if 'init' in dir(self): self.init() # Initialize model
+        Arguments:
+            display(bool,optional): Whether to display simulation progress (default True).
+        """
         
-        self.record() # Record round zero
+        t0 = datetime.now() # Time-Stamp
         
-        for i in range(self.p.steps):
+        self.stopped = False
+        self.setup() 
+        self.update()
+        
+        while not self.stop_if() and not self.stopped:
             
             self.t += 1
             self.step()
-            self.record()
+            self.update()
+            
+            if display: print( f"\rCompleted: {self.t} steps" , end='' ) 
         
-        self.evaluation()
-        
+        self.stopped = True
+        self.end() 
         self.create_output()
-           
+        self.output.log['run_time'] = ct = str( datetime.now() - t0 )
+        self.output.log['steps'] = self.t         
+        
+        if display: print(f"\nRun time: {ct}\nSimulation finished")
+        
         return self.output
     
-    
-    def record(self):
-        
-        """ Records variables declared in the logs of all agents and environments """
-        
-        for env in self.envs.values(): env.record()
-        for agent in self.agents: agent.record()
-            
-            
-    def rec_measure(self, measure_key, value):
-        
-        """ Records an evaluation measure with name 'measure_key' and 'value' """
-        
-        self.log[measure_key] = value
- 
-
     def create_output(self):
         
-        """ Generates the dataframes 'output' and 'measures' """
-        
-        # PART 1 - Dynamic Output
-        
-        output_list = []
-        
-        for env in self.envs.values():
+        """ Generates an 'output' dictionary out of object logs """
+    
+        def create_df(obj,c2):
             
-            for var_key, values in env.log.items():
-                
-                for t,value in enumerate(values, start = env.t0 ):
-                    
-                    output_list.append( [self.run_id, self.scenario, var_key, env.key, np.NaN , t , value] )
-                    
-            for agent in env.agents:
-                
-                for var_key, values in agent.log.items():
-                
-                    for t,value in enumerate(values, start = agent.t0 ):
-                    
-                        output_list.append( [self.run_id, self.scenario, var_key, env.key, agent.id , t , value] ) 
-        
-        # Convert output_list to dataframe. Format: run_id, scenario, var_key, env_key, agent_id, time, value
-        self.output = pd.DataFrame(output_list, columns = ['run_id','scenario','var_key','env_key','agent_id','t','value'] ) 
-
-        # PART 2 - Evaluation Measures
-        
-        measure_list = []        
+            df = pd.DataFrame(obj.log)
+            df['obj_id'] = obj[c2] # obj_id
+            return df
             
-        for measure_key, value in self.log.items():
-
-            measure_list.append( [self.run_id, self.scenario, measure_key, value] )
+        def output_from_obj_list(self,obj_list,c1,c2,columns):
+            
+            """ Create output for agent_list or env_dict """
+            keys = []
+            obj_types = {}
+            
+            for obj in obj_list:
+                if obj.log != {'t':[]}:
+                    
+                    # Category (obj_type)
+                    obj_type = f'{obj.type}_vars'
+                    obj.log['obj_id'] = [obj[c2]] * len(obj.log['t'])
+                    
+                    if obj_type not in obj_types.keys():
+                        obj_types[obj_type] = {}
+                    
+                    for k,v in obj.log.items():
+                        if k not in obj_types[obj_type]:
+                            obj_types[obj_type][k] = []
+                        obj_types[obj_type][k].extend(v)
+                    
+            # Once per type
+            for obj_type, log in obj_types.items():
+                df = pd.DataFrame( log )
+                for k,v in columns.items(): df[k]=v
+                df = df.set_index(list(columns.keys())+['obj_id','t'])
+                self.output[obj_type] =  df 
         
-        # Convert measure_list to dataframe. Format: run_id, scenario, measure_key, value
-        self.measures = pd.DataFrame(measure_list, columns = ['run_id','scenario','measure_key','value'] )
+        # Additional columns 
+        columns = {}
+        if self.run_id is not None: columns['run_id'] = self.run_id
+        if self.scenario is not None: columns['scenario'] = self.scenario
         
+        # Create object var output
+        output_from_obj_list(self, self.agents, 'agent', 'id', columns)
+        output_from_obj_list(self, self.envs.values(), 'env', 'key', columns)
         
+        # Create model var output
+        if self.log != {'t':[]}: 
+            df = pd.DataFrame(self.log)
+            df['obj_id'] = 'model'
+            for k,v in columns.items(): df[k]=v
+            df = df.set_index(list(columns.keys())+['obj_id','t'])
+            self.output['model_vars'] = df
+        
+        # Create measure output
+        if self.measure_log != {}:   
+            d = self.measure_log
+            for key,value in columns.items(): d[key] = value
+            df = pd.DataFrame(d)
+            if columns: df = df.set_index(list(columns.keys()))
+            self.output['measures'] = df
