@@ -1,2 +1,9 @@
 ipykernel
 nbsphinx
+numpy
+scipy
+matplotlib
+networkx
+pandas
+SALib
+ipywidgets
