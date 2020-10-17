@@ -40,6 +40,9 @@ extensions = [
 	'nbsphinx' # Support jupyter notebooks
 ]
 
+# Define master file
+master_doc = 'index'
+
 # Display class attributes as variables
 napoleon_use_ivar = True
 
