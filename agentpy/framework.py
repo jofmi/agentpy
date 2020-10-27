@@ -10,13 +10,14 @@ Copyright (c) 2020 Joël Foramitti
 import pandas as pd
 import networkx as nx
 
-import random
+import random as rd
 import operator
 import warnings 
 
 from datetime import datetime
+from itertools import product
 from .output import data_dict
-from .tools import make_list, attr_dict, attr_list, AgentpyError
+from .tools import make_list, attr_dict, obj_list, nested_list, AgentpyError
 
 ### Tools for all classes ###
 
@@ -27,12 +28,14 @@ def record(self, var_keys, value = None):
     Arguments:
         var_keys(str or list): Names of the variables
         value(optional): Value to be recorded.
-            If no value is given, keys are used to look up the objects attribute values.
+            If no value is given, var_keys have to refer to existing object attributes.
     """
     
     for var_key in make_list(var_keys):
     
-        # Create empty list if var_key is new 
+        # Create empty lists
+        if 't' not in self.log: 
+            self.log['t'] = []
         if var_key not in self.log: 
             self.log[var_key] = [None] * len(self.log['t'])
 
@@ -95,7 +98,7 @@ class agent(attr_dict):
         self.envs = env_dict(model)
         if envs: self.envs.update(envs)
         
-        self.log = {'t':[]} 
+        self.log = {} 
         self.type = type(self).__name__
         
         self.setup() # Custom initialization
@@ -107,6 +110,17 @@ class agent(attr_dict):
     
     def __hash__(self):
         return self.id # Necessary for networkx
+    
+    def pos(self,key=None):
+        
+        # Select network
+        if key == None: 
+            for k,v in self.envs.items():
+                if v.topology == 'grid':
+                    key = k
+                    break      
+        
+        return self.envs[key].pos[self]
     
     def neighbors(self,key=None):
         
@@ -120,13 +134,13 @@ class agent(attr_dict):
         # Select network
         if key == None: 
             for k,v in self.envs.items():
-                if v.topology == 'network':
+                if v.topology == 'network' or v.topology == 'grid':
                     key = k
-                    break
+                    break                    
         elif key not in self.envs.keys(): AgentpyError(f"Agent {self.id} has no network '{key}'")
-        if key == None: AgentpyError(f"No network found for agent {self.id}")
+        if key == None: AgentpyError(f"No network found for agent {self.id}") # (!) Faulty logic
         
-        return agent_list([n for n in self.envs[key].neighbors(self)]) 
+        return agent_list(self.envs[key].neighbors(self))
     
     def leave(self,keys=None):
         
@@ -148,18 +162,19 @@ class agent(attr_dict):
             del self.envs[key]
 
             
-class agent_list(attr_list):
+class agent_list(obj_list):
     
     """ List of agents. 
+    
     Attribute access (e.g. `agent_list.x`) is forwarded to each agent and returns a list of attribute values.
     This also works for method calls (e.g. `agent_list.x()`) , which returns a list of method return values.
     Assignments of attributes (e.g. `agent_list.x = 1`)  are forwarded to each agent in the list.
     Basic operators can also be used (e.g. `agent_list.x += 1` or `agent_list.x = agent_list.y * 2`).
     Comparison operators (e.g. `agent_list.x == 1`)  return a new agent_list with agents that fulfill the condition.
-    See :func:`attr_list` for more information.
+    See :func:`obj_list` for more information.
     
     Arguments:
-        agents(agent or list, optional): Initial list entries
+        agents(agent or list of agent, optional): Initial agents of the list
     """
     
     def __init__(self, agents = None):
@@ -167,17 +182,17 @@ class agent_list(attr_list):
         if agents: self.extend( make_list(agents) )
     
     def __repr__(self): 
-        return f"<list of {len(self)} agents>"
+        return f"<agent_list with {len(self)} agents>"
 
-    def do(self, method, *args, order=None, return_value=False, **kwargs): 
+    def do(self, method, *args, shuffle = False, **kwargs): 
         
         """ 
-        Calls a method for all agents in the list
+        Calls ``method(*args,**kwargs)`` for every agent.
         
         Arguments:
             method (str): Name of the method
-            order (str, optional): If 'random', order in which agents are called will be shuffled
             *args: Will be forwarded to the agents method
+            random (bool, optional): Whether to shuffle order in which agents are called (default False)
             **kwargs: Will be forwarded to the agents method
         """
         
@@ -185,20 +200,20 @@ class agent_list(attr_list):
         
         if order == 'random': 
             agents = list( self ) # Copy
-            random.shuffle( agents )
+            rd.shuffle( agents )
                 
         for agent in agents: 
             getattr( agent, method )(*args,**kwargs)  
     
     def select(self,var_key,value=True,relation="=="):
         
-        """ Returns a new `agent_list` of selected agents.
+        """ Returns a new :class:`agent_list` of selected agents.
         
         Arguments:
             var_key (str): Variable for selection
-            value (optional): Value for selection, default `True`
-            relation (str, optional): Relation between variable and value
-                Options are '=='(default),'!=','<','<=','>','>=' """
+            value (optional): Value for selection (default True)
+            relation (str, optional): Relation between variable and value (default '==').
+                Options are '==','!=','<','<=','>','>=' """
         
         relations = {'==':operator.eq,'!=':operator.ne,
                      '<':operator.lt,'<=':operator.le,
@@ -208,21 +223,21 @@ class agent_list(attr_list):
     
     def assign(self,var_key,value):
         
-        """ Assigns value to var_key for each agent."""
+        """ Assigns ``value`` to ``var_key`` for each agent."""
         
         for agent in self: setattr(agent,var_key,value)
                         
     def of_type(self,agent_type):
         
-        """ Returns a new `agent_list` with agents of agent_type """
+        """ Returns a new :class:`agent_list` with agents of type ``agent_type``. """
                         
         return self.select('type',agent_type)
     
     def random(self,n=1):
         
-        """ Returns a new `agent_list` with n random agents """
+        """ Returns a new :class:`agent_list` with ``n`` random agents (default 1)."""
         
-        return agent_list(random.sample(self,n))
+        return agent_list(rd.sample(self,n))
            
     
 ### Level 2 - Environment class ###        
@@ -271,7 +286,7 @@ def _env_init(self,model,key):
     self.key = key
     self.type = type(self).__name__
     self.t0 = model.t 
-    self.log = {'t':[]}
+    self.log = {}
 
 class environment(attr_dict):
     
@@ -359,7 +374,13 @@ class network(environment):
             # Add agents to graph as new nodes
             for agent in new_agents:
                 self.graph.add_node( agent ) 
+    
+    def neighbors(self,agent):
         
+        """ Returns :class:`agent_list` of agents that are connected to the passed agent. """
+        
+        return agent_list([n for n in self.graph.neighbors(agent)])
+    
     def __getattr__(self, method_name):
         
         # Forward unknown method call to self.graph
@@ -370,7 +391,129 @@ class network(environment):
         try: return method
         except AttributeError:
             raise AttributeError(f"module {__name__} has no attribute {name}")
+
+class grid(environment): 
+    
+    """ Grid environment that contains agents with a spatial topology.
+    Inherits attributes and methods from :class:`environment`.
+    
+    Attributes:
+        pos(dict): Agent positions
+    
+    Arguments:
+        model (model): The environments' model 
+        key (dict or env_dict, optional):  The environments' name
+        dim(int, optional): Number of dimensions (default 2).
+        size(int or tuple): Size of the grid.
+            If int, the same length is assigned to each dimension.
+            If tuple, one int item is required per dimension.
+    """
+  
+    def __init__(self,model,env_key,shape):
+          
+        _env_init(self,model,env_key)
         
+        self.topology = 'grid'
+        self.grid = nested_list( make_list(shape) , lambda:agent_list() )
+        self.shape = shape
+        self.pos = {}
+            
+        self.setup()
+        
+    def neighbors(self,agent,shape='diamond'):
+        
+        """ Return agent neighbors """
+        
+        if shape == 'diamond': return self._get_neighbors4(self.pos[agent],self.grid) 
+        elif shape == 'square': return self._get_neighbors8(self.pos[agent],self.grid) 
+    
+    def area(self,area):
+        
+        return agent_list( self._get_area(area,self.grid) )
+    
+    def _get_area(self,area,grid):
+        
+        """ Return agents in area of style: [(x_min,x_max),(y_min,y_max),...]"""
+        
+        subgrid = grid[area[0][0]:area[0][1]+1]
+        
+        if isinstance(subgrid[0],agent_list): # Detect last row (must have agent_lists)
+            return [y for x in subgrid for y in x] # Flatten list of agent_lists to list of agents
+        
+        objects = []
+        for row in subgrid: 
+            objects.extend( self._get_area(area[1:],row) ) 
+            
+        return objects
+    
+    def _get_neighbors4(self,pos,grid,dist=1):
+        
+        """ Return agents in diamond-shaped area around pos """
+        
+        subgrid = grid[max(0,pos[0]-dist):pos[0]+dist+1]
+        
+        if len(pos) == 1: 
+            return [y for x in subgrid for y in x] # flatten list
+        
+        objects = []
+        for row,dist in zip(subgrid,[0,1,0]): 
+            objects.extend( self._get_neighbors4(pos[1:],row,dist) )
+            
+        return objects    
+    
+    def _get_neighbors8(self,pos,grid):
+        
+        subgrid = grid[max(0,pos[0]-1):pos[0]+2]
+        
+        if len(pos) == 1: 
+            return [y for x in subgrid for y in x] # flatten list
+        
+        objects = []
+        for row in subgrid: 
+            objects.extend( self._get_neighbors8(pos[1:],row) )
+            
+        return objects
+    
+    def _get_pos(self,grid,pos):
+        if len(pos) == 1: return grid[pos[0]]
+        return self._get_pos(grid[pos[0]],pos[1:]) 
+    
+    def get_pos(self,pos):
+        return self._get_pos(self.grid,pos)
+    
+    def change_pos(self,agent,new_position):
+        self.get_pos(self.position[agent],self.grid).drop(agent) # Remove from old position
+        self.get_pos(new_position,self.grid).append(agent) # Add to new position
+        self.pos[agent] = position # Log Position
+    
+    def add_agents(self, agents, agent_class=agent, positions=None, random = False, map_to_grid=False, **kwargs):
+        
+        """ Adds agents to the grid environment."""         
+        
+        # (!) unfinished
+        
+        # Standard adding
+        new_agents = add_agents(self,agents,agent_class,**kwargs)
+        
+        # Extra grid features
+        if map_to_grid:
+            pass #(!)
+        elif positions:
+            for agent,pos in zip(new_agents,positions):
+                self.pos[agent] = pos
+        elif random:
+            positions = list(product(*[ range(i) for i in self.shape ]))
+            sample = rd.sample(positions,agents)
+            
+            for agent,pos in zip(new_agents,sample):
+                self.pos[agent] = pos  # Log Position
+                self.get_pos(pos).append(agent) # Add to new position
+
+        else:
+            for agent in new_agents:
+                self.pos[agent] = [0] * self.dim
+            
+            
 class env_dict(dict):  
     
     """ Dictionary for environments
@@ -383,10 +526,14 @@ class env_dict(dict):
         
         super().__init__()
         self.model = model    
-            
+    
+    def __repr__(self):
+        
+        return f"<env_dict with {len(self.keys())} environments>"
+    
     def of_type(self,env_type):
         
-        """ Returns an env_dict with selected environments """
+        """ Returns :class:`env_dict` of selected environments. """
         
         new_dict = env_dict(self.model)
         selection = {k : v for k, v in self.items() if v.type == env_type}
@@ -395,13 +542,13 @@ class env_dict(dict):
     
     def do(self,method,*args,**kwargs):
         
-        """ Calls method for all environments """
+        """ Calls ``method(*args,**kwargs)`` for all environments. """
         
         for env in self.values(): getattr(env, method)(*args, **kwargs) 
     
     def add_agents(self,*args,**kwargs):
         
-        """ Adds agents to all environments """
+        """ Calls :meth:`environment.add_agents` with `*args,**kwargs` and forwards new agents to all environments """
         
         for i,env in enumerate(self.values()):
             if i == 0: new_agents = env.add_agents(*args,**kwargs)
@@ -451,6 +598,7 @@ class model(attr_dict):
         self.agents = agent_list()
         self.p = attr_dict() 
         if parameters: self.p.update(parameters)
+        if 'steps' in parameters: self.stop_if = self.stop_if_steps
         
         self.type = type(self).__name__
         self.run_id = run_id
@@ -461,9 +609,10 @@ class model(attr_dict):
         self._id_counter = 0  
         
         # Recording
-        self.log = {'t':[]}
+        self.log = {}
         self.measure_log = {}
         self.output = data_dict()
+        self.output.log = {}
         self.output.log['name'] = self.type
         self.output.log['time_stamp'] = str(datetime.now())
         
@@ -474,6 +623,21 @@ class model(attr_dict):
         
         self._id_counter += 1 
         return self._id_counter - 1   
+    
+    def __repr__(self):
+        
+        rep = "Agent-based model {"
+        ignore = ['model','log','measure_log','stop_if','key','output']
+        
+        for k,v in self.items():
+            
+            if k not in ignore and not k[0] == '_':
+                rep += f"\n'{k}': {v}"
+            
+            if k == 'output':
+                rep += f"\n'{k}': data_dict with {len(v.keys())} entries"
+
+        return rep + ' }'
     
     def __getattr__(self, name): 
             
@@ -496,7 +660,14 @@ class model(attr_dict):
         """ Creates a new network environment """
         
         for env_key in make_list(env_key):
-            self.add_env(env_key, env_class=network, graph=graph, **kwargs)
+            self.add_env(env_key, env_class=env_class, graph=graph, **kwargs)
+            
+    def add_grid(self, env_key, env_class=grid , **kwargs):
+        
+        """ Creates a new spacial grid environment """
+        
+        for env_key in make_list(env_key):
+            self.add_env(env_key, env_class=env_class, **kwargs)
 
     
     # Recording functions
@@ -536,9 +707,13 @@ class model(attr_dict):
     
     def stop_if(self):
         """ 
-        Stops :meth:`model.run` during an active simulation if it returns `False`. 
+        Stops :meth:`model.run` during an active simulation if it returns `True`. 
         Can be overwritten with a custom function.
-        
+        """
+        return False
+    
+    def stop_if_steps(self):
+        """ 
         Returns:
             bool: Whether time-step `t` has reached the parameter `model.p.steps`.
         """
@@ -591,61 +766,70 @@ class model(attr_dict):
         
         """ Generates an 'output' dictionary out of object logs """
     
-        def create_df(obj,c2):
-            
-            df = pd.DataFrame(obj.log)
-            df['obj_id'] = obj[c2] # obj_id
-            return df
-            
         def output_from_obj_list(self,obj_list,c1,c2,columns):
             
-            """ Create output for agent_list or env_dict """
-            keys = []
+            # Aggregate logs per object type
             obj_types = {}
-            
             for obj in obj_list:
-                if obj.log != {'t':[]}:
+                
+                if obj.log: # Check for variables
                     
-                    # Category (obj_type)
-                    obj_type = f'{obj.type}_vars'
+                    # Add id to object log
                     obj.log['obj_id'] = [obj[c2]] * len(obj.log['t'])
                     
-                    if obj_type not in obj_types.keys():
-                        obj_types[obj_type] = {}
+                    # Initiate object type if new
+                    if obj.type not in obj_types.keys():
+                        obj_types[obj.type] = {}
                     
+                    # Add object log to aggr. log
                     for k,v in obj.log.items():
-                        if k not in obj_types[obj_type]:
-                            obj_types[obj_type][k] = []
-                        obj_types[obj_type][k].extend(v)
-                    
-            # Once per type
+                        if k not in obj_types[obj.type]:
+                            obj_types[obj.type][k] = []
+                        obj_types[obj.type][k].extend(v)
+            
+            # Transform logs into dataframes
             for obj_type, log in obj_types.items():
                 df = pd.DataFrame( log )
-                for k,v in columns.items(): df[k]=v
+                for k,v in columns.items(): df[k]=v # Set additional index columns
                 df = df.set_index(list(columns.keys())+['obj_id','t'])
-                self.output[obj_type] =  df 
+                self.output['variables'][obj_type] =  df 
         
-        # Additional columns 
+        # 0 - Document parameters
+        if self.p: self.output['parameters'] = self.p
+        
+        # 1 - Define additional index columns 
         columns = {}
         if self.run_id is not None: columns['run_id'] = self.run_id
         if self.scenario is not None: columns['scenario'] = self.scenario
         
-        # Create object var output
-        output_from_obj_list(self, self.agents, 'agent', 'id', columns)
-        output_from_obj_list(self, self.envs.values(), 'env', 'key', columns)
-        
-        # Create model var output
-        if self.log != {'t':[]}: 
-            df = pd.DataFrame(self.log)
-            df['obj_id'] = 'model'
-            for k,v in columns.items(): df[k]=v
-            df = df.set_index(list(columns.keys())+['obj_id','t'])
-            self.output['model_vars'] = df
-        
-        # Create measure output
-        if self.measure_log != {}:   
+        # 2 - Create measure output
+        if self.measure_log:   
             d = self.measure_log
             for key,value in columns.items(): d[key] = value
             df = pd.DataFrame(d)
             if columns: df = df.set_index(list(columns.keys()))
             self.output['measures'] = df
+        
+        # 3 - Create variable output
+        self.output['variables'] = data_dict()
+        
+        # Create variable output for objects
+        output_from_obj_list(self, self.agents, 'agent', 'id', columns)
+        output_from_obj_list(self, self.envs.values(), 'env', 'key', columns)
+        
+        # Create variable output for model
+        if self.log: 
+
+            df = pd.DataFrame(self.log)
+            df['obj_id'] = 'model'
+            for k,v in columns.items(): df[k]=v
+            df = df.set_index(list(columns.keys())+['obj_id','t'])
+
+            if self.output['variables']: self.output['variables']['model'] = df
+            else: self.output['variables'] = df # No subdict if only model vars
+        
+        # Remove variable dict if empty
+        elif not self.output['variables']:
+            del self.output['variables']
+
+        

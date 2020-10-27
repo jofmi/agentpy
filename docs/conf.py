@@ -40,6 +40,11 @@ extensions = [
 	'nbsphinx' # Support jupyter notebooks
 ]
 
+# Remove blank pages
+latex_elements = {
+  'extraclassoptions': 'openany,oneside'
+}
+
 # Define master file
 master_doc = 'index'
 
@@ -54,12 +59,13 @@ nbsphinx_prolog = """
 	You can download this tutorial as a Jupyter Notebook :download:`here<{{ env.doc2path(env.docname,base=None) }}>`
 """
 
-# Intersphinx mapping
+# Connect to other docs
 intersphinx_mapping = {
     "https://docs.python.org/3/": None
 }
 
-add_module_names = False # (!) what does this do?
+# Remove module name before elements
+add_module_names = False 
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

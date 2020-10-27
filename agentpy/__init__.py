@@ -7,15 +7,16 @@ Copyright (c) 2020 Joël Foramitti
     
 """
 
-from .framework import model, environment, network, agent, agent_list, env_dict
+from .framework import model, environment, network, grid, agent, agent_list, env_dict
+
+from .sample import sample, sample_discrete, sample_saltelli
+from .experiment import experiment
+
 from .output import data_dict, load, save
 
-from .experiment import experiment, sample
+from .analysis import sensitivity, phaseplot, gridplot, interactive, animate
 
-from .interactive import interactive, animate
-from .analysis import sensitivity, phaseplot
-
-from .tools import attr_dict, attr_list
+from .tools import attr_dict, obj_list
 
 # Aliases
 exp = experiment
