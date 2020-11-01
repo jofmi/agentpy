@@ -107,7 +107,7 @@ def animate(model, parameters, fig, axs, plot, skip_t0 = False, **kwargs):
 
         nonlocal m, step0, step00
 
-        while not m.stop_if() and not m._stop:
+        while not m._stop:
 
             if step0: step0 = False
             elif step00: step00 = False
@@ -115,6 +115,7 @@ def animate(model, parameters, fig, axs, plot, skip_t0 = False, **kwargs):
                 m.t += 1
                 m.step() 
             m.update()
+            m._update_stop()
             m.create_output()
             yield m.t 
 

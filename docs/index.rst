@@ -6,7 +6,7 @@ Agentpy - Agent-based modeling in Python
 
 .. raw:: latex
 
-	\chapter{Introduction}
+    \chapter{Introduction}
 
 Agentpy is a package for the development and analysis of agent-based models in Python. The project is still in an early stage of development. If you need help or want to contribute, feel free to write me via joel.foramitti@uab.cat.
 
@@ -21,7 +21,7 @@ Agentpy is a package for the development and analysis of agent-based models in P
 
 .. only:: html
 
-	.. rubric:: Table of contents
+    .. rubric:: Table of contents
 
 .. toctree::
    :maxdepth: 2
@@ -40,9 +40,9 @@ Agentpy is a package for the development and analysis of agent-based models in P
 
 .. only:: html
 
-	.. rubric:: Alternatives
+    .. rubric:: Alternatives
     
-	There are numerous other frameworks for agent-based modeling, each with their own focus and advantages. An overview can be found in `Abar et al. (2017) <https://doi.org/10.1016/j.cosrev.2017.03.001>`_. The main alternative to agentpy in Python is `Mesa <https://mesa.readthedocs.io/en/master/>`_, which could be more suited for users who are looking for a stronger similarity to Netlogo with spacial simulations and live visualization.
+    There are numerous other frameworks for agent-based modeling, each with their own focus and advantages. An overview can be found in `Abar et al. (2017) <https://doi.org/10.1016/j.cosrev.2017.03.001>`_. The main alternative to agentpy in Python is `Mesa <https://mesa.readthedocs.io/en/master/>`_, which could be more suited for users who are looking for a stronger similarity to Netlogo with spacial simulations and live visualization.
 
 .. **References:**
 .. Abar, S., Theodoropoulos, G. K., Lemarinier, P., & O’Hare, G. M. (2017). Agent Based Modelling and Simulation tools: A review of the state-of-art software. Computer Science Review, 24, 13-33.

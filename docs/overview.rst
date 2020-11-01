@@ -59,7 +59,7 @@ Here how a basic agent-based model and it's main special methods could look like
 
         def update(self):
 
-            """ Called after setup and after each step """
+            """ Called after setup as well as after each step """
 
             # Record a dynamic agent variable (once per time-step)
             self.agents.record('agent_attribute')
@@ -95,14 +95,16 @@ The class :class:`Experiment` can be used to run a model multiple times with var
 
 An experiment with multiple iterations, scenarios, and parameters is performed as follows::
 
-    settings = {'iterations':10, 'scenarios':('sc1','sc2')}
-    experiment = ap.exp(my_model, sample, *settings)
+    experiment = ap.Experiment(my_model, sample,
+                               scenarios=('sc1','sc2'),
+                               iterations=10, )
+
     results = experiment.run()
 
 Output and Analysis
 ###################
 
-Both :class:`Model` and :class:`Experiment` can be used to run a simulation, which will yield a :class:`data_dict` with output data. The output can contain various categories of data:
+Both :class:`Model` and :class:`Experiment` can be used to run a simulation, which will yield a :class:`DataDict` with output data. The output can contain the following categories of data:
 
 - ``log`` holds meta-data about the model and simulation performance.
 - ``parameters`` holds the parameter values that have been used for this simulation.

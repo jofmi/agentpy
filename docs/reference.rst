@@ -8,38 +8,45 @@ Agents
 ######
 
 .. autoclass:: Agent
-   :members:
+    :members:
+    :inherited-members:
 
 .. autoclass:: AgentList
-   :members:
+    :members:
+    :inherited-members:
 
 Environments
 ############
 
 .. autoclass:: Environment
-   :members:
+     :members:
+     :inherited-members:
 
 .. autoclass:: EnvDict
-   :members:
+    :members:
+    :inherited-members:
 
 Networks
 --------
 
 .. autoclass:: Network
-   :members:
+     :members:
+     :inherited-members:
 
 Spacial grids
 -------------
 
 .. autoclass:: Grid
-   :members:
+    :members:
+    :inherited-members:
 
 
 Agent-based models
 ##################
 
 .. autoclass:: Model
-   :members:
+    :members:
+    :inherited-members:
 
 
 Parameter sampling
@@ -60,14 +67,16 @@ Experiments
    Alias of :class:`Experiment`
 
 .. autoclass:: Experiment
-   :members:
+    :members:
+    :inherited-members:
 
 
 Output data
 ###########
 
 .. autoclass:: DataDict
-   :members:
+    :members:
+    :inherited-members:
 
 Analysis
 ########
