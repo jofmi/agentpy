@@ -17,21 +17,7 @@ The basic framework for agent-based models consists of three levels:
 2. :class:`Environment`, :class:`Grid`, and :class:`Network`, which contain agents
 3. :class:`Agent`, the basic building blocks of the model
 
-All of the framework classes are designed to be customized through the creation of `sub-classes <https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#inheritance>`_ with their own variables and methods. A custom agent type could be defined as follows::
-
-    class my_agent_type(ap.Agent):
-
-        def setup(self):
-
-            """ Called automatically at the agents' creation """
-
-            self.agent_attribute = 0 # Initialize a variable
-
-        def agent_method(self):
-
-            ...
-
-Some methods with special names like :func:`agent.setup` will be used automatically if they are defined. There are further some standard properties that can be used to access different parts of the model from within each object:
+From every level, the following properties can be used to access different parts of the model:
 
 - ``.model`` returns the model instance
 - ``.p`` returns an :class:`AttrDict` of the models' parameters
@@ -39,7 +25,25 @@ Some methods with special names like :func:`agent.setup` will be used automatica
 - ``.agents`` returns an :class:`AgentList` of the objects' agents (not for :class:`Agent`)
 - ``.log`` returns a :class:`dict` of the objects' recorded variables
 
-Here how a basic agent-based model and it's main special methods could look like::
+All of the framework classes are designed to be customized through the creation of
+`sub-classes <https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#inheritance>`_
+with their own variables and methods. A custom agent type could be defined as follows::
+
+    class my_agent_type(ap.Agent):
+
+        def setup(self):
+
+            """ Called automatically at the agents' creation """
+
+            # Initialize a variable with a parameter
+            self.agent_attribute = self.p.my_parameter
+
+        def agent_method(self):
+
+            ...
+
+Some special method-names like ``setup()`` will be used automatically, if declared.
+Here is how a basic agent-based model with it's main special method-names could look like::
 
     class my_model(ap.Model):
 
@@ -71,14 +75,19 @@ Here how a basic agent-based model and it's main special methods could look like
             # Record a measure (once per simulation)
             self.measure('my_measure', 1)
 
-To use this model, we have to initialize it with a set of parameters::
+In the demonstration model :doc:`Agentpy_Wealth_Transfer`, you can find a very similar model structure in action.
+To use such a model, we have to initialize it with a dictionary of parameters::
 
-    parameters = {'agents':10, 'steps':10}
+    parameters = {'my_parameter':42,
+                  'agents':10,
+                  'steps':10, }
+
     model = my_model(parameters)
 
-The parameter steps as a parameter ``steps`` will be used automatically to define how long the simulation will run. Other options to define the length of a simulation are:
+The parameter ``steps`` will be interpreted as the maximum simulation length.
+Other options to control the length of a simulation are:
  
-- Defining a custom stop condition with :func:`Model.stop_if`.
+- Defining a method with the name :func:`Model.stop_if`.
 - Calling :func:`Model.stop` during the simulation.
 
 To perform a simulation, we can then use the function :func:`Model.run`::
@@ -88,12 +97,18 @@ To perform a simulation, we can then use the function :func:`Model.run`::
 Multi-Run Experiments
 #####################
 
-The class :class:`Experiment` can be used to run a model multiple times with varied parameters and distinct scenarios. To prepare a sample of parameters for an experiment, one can use one of the sampling functions, like for example::
+The class :class:`Experiment` can be used to run a model multiple times with varied parameters and distinct scenarios.
+To prepare a sample of parameters for an experiment, one can use one of the
+sampling functions :func:`sample`, :func:`sample_saltelli`, or :func:`sample_discrete`.
+In the following example, one parameter is kept fixed while the other two are varied between 10 and 20::
 
-    parameter_ranges = {'agents':(10,20);'steps':(10,20)}
-    sample = ap.sample(parameter_ranges, N = 10 )
+    parameter_ranges = {'my_parameter':42,
+                        'agents':(10,20),
+                        'steps':(10,20), }
 
-An experiment with multiple iterations, scenarios, and parameters is performed as follows::
+    sample = ap.sample(parameter_ranges, N=10)
+
+An experiment with multiple iterations, scenarios, and parameters can then performed as follows::
 
     experiment = ap.Experiment(my_model, sample,
                                scenarios=('sc1','sc2'),
@@ -101,13 +116,18 @@ An experiment with multiple iterations, scenarios, and parameters is performed a
 
     results = experiment.run()
 
+The demonstration models :doc:`Agentpy_Virus_Spread`, :doc:`Agentpy_Button_Network`, and :doc:`Agentpy_Forest_Fire`
+show how such experiments can be used in practice.
+
 Output and Analysis
 ###################
 
-Both :class:`Model` and :class:`Experiment` can be used to run a simulation, which will yield a :class:`DataDict` with output data. The output can contain the following categories of data:
+Both :class:`Model` and :class:`Experiment` can be used to run a simulation,
+which will return a :class:`DataDict` with output data.
+The output can contain the following categories of data:
 
 - ``log`` holds meta-data about the model and simulation performance.
-- ``parameters`` holds the parameter values that have been used for this simulation.
+- ``parameters`` holds the parameter values that have been used for the experiment.
 - ``variables`` holds dynamic variables, which can be recorded at multiple time-steps. 
 - ``measures`` holds evaluation measures that are recoreded only once per simulation.
 
