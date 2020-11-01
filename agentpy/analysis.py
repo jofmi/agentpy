@@ -16,10 +16,10 @@ from scipy.interpolate import griddata
 from SALib.analyze import sobol
 
 from .tools import make_list
-from .framework import agent_list
+from .framework import AgentList
      
         
-def sensitivity( output, param_ranges, measures = None, **kwargs ): 
+def sobol_sensitivity(output, param_ranges, measures=None, **kwargs): 
 
     """ 
     Returns Sobol Sensitivity Indices based on the SALib Package and adds them to output

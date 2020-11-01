@@ -1,9 +1,6 @@
 # Configuration file for the Sphinx documentation builder.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sphinx_rtd_theme
-
-
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -15,6 +12,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..')) # Add path to package
 
+import sphinx_rtd_theme
+from agentpy import __version__
+
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +23,7 @@ copyright = '2020, Joël Foramitti'
 author = 'Joël Foramitti'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.2'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -60,9 +60,7 @@ nbsphinx_prolog = """
 """
 
 # Connect to other docs
-intersphinx_mapping = {
-    "https://docs.python.org/3/": None
-}
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # Remove module name before elements
 add_module_names = False 

@@ -13,7 +13,7 @@ from os import listdir, makedirs
 import json
 #import networkx as nx
 
-from .tools import attr_dict, make_list
+from .tools import AttrDict, make_list
 
 import numpy as np
 
@@ -32,11 +32,11 @@ class NpEncoder(json.JSONEncoder):
             return super(NpEncoder, self).default(obj)
 
 
-class data_dict(attr_dict):
+class DataDict(AttrDict):
     
     """ Dictionary for recorded simulation data.
     Can be generated from :class:`model`, :class:`experiment`, or :func:`load`.
-    Subclass of :class:`attr_dict`, which means that attributes can be accessed as items.
+    Subclass of :class:`s`, which means that attributes can be accessed as items.
     
     Attributes:
         log (dict): Meta-data of the simulation (e.g. name, time-stamps, settings, etc.)

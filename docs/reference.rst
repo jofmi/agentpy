@@ -7,38 +7,38 @@ API Reference
 Agents
 ######
 
-.. autoclass:: agent
+.. autoclass:: Agent
    :members:
 
-.. autoclass:: agent_list
+.. autoclass:: AgentList
    :members:
 
 Environments
 ############
 
-.. autoclass:: environment
+.. autoclass:: Environment
    :members:
 
-.. autoclass:: env_dict
+.. autoclass:: EnvDict
    :members:
 
 Networks
 --------
 
-.. autoclass:: network
+.. autoclass:: Network
    :members:
 
 Spacial grids
 -------------
 
-.. autoclass:: grid
+.. autoclass:: Grid
    :members:
 
 
 Agent-based models
 ##################
 
-.. autoclass:: model
+.. autoclass:: Model
    :members:
 
 
@@ -55,18 +55,18 @@ Parameter sampling
 Experiments
 ###########
 
-.. class:: exp()
+.. class:: Exp()
 
-   Alias of :class:`experiment`
+   Alias of :class:`Experiment`
 
-.. autoclass:: experiment
+.. autoclass:: Experiment
    :members:
 
 
 Output data
 ###########
 
-.. autoclass:: data_dict
+.. autoclass:: DataDict
    :members:
 
 Analysis
@@ -81,7 +81,7 @@ Interactive output
 Sobol sensitivity
 -----------------
 
-.. autofunction:: sensitivity
+.. autofunction:: sobol_sensitivity
 
 Animations
 ----------
@@ -97,6 +97,6 @@ Plots
 Base classes
 ############
 
-.. autoclass:: attr_dict
+.. autoclass:: AttrDict
 
-.. autoclass:: obj_list
+.. autoclass:: ObjList

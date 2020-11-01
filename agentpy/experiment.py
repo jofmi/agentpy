@@ -1,24 +1,13 @@
-"""
-
-Agentpy 
-Experiment Module
-
-Copyright (c) 2020 Joël Foramitti
-
-"""
-
-
-
 import pandas as pd
 import networkx as nx
 import warnings
 
 from datetime import datetime, timedelta
 
-from .tools import attr_dict, make_list, AgentpyError
-from .output import data_dict
+from .tools import AttrDict, make_list, AgentpyError
+from .output import DataDict
 
-class experiment():
+class Experiment():
     
     """ Experiment for an agent-based model.
     Allows for multiple iterations, parameter samples, and distict scenarios.
@@ -32,11 +21,11 @@ class experiment():
         record(bool,optional): Whether to record dynamic variables (default False).
         
     Attributes:
-        output(data_dict): Recorded experiment data
+        output(DataDict): Recorded experiment data
     
     """
     
-    def __init__( self, 
+    def __init__(self, 
                  model, 
                  parameters = None, 
                  name = None,
@@ -48,7 +37,7 @@ class experiment():
         # Experiment objects
         self.model = model
         self.parameters = parameters 
-        self.output = data_dict()
+        self.output = DataDict()
         
         # Experiment settings 
         if name: self.name = name
@@ -75,7 +64,7 @@ class experiment():
             display(bool,optional): Whether to display simulation progress (default True). 
             
         Returns:
-            data_dict: Recorded experiment data, also stored in `experiment.output`.
+            DataDict: Recorded experiment data, also stored in `Experiment.output`.
         """
         
         parameter_sample = make_list(self.parameters,keep_none=True)
@@ -99,7 +88,7 @@ class experiment():
         elif not fixed_pars and not df.empty:
             self.output['parameters'] = df
         else:
-            self.output['parameters'] = data_dict({
+            self.output['parameters'] = DataDict({
                 'fixed': fixed_pars,
                 'varied': df
             })
@@ -126,7 +115,7 @@ class experiment():
                         continue
                     
                     # Handle variables
-                    if self.record and key == 'variables' and isinstance(value,data_dict): 
+                    if self.record and key == 'variables' and isinstance(value,DataDict): 
                         
                         if key not in combined_output: 
                             combined_output[key] = {}
@@ -154,7 +143,7 @@ class experiment():
             if values and all([isinstance(value,pd.DataFrame) for value in values]):
                 self.output[key] = pd.concat(values) 
             elif isinstance(values,dict):
-                self.output[key] = data_dict()
+                self.output[key] = DataDict()
                 for sk,sv in values.items():
                     self.output[key][sk] = pd.concat(sv) 
             elif key != 'log':

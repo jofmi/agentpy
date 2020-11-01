@@ -1,22 +1,23 @@
-"""
+""" Agentpy - Agent-based modeling in Python """
 
-Agentpy
-Initialization Module
+# Define meta-data
+__version__ = "0.0.4.dev"
+__all__ = ['Model', 'Environment', 'Network', 'Grid',
+           'Agent', 'AgentList', 'EnvDict', 'Experiment',
+           'DataDict', 'load', 'save',
+           'sample', 'sample_discrete', 'sample_saltelli',
+           'sobol_sensitivity', 'gridplot', 'interactive', 'animate',
+           'AttrDict', 'ObjList'
+           ]
 
-Copyright (c) 2020 Joël Foramitti
-    
-"""
+# Import objects
+from .framework import Model, Environment, Network, Grid, Agent, AgentList, EnvDict
+from .experiment import Experiment
+from .output import DataDict, load, save
+from .sampling import sample, sample_discrete, sample_saltelli
+from .analysis import sobol_sensitivity, gridplot, interactive, animate
+from .tools import AttrDict, ObjList
 
-from .framework import model, environment, network, grid, agent, agent_list, env_dict
-
-from .sample import sample, sample_discrete, sample_saltelli
-from .experiment import experiment
-
-from .output import data_dict, load, save
-
-from .analysis import sensitivity, phaseplot, gridplot, interactive, animate
-
-from .tools import attr_dict, obj_list
-
-# Aliases
-exp = experiment
+# Define aliases
+Exp = Experiment
+Env = Environment

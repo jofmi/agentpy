@@ -15,6 +15,6 @@ Agentpy is a package for the development and analysis of agent-based models in P
 
 **Model library:** https://agentpy.readthedocs.io/en/latest/models.html
 
-**Requirements:** Python 3, NumPy, scipy, matplotlib, networkx, pandas, SALib, and ipywidgets.
+**Requirements:** Python 3.6+, NumPy, scipy, matplotlib, networkx, pandas, SALib, ipywidgets.
 
 **Installation:** `pip install agentpy`
