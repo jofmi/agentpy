@@ -23,8 +23,11 @@ class _ModelObj:
         self.log = {}
         self.model = model
 
-    def __getitem__(self, item):
-        return getattr(self, item)
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
     def record(self, var_keys, value=None):
         """ Records an objects variables.
@@ -95,7 +98,7 @@ class Agent(_ModelObj):
 
         self.p = model.p
         self.t0 = model.t
-        self.id = model.new_id()
+        self.id = model._new_id()
         self.envs = EnvDict(model)
         self.type = type(self).__name__
 
@@ -145,7 +148,7 @@ class Agent(_ModelObj):
         agents = AgentList()
         for key in make_list(env_keys):
             try:
-                agents.append(self.envs[key].neighbors(self))
+                agents.extend(self.envs[key].neighbors(self))
             except KeyError:
                 AgentpyError(f"Agent {self.id} has no environment '{key}'")
 
@@ -166,11 +169,12 @@ class Agent(_ModelObj):
             self.model.agents.remove(self)  # Remove agent from model
         else:
             try:
-                envs = {k: self.envs[k] for k in env_keys}
+                envs = {k: self.envs[k] for k in make_list(env_keys)}
             except KeyError as e:
                 raise AgentpyError(f'Agent has no environment {e}')
 
         for key, env in envs.items():
+            print(env)
             env.agents.remove(self) # TODO Fix Error
             del self.envs[key]
 
@@ -189,7 +193,8 @@ class AgentList(ObjList):
     #         agents(Agent or list of Agent, optional): Initial agent entries
 
     def __repr__(self):
-        return f"AgentList [{len(self)} agents]"
+        len_ = len(self)
+        return f"AgentList [{len_} agent{'s' if len_>1 else ''}]"
 
     def do(self, method, *args, shuffle=False, **kwargs):
         """ Calls ``method(*args,**kwargs)`` for all agents in the list.
@@ -268,30 +273,32 @@ class _EnvObj(_ModelObj):
         else:
             getattr(super(), name)  # TODO test!
 
-    def add_agents(self, agents, agent_class=Agent, **kwargs):
+    def add_agents(self, agents=1, agent_class=Agent, **kwargs):
         """ Adds agents to the environment.
 
         Arguments:
-            agents(int or AgentList): Number of new agents or list of existing agents.
-            agent_class(class): Type of agent to be created if int is passed for agents.
+            agents(int or AgentList,optional): Number of new agents or list of existing agents (default 1).
+            agent_class(class,optional): Type of agent to be created if int is passed for agents.
+                If none is given, agents will by of type :class:`Agent`.
             **kwargs: Will be forwarded to the creation of each agent.
+
+        Returns:
+            AgentList: List of the new agents.
         """
 
-        if isinstance(agents, int):
-            # Create new agent instances
-            agents = AgentList([agent_class(self.model, {self.key: self}, **kwargs)
-                                for _ in range(agents)])
-            # Add agents to master list
-            if self != self.model:
+        is_env = True if self != self.model else False
+
+        if isinstance(agents, int): # Add new agents
+            if is_env:  # Add environment
+                kwargs.update({'envs': {self.key: self}})
+            agents = AgentList([agent_class(self.model, **kwargs) for _ in range(agents)])
+            if is_env:  # Add agents to master list
                 self.model.agents.extend(agents)
 
-        else:
-            # Add existing agents
+        else:  # Add existing agents
             if not isinstance(agents, AgentList):
                 agents = AgentList(agents)
-
-            # Add new environment to agents
-            if self != self.model:
+            if is_env:  # Add new environment 
                 for agent in agents:
                     agent.envs[self.key] = self
 
@@ -371,7 +378,7 @@ class Network(_EnvObj):
         """
 
         # Standard adding
-        new_agents = add_agents(self, agents, agent_class, **kwargs)
+        new_agents = super().add_agents(agents, agent_class, **kwargs)
 
         # Extra network features
         if map_to_nodes:
@@ -627,12 +634,7 @@ class Model(_EnvObj):
 
         # Private variables
         self._stop = False
-        self._id_counter = 0
-
-    def new_id(self):
-
-        self._id_counter += 1
-        return self._id_counter
+        self._id_counter = -1
 
     def __repr__(self):
 
@@ -656,14 +658,16 @@ class Model(_EnvObj):
         except KeyError:
             raise AttributeError(f"Model '{self.type}' has no attribute or environment '{name}'")
 
-            # Creation & Destruction
+    def _new_id(self):
+
+        self._id_counter += 1
+        return self._id_counter
 
     def add_env(self, env_key, env_class=Environment, **kwargs):
 
         """ Creates a new environment """
 
         for env_key in make_list(env_key):
-            # noinspection PyArgumentList
             self.envs[env_key] = env_class(self.model, env_key, **kwargs)
 
     def add_network(self, env_key, env_class=Network, **kwargs):
@@ -720,21 +724,31 @@ class Model(_EnvObj):
             self._stop = True
         elif self.t >= self.t_max:
             self._stop = True
+            if self.t >= T_LIM and 'steps' not in self.p:
+                raise AgentpyError(f"Time limit of {T_LIM} steps has been reached. \
+                                    You can set a higher limit by setting 'Model.t_max' \
+                                    or by passing a parameter 'steps' at model creation.""")
 
     def run(self, display=True):
 
         """ Executes the simulation of the model.
-        The order of events is as follows.
-        The simulation starts at `t=0` and calls setup() and update().
-        While stop_if() returns False and stop() hasn't been called,
-        the simulation repeatedly calls t+=1, step(), and update().
-        After the last step, end() is called.
-        
+
+        The simulation starts by calling :func:`Model.setup` and :func:`Model.update`.
+        After that, ``Model.t`` is increased by 1 and :func:`Model.step` and :func:`Model.update` are called.
+        This step is repeated until the simulation is stopped. After the last step, :func:`Model.end` is called.
+
+        Notes:
+            The simulation can be stopped by each of the following reasons:
+            a parameter ``steps`` has been passed and ``Model.t=Model.p.steps``,
+            :func:`Model.stop_if` returns True, :func:`Model.stop` has been called,
+            or the maximum limit of ``Model.t=100_000_000`` is reached
+            (unless there is a parameter ``steps`` that is higher).
+
         Arguments:
             display(bool,optional): Whether to display simulation progress (default True).
             
         Returns:
-            DataDict: Recorded model data, also stored in `model.output`.
+            DataDict: Recorded model data, which can also be found in ``model.output``.
         """
 
         dt0 = datetime.now()  # Time-Stamp

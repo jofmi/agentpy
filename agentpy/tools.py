@@ -13,7 +13,7 @@ def make_matrix(shape, class_):
     
     if len(shape) == 1:
         return [class_() for _ in range(shape[0])]
-    return [nested_list(shape[1:], class_) for _ in range(shape[0])]
+    return [make_matrix(shape[1:], class_) for _ in range(shape[0])]
 
             
 def make_list(element, keep_none=False):
