@@ -10,9 +10,10 @@
 import os
 import sys
 import sphinx_rtd_theme
-from agentpy import __version__
 
 sys.path.insert(0, os.path.abspath('..'))  # Add path to package
+
+from agentpy import __version__
 
 # -- Project information -----------------------------------------------------
 
