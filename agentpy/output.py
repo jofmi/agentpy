@@ -20,6 +20,8 @@ import numpy as np
 
 class NpEncoder(json.JSONEncoder):
 
+    """ Adds support for numpy number formats to json """
+
     # By Jie Yang https://stackoverflow.com/a/57915246
 
     def default(self, obj):

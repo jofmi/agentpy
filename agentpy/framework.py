@@ -1,5 +1,6 @@
-""" Main framework for agent-based models """
-from typing import Dict, Any
+""" Main framework: Objects of agent-based models """
+
+# from typing import Dict, Any
 
 import pandas as pd
 import networkx as nx
@@ -10,18 +11,32 @@ from datetime import datetime
 from itertools import product
 
 from .output import DataDict
-from .tools import make_list, make_matrix, AttrDict, ObjList, AgentpyError
+from .tools import ObjList, AttrDict, AgentpyError, make_list, make_matrix
 
-# Constants
+
 T_LIM = 1_000_000  # Maximum steps
 
 
-class _ModelObj:
-    """ An object of an agent-based model. """
+class ApObj:
+    """ Agentpy base-class for objects of agent-based models.
+    Attributes can be accessed as items and recorded. """
 
     def __init__(self, model):
-        self.log = {}
-        self.model = model
+        self._log = {}
+        self._model = model
+        self._envs = EnvDict(model)
+
+    @property
+    def log(self):
+        return self._log
+
+    @property
+    def model(self):
+        return self._model
+
+    @property
+    def envs(self):
+        return self._envs
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -70,12 +85,14 @@ class _ModelObj:
 
 # Level 3 - Agent class
 
-class Agent(_ModelObj):
+class Agent(ApObj):
     """ Individual agent of an agent-based model.
 
     This class can be used as a parent class for custom agent types.
     :meth:`Agent.setup` will be called automatically after agent creation.  
-    Attributes can be accessed as items (see :class:`AttrDict`).
+
+    Notes:
+        Attributes can be accessed as items.
     
     Attributes:
         model (Model): Model instance
@@ -99,7 +116,6 @@ class Agent(_ModelObj):
         self.p = model.p
         self.t0 = model.t
         self.id = model._new_id()
-        self.envs = EnvDict(model)
         self.type = type(self).__name__
 
         if envs:
@@ -113,18 +129,26 @@ class Agent(_ModelObj):
             s += f" ({self.type})"
         return s
 
-    # def __hash__(self): TODO: REMOVE?
-    # Necessary for networkx
-    # return self.id
+    def pos(self, env_key=None):
+        """ Returns the agents' position from a grid.
 
-    def pos(self, env_keys=None):
+        Arguments:
+            env_key(str, optional): Name of environment  with type :class:`grid`.
+                If agent has only one grid environment, this environment is used by default.
+        """
 
-        # Select environments TODO: DOCS & TEST
-        if env_keys is None:
-            env_keys = [k for k, v in self.envs.items()
-                        if v.topology in ['grid']]
+        # Default environment
+        if env_key is None:
+            grids = [k for k, v in self.envs.items() if v.topology in ['grid']]
+            if len(grids) == 1:
+                env_key = grids[0]
+            else:
+                raise AgentpyError(f"Agent {self.id} has no environment of type 'grid'")
 
-        return {key: self.envs[key].pos[self] for key in env_keys}
+        try:
+            return self.envs[env_key].pos[self]
+        except KeyError:
+            raise AgentpyError(f"Agent {self.id} has no environment '{env_key}'")
 
     def neighbors(self, env_keys=None):
         """ Returns the agents' neighbor's from grids and/or networks.
@@ -136,7 +160,6 @@ class Agent(_ModelObj):
 
         Returns: 
             AgentList
-                
         """
 
         # Select environments
@@ -166,7 +189,7 @@ class Agent(_ModelObj):
 
         if env_keys is None:
             envs = self.envs  # Select all environments by default
-            self.model.agents.remove(self)  # Remove agent from model
+            self.model._agents.remove(self)  # Remove agent from model
         else:
             try:
                 envs = {k: self.envs[k] for k in make_list(env_keys)}
@@ -182,38 +205,19 @@ class Agent(_ModelObj):
 class AgentList(ObjList):
     """ List of agents.
     
-    Attribute calls and operators are applied to all agents
-    and return a list of return values (see :class:`ObjList`).
-    """
+    Attribute calls and assignments are applied to all agents
+    and return a list of return values. Boolean operators can
+    be used to filter list based on agent attributes, and
+    standard mathematical operators can be used to manipulate
+    agent attributes.
 
-    # def __init__(self, agents = None): (!)
-    #    super().__init__()
-    #    if agents: self.extend( make_list(agents) )
-    # Arguments:
-    #         agents(Agent or list of Agent, optional): Initial agent entries
+    See also:
+        :class:`ObjList`.
+    """
 
     def __repr__(self):
         len_ = len(self)
         return f"AgentList [{len_} agent{'s' if len_>1 else ''}]"
-
-    def do(self, method, *args, shuffle=False, **kwargs):
-        """ Calls ``method(*args,**kwargs)`` for all agents in the list.
-        
-        Arguments:
-            method (str): Name of the method
-            *args: Will be forwarded to the agents method
-            shuffle (bool, optional): Whether to shuffle order 
-                in which agents are called (default False)
-            **kwargs: Will be forwarded to the agents method
-        """
-        if shuffle:
-            agents = list(self)  # Soft Copy
-            rd.shuffle(agents)
-        else:
-            agents = self
-
-        for agent in agents:
-            getattr(agent, method)(*args, **kwargs)
 
     def select(self, var_key, value=True, rel="=="):
         """ Returns a new :class:`AgentList` of selected agents.
@@ -231,11 +235,6 @@ class AgentList(ObjList):
 
         return AgentList([a for a in self if relations[rel](a[var_key], value)])
 
-    def assign(self, var_key, value):
-        """ Assigns ``value`` to ``var_key`` for each agent."""
-        for agent in self:
-            setattr(agent, var_key, value)
-
     def of_type(self, agent_type):
         """ Returns a new :class:`AgentList` with agents of type ``agent_type``. """
         return self.select('type', agent_type)
@@ -244,21 +243,26 @@ class AgentList(ObjList):
         """ Returns a new :class:`AgentList` with ``n`` random agents (default 1)."""
         return AgentList(rd.sample(self, n))
 
+    def shuffle(self):
+        """ Shuffles the list and returns self """
+        rd.shuffle(self)
+        return self
 
-class _EnvObj(_ModelObj):
-    """ Base class for environments.
 
-    Attributes:
-        type (str): The environments' type
+class ApEnv(ApObj):
+    """ Agentpy base-class for environments.
     """
 
     def __init__(self, model, key):
 
         super().__init__(model)
-        self.agents = AgentList()
-        self.envs = EnvDict(model)
+        self._agents = AgentList()
         self.key = key
         self.type = type(self).__name__
+
+    @property
+    def agents(self):
+        return self._agents
 
     def __repr__(self):
 
@@ -286,6 +290,7 @@ class _EnvObj(_ModelObj):
             AgentList: List of the new agents.
         """
 
+        # Check if object is environment or model
         is_env = True if self != self.model else False
 
         if isinstance(agents, int): # Add new agents
@@ -293,7 +298,7 @@ class _EnvObj(_ModelObj):
                 kwargs.update({'envs': {self.key: self}})
             agents = AgentList([agent_class(self.model, **kwargs) for _ in range(agents)])
             if is_env:  # Add agents to master list
-                self.model.agents.extend(agents)
+                self.model._agents.extend(agents)
 
         else:  # Add existing agents
             if not isinstance(agents, AgentList):
@@ -303,12 +308,12 @@ class _EnvObj(_ModelObj):
                     agent.envs[self.key] = self
 
         # Add agents to this env
-        self.agents.extend(agents)
+        self._agents.extend(agents)
 
         return agents
 
 
-class Environment(_EnvObj):
+class Environment(ApEnv):
     """ Standard environment for agents.
 
     This class can be used as a parent class for custom environment types.
@@ -336,7 +341,7 @@ class Environment(_EnvObj):
         self.setup()
 
 
-class Network(_EnvObj):
+class Network(ApEnv):
     """ Agent environment with a graph topology.
 
     Unknown attribute and method calls are forwarded to self.graph.
@@ -410,7 +415,7 @@ class Network(_EnvObj):
             raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
-class Grid(_EnvObj):
+class Grid(ApEnv):
     """ Grid environment that contains agents with a spatial topology.
     Inherits attributes and methods from :class:`Environment`.
     
@@ -574,7 +579,7 @@ class EnvDict(dict):
         """ Calls :meth:`Environment.add_agents` with `*args,**kwargs` 
         and forwards new agents to all environments in the dictionary."""
 
-        envs = self.values()
+        envs = list(self.values())
         new_agents = envs[0].add_agents(*args, **kwargs)
 
         if len(envs) > 0:
@@ -582,7 +587,7 @@ class EnvDict(dict):
                 env.add_agents(new_agents)
 
 
-class Model(_EnvObj):
+class Model(ApEnv):
     """
     An agent-based model (Level 1).
 
@@ -627,7 +632,6 @@ class Model(_EnvObj):
         self.t_max = self.p['steps'] if 'steps' in self.p else T_LIM
 
         # Recording
-        self.log = {}
         self.measure_log = {}
         self.output = DataDict()
         self.output.log = {'name': self.type, 'time_stamp': str(datetime.now())}
@@ -641,7 +645,10 @@ class Model(_EnvObj):
         rep = "Agent-based model {"
         ignore = ['model', 'log', 'measure_log', 'stop_if', 'key', 'output']
 
-        for k, v in self.items():
+        for prop in ['agents','envs']:
+            rep += f"\n'{prop}': {self[prop]}"
+
+        for k, v in self.__dict__.items():
 
             if k not in ignore and not k[0] == '_':
                 rep += f"\n'{k}': {v}"

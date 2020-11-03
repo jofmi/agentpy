@@ -1,4 +1,7 @@
+import pytest
 import agentpy as ap
+
+from agentpy.tools import AgentpyError
 
 
 def test_time():
@@ -10,10 +13,11 @@ def test_time():
     model.run()
     assert model.t == 1
 
-    # Maximum time
+    # Maximum time limit
     del model.p.steps
     model.t = 999_999
-    model.run()
+    with pytest.raises(AgentpyError):
+        assert model.run()
     assert model.t == 1_000_000
 
 
@@ -28,21 +32,6 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict(model) for a in model.agents])
 
 
-def test_add_env():
-    """ Add environment to model """
-
-    model = ap.Model()
-    model.add_env('forest')
-    model.forest.add_agents()
-
-    assert len(model.envs) == 1
-    assert model.forest.key == 'forest'
-    assert type(model.forest) == ap.Environment
-    assert model.forest == model.envs['forest']
-    assert model.agents == model.forest.agents
-    assert model.agents[0].envs == model.envs
-
-
 def test_exit():
     """ Remove agent from model """
 
@@ -54,14 +43,13 @@ def test_exit():
     assert list(model.agents.id) == [0, 1, 2]
 
 
-def test_exit_env():
-    """ Remove agent from environment """
+def test_record():
+    """ Record a dynamic variable """
 
     model = ap.Model()
-    model.add_env('forest')
-    model.forest.add_agents(4)
-    model.agents[-1].exit('forest')
+    model.var1 = 1
+    model.var2 = 2
+    model.record(['var1', 'var2'])
 
-    assert len(model.forest.agents) == 3
-    assert len(model.agents) == 4
-    assert list(model.forest.agents.id) == [0, 1, 2]
+    assert model._log['var2'] == [2]
+

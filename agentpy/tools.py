@@ -28,6 +28,23 @@ def make_list(element, keep_none=False):
 
 
 class AttrDict(dict):
+
+    """ Attribute calls are forwarded to items. """
+
+    def __getattr__(self, name):
+        return self.__getitem__(name)
+
+    def __setattr__(self, name, value):
+        self.__setitem__(name, value)
+
+    def __delattr__(self, item):
+        del self[item]
+
+    def __repr__(self):
+        return f"AttrDict {super().__repr__()}"
+
+
+class AttrDict2(dict):
     
     """ Dictionary where attributes and dict entries are identical. """
     
@@ -38,7 +55,7 @@ class AttrDict(dict):
         self.__dict__ = self 
     
     def __repr__(self):
-        return f"attr_dict {dict.__repr__(self)}" 
+        return f"AttrDict {dict.__repr__(self)}"
         
 
 class ObjListAttr(list):
