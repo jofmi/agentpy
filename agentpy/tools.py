@@ -1,3 +1,8 @@
+"""
+Agentpy Tools Module
+Content: Errors, generators, and base classes
+"""
+
 from numpy import ndarray
 
 
@@ -6,30 +11,51 @@ class AgentpyError(Exception):
 
 
 def make_matrix(shape, class_):
-    
     """ Returns a nested list with given shape and class instance. """
-    
+
     # H/T Thierry Lathuille https://stackoverflow.com/a/64467230/
-    
+
     if len(shape) == 1:
         return [class_() for _ in range(shape[0])]
     return [make_matrix(shape[1:], class_) for _ in range(shape[0])]
 
-            
+
 def make_list(element, keep_none=False):
-    
-    """ Turns element into a list of itself if it is not of type list or tuple. """
-    
-    if element is None and not keep_none: element = [] # Convert none to empty list
-    if not isinstance(element, (list, tuple, ndarray)): element = [element]
-    elif isinstance(element,tuple): element = list(element)
-        
+    """ Turns element into a list of itself
+    if it is not of type list or tuple. """
+
+    if element is None and not keep_none:
+        element = []  # Convert none to empty list
+    if not isinstance(element, (list, tuple, ndarray)):
+        element = [element]
+    elif isinstance(element, tuple):
+        element = list(element)
+
     return element
 
 
-class AttrDict(dict):
+def param_tuples_to_salib(param_ranges_tuples):
+    """ Convert param_ranges to SALib Format """
 
+    param_ranges_salib = {
+        'num_vars': len(param_ranges_tuples),
+        'names': list(param_ranges_tuples.keys()),
+        'bounds': []
+    }
+
+    for var_key, var_range in param_ranges_tuples.items():
+        param_ranges_salib['bounds'].append([var_range[0], var_range[1]])
+
+    return param_ranges_salib
+
+
+class AttrDict(dict):
     """ Attribute calls are forwarded to items. """
+
+    def __init__(self, *args, **kwargs):
+        if args == (None, ):
+            args = ()  # Empty tuple
+        super().__init__(*args, **kwargs)
 
     def __getattr__(self, name):
         return self.__getitem__(name)
@@ -42,101 +68,3 @@ class AttrDict(dict):
 
     def __repr__(self):
         return f"AttrDict {super().__repr__()}"
-
-
-class AttrDict2(dict):
-    
-    """ Dictionary where attributes and dict entries are identical. """
-    
-    # By Kimvais https://stackoverflow.com/a/14620633/
-    
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
-        self.__dict__ = self 
-    
-    def __repr__(self):
-        return f"AttrDict {dict.__repr__(self)}"
-        
-
-class ObjListAttr(list):
-    
-    """ List of object attributes that distributes calls to its members and returns list of return values """
-    
-    def __init__(self,_super,_name,*args):
-        super().__init__(*args)
-        self._super = _super
-        self._name = _name
-    
-    def __call__(self,*args,**kwargs):      
-        try: return  ObjListAttr(self._super,self._name,[ func_obj(*args,**kwargs) for func_obj in self ])
-        except TypeError: raise TypeError(f"Not all objects in '{type(self._super).__name__}' are callable.")
-    
-    def __eq__(self, other):       
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x == other])
-    
-    def __ne__(self, other):      
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x != other])
-
-    def __lt__(self, other):      
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x < other])
-    
-    def __le__(self, other):     
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x <= other])
-    
-    def __gt__(self, other):  
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x >= other])
-    
-    def __ge__(self, other):     
-        return type(self._super)([obj for obj,x in zip(self._super,self) if x > other])
-    
-    def __add__(self,v):    
-        return ObjListAttr(self._super,self._name,[x+v for x in self])
-    
-    def __sub__(self,v):    
-        return ObjListAttr(self._super,self._name,[x-v for x in self])
-    
-    def __mul__(self,v):    
-        return ObjListAttr(self._super,self._name,[x*v for x in self])
-    
-    def __truediv__(self,v):    
-        return ObjListAttr(self._super,self._name,[x/v for x in self])
-    
-    def __iadd__(self,v):
-        return self + v
-    
-    def __isub__(self,v):
-        return self - v
-    
-    def __imul__(self,v):
-        return self * v
-    
-    def __itruediv__(self,v):
-        return self / v
-    
-    def __repr__(self):
-        return f"ObjListAttr {list.__repr__(self)}"
-    
-    
-class ObjList(list):
-    
-    """ A list that can access and assign attributes of it's entries like it's own """
-        
-    def __setattr__(self, name, value):
-        
-        if isinstance(value,ObjListAttr):
-            for obj,v in zip(self,value):
-                setattr(obj, name, v)
-            return
-        
-        for obj in self:
-            setattr(obj, name, value)
-    
-    def __getattr__(self,name):
-        
-        try: 
-            return ObjListAttr( self, name, [ getattr(obj,name) for obj in self ] )
-        except AttributeError:
-            raise AttributeError(f"Neither '{type(self).__name__}' object nor it's entries have attribute '{name}'")
-            
-    def __repr__(self):
-        return f"ObjList {list.__repr__(self)}"

@@ -1,10 +1,6 @@
 """
-
-Agentpy
-Analysis Module
-
-Copyright (c) 2020 Joël Foramitti
-
+Agentpy Analysis Module
+Content: Sensitivity and interactive analysis, animation, visualization
 """
 
 import numpy as np
@@ -17,28 +13,31 @@ from scipy.interpolate import griddata
 from SALib.analyze import sobol
 from matplotlib import animation
 
-from .tools import make_list
+from .tools import make_list, param_tuples_to_salib
 from .framework import AgentList
 
 
 def sobol_sensitivity(output, param_ranges, measures=None, **kwargs):
-    """ 
-    Returns Sobol Sensitivity Indices based on the SALib Package and adds them to output
-    (https://salib.readthedocs.io/) 
+    """ Calculates Sobol Sensitivity Indices and adds them to the output,
+    using :func:`SALib.analyze.sobol.analyze`.
+
+    Arguments:
+        output (DataDict): The output of an experiment that was set to only
+            one iteration (default) and used a parameter sample that was
+            generated with :func:`sample_saltelli`.
+        param_ranges (dict): The same dictionary that was used for the
+            generation of the parameter sample with :func:`sample_saltelli`.
+        measures (str or list of str, optional): The measures that should
+            be used for the analysis. If none are passed, all are used.
+        **kwargs: Will be forwarded to :func:`SALib.analyze.sobol.analyze`.
+            The kwarg ``calc_second_order`` must be the same as for
+            :func:`sample_saltelli`.
     """
 
-    # STEP 1 - Convert param_ranges to SALib Format 
-
-    param_ranges_tuples = {k: v for k, v in param_ranges.items() if isinstance(v, tuple)}
-
-    param_ranges_salib = {
-        'num_vars': len(param_ranges_tuples),
-        'names': list(param_ranges_tuples.keys()),
-        'bounds': []
-    }
-
-    for var_key, var_range in param_ranges_tuples.items():
-        param_ranges_salib['bounds'].append([var_range[0], var_range[1]])
+    # STEP 1 - Convert param_ranges to SALib Format
+    param_ranges_tuples = {k: v for k, v in param_ranges.items()
+                           if isinstance(v, tuple)}
+    param_ranges_salib = param_tuples_to_salib(param_ranges_tuples)
 
     # STEP 2 - Calculate Sobol Sensitivity Indices
 
@@ -48,47 +47,57 @@ def sobol_sensitivity(output, param_ranges, measures=None, **kwargs):
     if isinstance(measures, str):
         measures = make_list(measures)
 
-    dfs_SI = []
-    dfs_SI_conf = []
+    dfs_si = []
+    dfs_si_conf = []
+    dfs_list = [dfs_si, dfs_si_conf]
 
     for measure in measures:
-        Y = np.array(output.measures[measure])
+        y = np.array(output.measures[measure])
 
-        SI = sobol.analyze(param_ranges_salib, Y, **kwargs)
+        si = sobol.analyze(param_ranges_salib, y, **kwargs)
 
         # Make dataframes out of sensitivities
-        keys = ['S1', 'ST']
-        s2 = {k: v for k, v in SI.items() if k in keys}
-        df = pd.DataFrame(s2)
-        df['parameter'] = output.parameters.varied.keys()
-        df['measure'] = measure
-        df = df.set_index(['measure', 'parameter'])
-        dfs_SI.append(df)
+        keys_list = [['S1', 'ST'], ['S1_conf', 'ST_conf']]
 
-        keys1 = ['S1_conf', 'ST_conf']
-        s3 = {k: v for k, v in SI.items() if k in keys1}
-        df = pd.DataFrame(s3)
-        df['parameter'] = output.parameters.varied.keys()
-        df['measure'] = measure
-        df = df.set_index(['measure', 'parameter'])
-        df.columns = ['S1', 'ST']
-        dfs_SI_conf.append(df)
+        for dfs, keys in zip(dfs_list, keys_list):
+            s = {k: v for k, v in si.items() if k in keys}
+            df = pd.DataFrame(s)
+            df['parameter'] = output.parameters.varied.keys()
+            df['measure'] = measure
+            df = df.set_index(['measure', 'parameter'])
+            dfs.append(df)
 
-    output['sensitivity'] = pd.concat(dfs_SI)
-    output['sensitivity_conf'] = pd.concat(dfs_SI_conf)
+    output['sensitivity'] = pd.concat(dfs_si)
+    output['sensitivity_conf'] = pd.concat(dfs_si_conf)
 
     # TODO Second-Order Entries Missing
 
     return output['sensitivity']
 
 
-def animate(model, parameters, fig, axs, plot, skip_t0=False, **kwargs):
-    """ Returns an animation of the model simulation """
+def animate(model, parameters, fig, axs, output_function,
+            skip_t0=False, **kwargs):
+    """ Returns an animation of the model simulation
+
+    Arguments:
+        model (type): The model class type.
+        parameters (dict): Model parameters.
+        fig: Figure for the animation.
+        axs: Axis of the figure.
+        output_function: Output to be displayed in the animation.
+        skip_t0: Start animation at t == 1 (default False).
+        **kwargs: Will be forwarded to output_function.
+
+    Returns:
+        ipywidgets.HBox: Interactive output widget
+    """  # TODO Improve function & docs
 
     m = model(parameters)
+    steps = m.p['steps'] if 'steps' in m.p else False
     m._stop = False
     m.setup()
     m.update()
+    m._update_stop(steps)
 
     step0 = True
     step00 = not skip_t0
@@ -107,11 +116,11 @@ def animate(model, parameters, fig, axs, plot, skip_t0=False, **kwargs):
                 m.t += 1
                 m.step()
             m.update()
-            m._update_stop()
-            m.create_output()
+            m._update_stop(steps)
+            m._create_output()
             yield m.t
 
-    def update(t, m, axs):
+    def update(t, m, axs):  # noqa
 
         for ax in make_list(axs):
             ax.clear()
@@ -119,11 +128,12 @@ def animate(model, parameters, fig, axs, plot, skip_t0=False, **kwargs):
         if m.t == 0 and skip_t0:
             pass
         else:
-            plot(m, axs)
+            output_function(m, axs)
 
-    ani = animation.FuncAnimation(fig, update, frames=frames, fargs=(m, axs), **kwargs)
+    ani = animation.FuncAnimation(fig, update, frames=frames,  # noqa
+                                  fargs=(m, axs), **kwargs)
+
     plt.close()  # Don't display static plot
-
     return ani
 
 
@@ -132,25 +142,21 @@ def interactive(model, param_ranges, output_function, *args, **kwargs):
     Returns 'output_function' as an interactive ipywidget
     More infos at https://ipywidgets.readthedocs.io/
 
+    Arguments:
+        model (type): The model class type.
+        param_ranges (dict): The parameter ranges to be tested.
+        output_function (function): Output to be displayed interactively.
+        *args: Will be forwarded to output_function.
+        **kwargs: Will be forwarded to output_function.
+
     Returns:
-        ipywidgets.HBox
+        ipywidgets.HBox: Interactive output widget
     """
-
-    def make_param(param_updates):
-
-        parameters = dict(param_ranges)  # Copy
-        i = 0
-
-        for key, value in parameters.items():
-
-            if isinstance(v, tuple):
-                parameters[key] = param_updates[i]
-                i += 1
 
     def var_run(**param_updates):
 
         parameters = dict(param_ranges)
-        parameters.update(param_updates)  # make_param(param_updates)
+        parameters.update(param_updates)
         temp_model = model(parameters)
         temp_model.run(display=False)
 
@@ -158,7 +164,8 @@ def interactive(model, param_ranges, output_function, *args, **kwargs):
 
     # Create widget dict
     widget_dict = {}
-    param_ranges_tuples = {k: v for k, v in param_ranges.items() if isinstance(v, tuple)}
+    param_ranges_tuples = {k: v for k, v in param_ranges.items()
+                           if isinstance(v, tuple)}
     for var_key, var_range in param_ranges_tuples.items():
         widget_dict[var_key] = widgets.FloatSlider(
             description=var_key,
@@ -179,39 +186,41 @@ def gridplot(model, ax, grid_key, attr_key, color_dict):
 
     def apply_colors(grid, color_assignment, final_type, attr_key):
         if not isinstance(grid[0], final_type):
-            return [apply_colors(subgrid, color_assignment, final_type, attr_key) for subgrid in grid]
+            return [apply_colors(subgrid, color_assignment, final_type,
+                    attr_key) for subgrid in grid]
         else:
-            return [colors.to_rgb(color_assignment(i, attr_key)) for i in grid]
+            return [colors.to_rgb(color_assignment(i, attr_key))
+                    for i in grid]
 
     def color_assignment(a_list, attr_key):
-
         if len(a_list) == 0:
             return color_dict['empty']
         else:
             return color_dict[a_list[0][attr_key]]
 
-    grid = model.envs[grid_key].grid
+    grid = model.envs[grid_key]._grid
     color_grid = apply_colors(grid, color_assignment, AgentList, attr_key)
-    im = ax.imshow(color_grid)
+    _ = ax.imshow(color_grid)
 
 
 def phaseplot(data, x, y, z, n, fill=True, **kwargs):
     """ Creates a contour plot displaying the interpolated
     sensitivity between the parameters x,y and the measure z """
+    # TODO Function unfinished
 
     # Create grid
     x_vals = np.linspace(min(data[x]), max(data[x]), n)
     y_vals = np.linspace(min(data[y]), max(data[y]), n)
-    X, Y = np.meshgrid(x_vals, y_vals)
+    x, y = np.meshgrid(x_vals, y_vals)
 
-    # Interpolate Z
-    Z = griddata((data[x], data[y]), data[z], (X, Y))
+    # Interpolate z
+    z = griddata((data[x], data[y]), data[z], (x, y))
 
     # Create contour plot
     if fill:
-        img = plt.contourf(X, Y, Z, **kwargs)
+        img = plt.contourf(x, y, z, **kwargs)
     else:
-        img = plt.contour(X, Y, Z, **kwargs)
+        img = plt.contour(x, y, z, **kwargs)
 
     # Create colorbar
     plt.colorbar(mappable=img)

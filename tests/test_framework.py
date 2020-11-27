@@ -7,9 +7,13 @@ from agentpy.tools import AgentpyError
 def test_time():
     """ Test time limits """
 
-    # Passed step limit
-    model = ap.Model({'steps': 1})
+    # Parameter step limit
+    model = ap.Model()
     assert model.t == 0
+    model.p.steps = 0
+    model.run()
+    assert model.t == 0
+    model.p.steps = 1
     model.run()
     assert model.t == 1
 
@@ -19,6 +23,27 @@ def test_time():
     with pytest.raises(AgentpyError):
         assert model.run()
     assert model.t == 1_000_000
+
+    # Custom time limit
+    model = ap.Model({'steps': 1})
+    model.t_max = 0
+    with pytest.raises(AgentpyError):
+        assert model.run()
+    assert model.t == 0
+
+
+def test_stop():
+    """ Test method Model.stop() """
+
+    class Model(ap.Model):
+        def step(self):
+            if self.t == 2:
+                self.stop()
+
+    model = Model()
+    model.run()
+
+    assert model.t == 2
 
 
 def test_add_agents():
@@ -32,15 +57,15 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict(model) for a in model.agents])
 
 
-def test_exit():
+def test_agent_destructor():
     """ Remove agent from model """
 
     model = ap.Model()
-    model.add_agents(4)
-    model.agents[3].exit()
+    model.add_agents(3)
+    del model.agents[1]
 
-    assert len(model.agents) == 3
-    assert list(model.agents.id) == [0, 1, 2]
+    assert len(model.agents) == 2
+    assert list(model.agents.id) == [0, 2]
 
 
 def test_record():
@@ -52,4 +77,3 @@ def test_record():
     model.record(['var1', 'var2'])
 
     assert model._log['var2'] == [2]
-

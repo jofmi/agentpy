@@ -4,12 +4,15 @@
 Overview
 ========
 
-Throughout this documentation, agentpy is assumed to be imported as follows::
+This section aims to provide a rough overview over the main classes and
+functions of agentpy and how they are meant to be used.
+For a more detailed description of each element, please refer to the :doc:`reference`.
+Throughout this documentation, agentpy is imported as follows::
 
     import agentpy as ap
 
-Agent-based Models
-##################
+Creating models
+###############
 
 The basic framework for agent-based models consists of three levels:
 
@@ -17,33 +20,42 @@ The basic framework for agent-based models consists of three levels:
 2. :class:`Environment`, :class:`Grid`, and :class:`Network`, which contain agents
 3. :class:`Agent`, the basic building blocks of the model
 
-From every level, the following properties can be used to access different parts of the model:
-
-- ``.model`` returns the model instance
-- ``.p`` returns an :class:`AttrDict` of the models' parameters
-- ``.envs`` returns an :class:`EnvDict` of the objects' environments
-- ``.agents`` returns an :class:`AgentList` of the objects' agents (not for :class:`Agent`)
-- ``.log`` returns a :class:`dict` of the objects' recorded variables
-
-All of the framework classes are designed to be customized through the creation of
+All of these classes are designed to be customized through the creation of
 `sub-classes <https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#inheritance>`_
-with their own variables and methods. A custom agent type could be defined as follows::
+with their own variables and methods.
+A custom agent type could be defined as follows::
 
     class my_agent_type(ap.Agent):
 
         def setup(self):
 
-            """ Called automatically at the agents' creation """
-
-            # Initialize a variable with a parameter
+            # Initialize an attribute with a parameter
             self.agent_attribute = self.p.my_parameter
 
         def agent_method(self):
 
-            ...
+            pass  # Define custom actions here
 
-Some special method-names like ``setup()`` will be used automatically, if declared.
-Here is how a basic agent-based model with it's main special method-names could look like::
+The method :func:`Agent.setup` is meant to be overwritten
+and will be called after an agents' creation.
+All variables of an agents should be initialized in this method.
+Other methods can represent actions that the agent will be able to take during a simulation.
+
+We can further see that the agent comes with a built-in attribute ``.p`` that
+allows it to access the models' parameters.
+All model objects (i.e. agents, environments, and the model itself)
+are equipped with such properties to access different parts of the model:
+
+- ``.model`` returns the model instance
+- ``.model.t`` returns the model's time-step
+- ``.id`` (for agents) or ``.key`` (for rest) returns a unique identifier
+- ``.p`` returns an :class:`AttrDict` of the models' parameters
+- ``.envs`` returns an :class:`EnvDict` of the objects' environments
+- ``.agents`` (not for agents) returns an :class:`AgentList` of the objects' agents
+- ``.log`` returns a :class:`dict` of the objects' recorded variables
+
+Using the new agent type defined above,
+here is how a basic model could look like::
 
     class my_model(ap.Model):
 
@@ -75,55 +87,146 @@ Here is how a basic agent-based model with it's main special method-names could 
             # Record a measure (once per simulation)
             self.measure('my_measure', 1)
 
-In the demonstration model :doc:`Agentpy_Wealth_Transfer`, you can find a very similar model structure in action.
-To use such a model, we have to initialize it with a dictionary of parameters::
+We can see that this custom model is defined by four special methods
+that will be used automatically during different parts of a simulation.
+These different elements will be described in the following sections.
+If you want to see a basic model like this in action,
+take a look at the :doc:`agentpy_wealth_transfer` demonstration in the :doc:`model_library`
+
+Using agents
+############
+
+Agentpy comes with various tools to create, manipulate, and delete agents.
+The method :func:`Model.add_agents` can be used to initialize new agents,
+which will then be stored in ``Model.agents``.
+To remove an object from the model, one can use the ``del`` statement.
+
+Another key feature is the class :class:`AgentList`, in which agents
+can easily be addressed as a group.
+For example, when the model above calls ``self.agents.agent_method()``,
+it will call the method ``agent_method()`` for every agent in the model.
+Similar commands can be used to set and access variables, or select subsets
+of agents with boolean operators.
+The following command, for example, would select all agents with an id above 1::
+
+    self.agents.select(self.agents.id > 1)
+
+Further examples can be found in the :class:`AgentList` reference
+or the :doc:`agentpy_virus_spread` model.
+
+Using environments
+##################
+
+Environments can contain agents just like the main model,
+and are useful if one wants to regard particular topologies for interaction
+and/or multiple environments that can hold seperate populations of agents.
+Agents can be moved between environments with the methods
+:func:`Agent.enter`, :func:`Agent.exit`, and :func:`Agent.move`.
+
+While agents are identified by their unique id (int),
+each environment has to be given a unique key (str).
+Environments can be created with :func:`Model.add_environment`
+and can then be accessed via ``Model.envs`` or ``Model.env_key``.
+There are three different types of environments:
+
+- :class:`Environment`, which simply contain agents like the model
+- :class:`Network`, in which agents can be connected via a Graph
+- :class:`Grid`, in which agents occupy a position on a x-dimensional space
+
+Applied examples of networks can be found in the demonstration models
+:doc:`agentpy_virus_spread` and :doc:`agentpy_button_network`,
+while a spacial grid is used in :doc:`agentpy_forest_fire`.
+
+Recording data
+##############
+
+As can be seen in the model description above,
+there are two main types of data in agentpy.
+The first are dynamic variables,
+which can be stored for each object (agent, environment, or model) and time-step.
+They are useful to look at the dynamics of individual or aggregate objects over time
+and can be recorded by calling the method :meth:`record` for the respective object.
+
+The other type of recordable data are evaluation measures,
+in contrast, can be stored only for the model as a whole and only once per run.
+They are useful as summary statistics that can be compared over multiple runs,
+and can be recorded with the method :meth:`Model.measure`.
+
+Running a simulation
+####################
+
+To perform a simulation, we have to initialize a new instance of our model type
+with a dictionary of parameters, after which we use the function :func:`Model.run`.
+This will return a :class:`DataDict` with recorded data from the simulation. ::
 
     parameters = {'my_parameter':42,
                   'agents':10,
                   'steps':10, }
 
     model = my_model(parameters)
-
-The parameter ``steps`` will be interpreted as the maximum simulation length.
-Other options to control the length of a simulation are:
- 
-- Defining a method with the name :func:`Model.stop_if`.
-- Calling :func:`Model.stop` during the simulation.
-
-To perform a simulation, we can then use the function :func:`Model.run`::
-
     results = model.run()
 
-Multi-Run Experiments
+The procedure of a simulation is as follows:
+
+0. The model initializes with the time-step ``Model.t = 0``
+1. :func:`Model.setup` and :func:`Model.update` are called
+2. The model's time-step is increased by 1
+3. :func:`Model.step` and :func:`Model.update` are called
+4. Step 2 and 3 are repeated until the simulation is stopped.
+5. :func:`Model.end` is called.
+
+The simulation of a model can be stopped by one of the following two ways:
+
+1. Calling the :func:`Model.stop`.
+2. Setting a time-limit by defining a parameter ``steps``.
+
+Multi-run experiments
 #####################
 
-The class :class:`Experiment` can be used to run a model multiple times with varied parameters and distinct scenarios.
+The class :class:`Experiment` can be used to run a model multiple times
+with repeated iterations, varied parameters, and distinct scenarios.
 To prepare a sample of parameters for an experiment, one can use one of the
 sampling functions :func:`sample`, :func:`sample_saltelli`, or :func:`sample_discrete`.
-In the following example, one parameter is kept fixed while the other two are varied between 10 and 20::
 
-    parameter_ranges = {'my_parameter':42,
-                        'agents':(10,20),
-                        'steps':(10,20), }
+Here is an example of an experiment with the we model defined above::
 
-    sample = ap.sample(parameter_ranges, N=10)
+    parameter_ranges = {'my_parameter': 42,
+                        'agents': (10, 20, int),
+                        'steps': (10, 20, int), }
 
-An experiment with multiple iterations, scenarios, and parameters can then performed as follows::
+    sample = ap.sample(parameter_ranges, n=5)
 
     experiment = ap.Experiment(my_model, sample,
                                scenarios=('sc1','sc2'),
-                               iterations=10, )
+                               iterations=2, )
 
     results = experiment.run()
 
-The demonstration models :doc:`Agentpy_Virus_Spread`, :doc:`Agentpy_Button_Network`, and :doc:`Agentpy_Forest_Fire`
-show how such experiments can be used in practice.
+In this experiment, we use a sample where one parameter is kept fixed
+while the other two are varied 5 times from 10 to 20 and set to integer.
+Every possible combination is repeated 2 times, which results in 50 runs.
+Each run further has one result for each of the two scenarios ``sc1`` and ``sc2``.
+For more applied examples of experiments, check out the demonstration models
+:doc:`agentpy_virus_spread`, :doc:`agentpy_button_network`, and :doc:`agentpy_forest_fire`.
 
-Output and Analysis
+Output and analysis
 ###################
 
 Both :class:`Model` and :class:`Experiment` can be used to run a simulation,
 which will return a :class:`DataDict` with output data.
+The output from the experiment defined above looks as follows::
+
+    >>> results
+    DataDict {
+    'log': Dictionary with 5 keys
+    'parameters':
+        'fixed': Dictionary with 1 key
+        'varied': DataFrame with 2 variables and 25 rows
+    'measures': DataFrame with 1 variable and 50 rows
+    'variables':
+        'my_agent_type': DataFrame with 1 variable and 10500 rows
+    }
+
 The output can contain the following categories of data:
 
 - ``log`` holds meta-data about the model and simulation performance.
@@ -131,5 +234,18 @@ The output can contain the following categories of data:
 - ``variables`` holds dynamic variables, which can be recorded at multiple time-steps. 
 - ``measures`` holds evaluation measures that are recoreded only once per simulation.
 
-.. Agents are identified by a unique ID (:class:`int`), while environments have unique keys (:class:`str`). A model can also be passed to the functions :func:`interactive` and :func:`animate` to generate interactive or animated output. :func:`sensitivity` can be used to analyze the sensitivity of varied parameters.
+This output can be stored with :func:`DataDict.save` and :func:`load`.
+:func:`DataDict.arrange` can further be used to generate a specific
+dataframe for analysis or visualization. All dataframes are formatted as
+`long-form data <https://seaborn.pydata.org/tutorial/data_structure.html>`_,
+which makes it easy to use with statistical packages like `seaborn <https://seaborn.pydata.org/>`_.
+Agentpy further provides the following functions for analysis:
 
+- :func:`sobol_sensitivity` performs a Sobol sensitivity analysis.
+- :func:`interactive` generates an interactive widget for paramter variation.
+- :func:`animate` generates an animation that can display output over time.
+- :func:`gridplot` visualizes agent positions on a spacial :class:`Grid`.
+
+To see applied examples of these functions, please check out the :doc:`model_library`.
+
+.. Agents are identified by a unique ID (:class:`int`), while environments have unique keys (:class:`str`). A model can also be passed to the functions :func:`interactive` and :func:`animate` to generate interactive or animated output. :func:`sensitivity` can be used to analyze the sensitivity of varied parameters.

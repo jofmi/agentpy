@@ -1,5 +1,6 @@
 # Configuration file for the Sphinx documentation builder.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+# Written for sphinx 3.2.1
 
 # -- Path setup --------------------------------------------------------------
 
@@ -54,13 +55,15 @@ html_sourcelink_suffix = ''
 nbsphinx_prolog = """
 .. currentmodule:: agentpy
 .. note::
-    You can download this tutorial as a Jupyter Notebook :download:`here<{{ env.doc2path(env.docname,base=None) }}>`
+    You can download this tutorial as a Jupyter Notebook 
+    :download:`here<{{ env.doc2path(env.docname,base=None) }}>`
 """
 
 # Connect to other docs
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'SALib': ('https://salib.readthedocs.io/en/latest/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'salib': ('https://salib.readthedocs.io/en/latest/', None),
     'pandas': ('https://pandas.pydata.org/docs/', None)
 }
 

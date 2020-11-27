@@ -1,17 +1,45 @@
 .. currentmodule:: agentpy
+.. highlight:: shell
 
 ============
 Installation
 ============
 
-Agentpy supports Python 3.6 or higher. It further requires the following libraries: numpy, matplotlib, pandas, networkx, SALib, and ipywidgets.
+Requirements
+------------
 
-To install the package, run the following command on your console::
+Agentpy supports Python 3.6 or higher. It further uses the following libraries:
+
+- `numpy <https://numpy.org>`_ and scipy, for scientific computing
+- `matplotlib <https://matplotlib.org/>`_, for visualization
+- `pandas <https://pandas.pydata.org>`_, for output dataframes
+- `networkx <https://networkx.org/documentation/>`_, for network analysis
+- `ipywidgets <https://ipywidgets.readthedocs.io/>`_, for interactive output
+- `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
+
+Stable release
+--------------
+
+To install the most recent stable release of the package,
+run the following command on your console:
+
+.. code-block:: console
 
 	$ pip install agentpy
 
-Please note that the latest release on pip refers to the `stable <https://agentpy.readthedocs.io/en/stable/>`_ documentation, while the `latest <https://agentpy.readthedocs.io/en/latest/>`_ documentation refers to the latest version on Github, which can be cloned with the following command::
+From source
+-----------
+
+The latest version of agentpy can be cloned from Github as follows:
+
+.. code-block:: console
 
 	$ git clone https://github.com/JoelForamitti/agentpy.git
 
+Once you have a copy of the source, you can install it with:
 
+.. code-block:: console
+
+    $ python setup.py install
+
+.. _Github repository: https://github.com/JoelForamitti/agentpy
