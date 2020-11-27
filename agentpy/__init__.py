@@ -8,7 +8,7 @@ Examples: https://agentpy.readthedocs.io/en/latest/model_library.html
 """
 
 # Meta-data
-__version__ = "0.0.5"
+__version__ = "0.0.4"
 __all__ = [
     '__version__',
     'Model', 'Environment', 'Network', 'Grid',
