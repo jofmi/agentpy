@@ -40,6 +40,7 @@ For a detailled description of all classes and functions, refer to :doc:`referen
    overview
    model_library
    reference
+   changelog
 
 .. only:: html
 

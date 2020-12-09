@@ -20,7 +20,7 @@ class ApObj:
     def __init__(self, model):
         self._log = {}
         self._model = model
-        self._envs = EnvDict(model)
+        self._envs = EnvDict()
 
     @property
     def type(self):
@@ -735,10 +735,10 @@ class EnvDict(dict):
         model(Model): The current model instance
     """
 
-    def __init__(self, model):
-
-        super().__init__()
-        self.model = model
+    #def __init__(self, model):
+#
+ #       super().__init__()
+  #      self.model = model
 
     def __repr__(self):
 
@@ -750,6 +750,16 @@ class EnvDict(dict):
 
         for env in self.values():
             getattr(env, method)(*args, **kwargs)
+
+    def select(self, selection):
+        """ Returns a new :class:`EnvDict` based on `selection`.
+
+        Attributes:
+            selection (list of str): List of keys to be included.
+        """ # TODO NEW TEST
+
+        return EnvDict({k: v for k,v in self.envs.items()
+                        if k in make_list(selection)})
 
     def add_agents(self, agents=1, agent_class=Agent, **kwargs):
         """ Adds agents to all environments.

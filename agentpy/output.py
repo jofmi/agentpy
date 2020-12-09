@@ -90,93 +90,114 @@ class DataDict(AttrDict):
 
         return rep
 
-    def _combine_vars(self, obj_types=None, var_keys=None):
+    def _check_consistency(self):
+        pass  # TODO Create function to check consistency
 
-        """ Returns pandas dataframe with variables """
+    def _combine_vars(self, obj_types='all', var_keys='all'):
+        """ Returns pandas dataframe with combined variables """
 
-        # Select dataframes
-        df_dict = self['variables']
+        # Retrieve variables
+        vs = self['variables']
+        if isinstance(vs, pd.DataFrame):
+            return vs  # Return df if vs is already a df
+        elif isinstance(vs, DataDict) and len(vs.keys()) == 1:
+            return list(vs.values())[0]  # Return df if vs has only one entry
+        elif isinstance(vs, DataDict):
+            df_dict = dict(vs)  # Convert to dict if vs is DataDict
+        elif isinstance(vs, dict):
+            df_dict = vs
+        else:
+            raise ValueError("DataDict.variables must be of type dict,"
+                             "agentpy.DataDict, or pandas.DataFrame.")
 
-        # If 'variables' is a dataframe
-        if isinstance(df_dict, pd.DataFrame):
-            return df_dict
-
-        # If 'variables' is a DataDict with only one entry
-        if isinstance(df_dict, DataDict) and len(df_dict.keys()) == 1:
-            return list(df_dict.values())[0]
-
-        # If 'variables' is a dictionary
-        # TODO introduce checks & errors
-
-        # Select object types
-        if var_keys is not None:
+        # Remove dataframes that don't include any of the selected var_keys
+        if var_keys != 'all':
             df_dict = {k: v for k, v in df_dict.items()
                        if any(x in v.columns for x in make_list(var_keys))}
-        if obj_types is not None:
+
+        # Select object types
+        if obj_types != 'all':
             df_dict = {k: v for k, v in df_dict.items() if k in obj_types}
 
+        # Return none if empty
+        if df_dict == {}:
+            return None
+
         # Create dataframe
-        df = pd.concat(df_dict)
-        df.index = df.index.set_names('obj_type', level=0)  # Name new index
-        if var_keys:
-            df = df[var_keys]  # Select var_keys
+        df = pd.concat(df_dict)  # Dict keys (obj_type) will be added to index
+        df.index = df.index.set_names('obj_type', level=0)  # Rename new index
+
+        # Select var_keys
+        if var_keys != 'all':
+            # make_list prevents conversion to pd.Series for single value
+            df = df[make_list(var_keys)]
 
         return df
 
-    def _combine_pars(self):
-
+    def _combine_pars(self, varied=True, static=True):
         """ Returns pandas dataframe with parameters and run_id """
 
-        # Combine fixed & varied parameters
+        # Case 1: There is a subdict with fixed & combined
         if isinstance(self.parameters, DataDict):
-            dfp0 = self.parameters.varied
-            for k, v in self.parameters.fixed.items():
-                dfp0[k] = v
-
-        # Take either fixed or varied parameters
-        elif isinstance(self.parameters, dict):
-            dfp0 = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
-        elif isinstance(self.parameters, pd.DataFrame):
-            dfp0 = self.parameters
+            dfp = pd.DataFrame()
+            if varied:
+                dfp = self.parameters.varied
+            if static:
+                for k, v in self.parameters.fixed.items():
+                    dfp[k] = v
+        # Case 2: There is a dict with static parameters
+        elif static and isinstance(self.parameters, dict):
+            dfp = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
+        # Case 3: There is a dataframe with varied parameters
+        elif varied and isinstance(self.parameters, pd.DataFrame):
+            dfp = self.parameters
+        # Case 4: No parameters have been selected
         else:
-            raise AgentpyError("Parameters must be of type "
-                               "dict, DataDict, or pandas.DataFrame")
+            return None
 
         # Multiply for iterations
-        dfp = pd.concat([dfp0] * self.log['iterations'])
+        if 'iterations' in self.log and self.log['iterations'] > 1:
+            dfp = pd.concat([dfp] * self.log['iterations'])
+
+        # Set new index
         dfp = dfp.reset_index(drop=True)
         dfp.index.name = 'run_id'
 
         return dfp
 
-    def arrange(self, data_keys=None, var_keys=None, obj_types=None,
-                measure_keys=None, param_keys=None, scenarios=None,
-                index=False):
+    def arrange_measures(self, variables=None, measures='all',
+                         parameters='varied', obj_types='all',
+                         scenarios='all', index=False):
+        """ Returns a dataframe with measures and varied parameters.
+        See :func:`DataDict.arrange` for further information."""
+        return self.arrange(variables=variables, measures=measures,
+                            parameters=parameters, obj_types=obj_types,
+                            scenarios=scenarios, index=index)
+
+    def arrange(self, variables=None, measures=None, parameters=None,
+                obj_types='all', scenarios='all', index=False):
         """ Combines and/or filters data based on passed arguments.
 
         Arguments:
-            data_keys (str or list of str, optional):
-                Keys from the DataDict to include in the new dataframe.
-                If none are given, all are selected.
+            variables (str or list of str, optional):
+                Variables to include in the new dataframe (default None).
+                If 'all', all are selected.
+            measures (str or list of str, optional):
+                Measures to include in the new dataframe (default None).
+                If 'all', all are selected.
+            parameters (str or list of str, optional):
+                Parameters to include in the new dataframe (default None).
+                If 'static', all static parameters are selected.
+                If 'varied', all varied parameters are selected.
+                If 'all', all are selected.
             obj_types (str or list of str, optional):
                 Agent and/or environment types to include in the new dataframe.
-                Only takes effect if data_keys include 'variables'.
-                If none are given, all are selected.
-            var_keys (str or list of str, optional):
-                Dynamic variables to include in the new dataframe.
-                Only takes effect if data_keys include 'variables'.
-                If none are given, all are selected.
-            param_keys (str or list of str, optional):
-                Parameters to include in the new dataframe.
-                Only takes effect if data_keys include 'parameters'.
-                If none are given, all are selected.
-            measure_keys (str or list of str, optional):
-                Measures to include in the new dataframe.
-                Only takes effect if data_keys include 'measures'.
-                If none are given, all are selected.
+                Note that the selected object types will only be included
+                if at least one of their variables is declared in 'variables'.
+                If 'all', all are selected (default).
             scenarios (str or list of str, optional):
                 Scenarios to include in the new dataframe.
-                If none are given, all are selected.
+                If 'all', all are selected (default).
             index (bool, optional):
                 Whether to keep original multi-index structure (default False).
 
@@ -184,60 +205,64 @@ class DataDict(AttrDict):
             pandas.DataFrame: The arranged dataframe
         """
 
-        dfv = None  # The dataframe to be arranged
-        supported_keys = ['variables', 'measures', 'parameters']
+        dfv = dfm = dfp = df = None
 
-        # Prepare keys (select all if none are given)
-        if data_keys is None:
-            data_keys = [k for k in self.keys()
-                         if k in supported_keys]
-        else:
-            data_keys = make_list(data_keys)
-            for key in data_keys:
-                if key not in self.keys():
-                    raise KeyError(f"DataDict has no key '{key}'")
-                elif key not in supported_keys:
-                    raise KeyError(f"DataDict.arrange doesn't support '{key}'"
-                                   f"Supported keys are: {supported_keys}")
+        # Step 1: Variables
+        if variables is not None:
+            dfv = self._combine_vars(obj_types, variables)
 
-        # Process 'variables'
-        if 'variables' in data_keys:
-            dfv = self._combine_vars(obj_types, var_keys)
-
-        # Process 'measures'
-        if 'measures' in data_keys:
+        # Step 2: Measures
+        if measures is not None:
             dfm = self.measures
-            if measure_keys:
-                dfm = dfm[measure_keys]
-            if dfv is None:
-                dfv = dfm
-            else:
-                # Combine vars & measures
-                index_keys = dfv.index.names
-                dfm = dfm.reset_index()
-                dfv = dfv.reset_index()
-                dfv = pd.concat([dfm, dfv])
-                dfv = dfv.set_index(index_keys)
+            if measures is not 'all':  # Select measure keys
+                # make_list prevents conversion to pd.Series for single value
+                dfm = dfm[make_list(measures)]
 
-        # Process 'parameters'
-        if 'parameters' in data_keys:
-            dfp = self._combine_pars()
-            if param_keys:
-                dfp = dfp[param_keys]
-            if isinstance(dfv.index, pd.MultiIndex):
-                dfp = dfp.reindex(dfv.index, level='run_id')
-            dfv = pd.concat([dfv, dfp], axis=1)
+        # Step 3: Parameters
+        if parameters is not None:
+            varied = False if parameters == 'static' else True
+            static = False if parameters == 'varied' else True
+            dfp = self._combine_pars(varied, static)
+            if parameters not in ['all', 'varied', 'static']:
+                # Select parameter keys
+                # make_list prevents conversion to pd.Series for single value
+                dfp = dfp[make_list(parameters)]
 
-        # Select scenarios
-        if scenarios:
-            scenarios = make_list(scenarios)  # noqa
-            dfv = dfv.query("scenario in @scenarios")
-
-        # Reset index
-        if not index:
+        # Step 4: Combine dataframes
+        if dfv is not None and dfm is not None:
+            # Combine variables & measures
+            index_keys = dfv.index.names
+            dfm = dfm.reset_index()
             dfv = dfv.reset_index()
+            df = pd.concat([dfm, dfv])
+            df = df.set_index(index_keys)
+        elif dfv is not None:
+            df = dfv
+        elif dfm is not None:
+            df = dfm
+        if dfp is not None:
+            if df is None:
+                df = dfp
+            else:  # Combine df with parameters
+                if len(dfp) > 1:  # If multi run, add parameters by run_id
+                    if df is not None and isinstance(df.index, pd.MultiIndex):
+                        dfp = dfp.reindex(df.index, level='run_id')
+                    df = pd.concat([df, dfp], axis=1)
+                else:  # Elif single run, add parameters as columns
+                    for k, v in dfp.items():
+                        # dfp is a dataframe, items returns columns, Series
+                        df[k] = v[0]
 
-        return dfv
+        # Step 5: Select scenarios
+        if scenarios != 'all' and 'scenario' in df.index.names:
+            scenarios = make_list(scenarios)  # noqa
+            df = df.query("scenario in @scenarios")
+
+        # Step 6: Reset index
+        if not index:
+            df = df.reset_index()
+
+        return df
 
     def save(self, exp_name=None, exp_id=None, path='ap_output', display=True):
 
@@ -296,7 +321,7 @@ class DataDict(AttrDict):
             print(f"Data saved to {path}")
 
     def _load(self, exp_name=None, exp_id=None,
-             path='ap_output', display=True):
+              path='ap_output', display=True):
         # TODO If none is passed, first experiment name in directory is used.
 
         def load_file(path, file, display):

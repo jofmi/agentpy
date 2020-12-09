@@ -54,7 +54,7 @@ def test_add_agents():
 
     assert len(model.agents) == 3
     assert list(model.agents.id) == [0, 1, 2]
-    assert all([a.envs == ap.EnvDict(model) for a in model.agents])
+    assert all([a.envs == ap.EnvDict() for a in model.agents])
 
 
 def test_agent_destructor():
