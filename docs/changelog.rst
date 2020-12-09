@@ -1,3 +1,5 @@
+.. currentmodule:: agentpy
+
 =========
 Changelog
 =========
@@ -6,8 +8,13 @@ Changelog
 ------------------------
 
 * First major release.
-* API change for :method:`DataDict.arrange`.
-* New method :method:`DataDict.arrange_measures` combines
+* New parameter names for :func:`DataDict.arrange`.
+* New method :func:`DataDict.arrange_measures` combines
   recorded measures with varied parameters for sensitivity analysis.
-* Envdict now has select
+* Improved functionality of :class:`AgentList`: Arithmethic operators
+  can now be used with an :class:`AttrList` to conduct different operations
+  for each agent.
+
+..
+    * Envdict now has select
 

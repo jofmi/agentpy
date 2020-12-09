@@ -257,13 +257,13 @@ class Agent(ApObj):
             del self.envs[key]
 
 
-class AgentAttrList(list):
-    """ List of agent attributes.
+class AttrList(list):
+    """ List of attributes from an :class:`AgentList`.
 
     Calls are forwarded to each entry and return a list of return values.
     Boolean operators are applied to each entry and return a list of bools.
     Arithmetic operators are applied to each entry and return a new list.
-    An attribute list can be applied to an agent list via :func:`setattr`.
+    See :class:`AgentList` for examples.
     """
 
     def __init__(self, *args, attr=None):
@@ -274,16 +274,13 @@ class AgentAttrList(list):
         if self.attr is None:
             return f"AttrList: {list.__repr__(self)}"
         else:
-            return f"AttrList of attr '{self.attr}': {list.__repr__(self)}"
+            return f"AttrList of attribute '{self.attr}': " \
+                   f"{list.__repr__(self)}"
 
     def __call__(self, *args, **kwargs):
-        try:
-            return AgentAttrList(
-                [func_obj(*args, **kwargs) for func_obj in self],
-                attr=self.attr)
-        except TypeError:
-            raise TypeError(
-                f"Attribute '{self.attr}' is not callable for all agents.")
+        return AttrList(
+            [func_obj(*args, **kwargs) for func_obj in self],
+            attr=self.attr)
 
     def __eq__(self, other):
         return [obj == other for obj in self]
@@ -304,16 +301,28 @@ class AgentAttrList(list):
         return [obj >= other for obj in self]
 
     def __add__(self, v):
-        return AgentAttrList([x + v for x in self])
+        if isinstance(v, AttrList):
+            return AttrList([x + y for x, y in zip(self, v)])
+        else:
+            return AttrList([x + v for x in self])
 
     def __sub__(self, v):
-        return AgentAttrList([x - v for x in self])
+        if isinstance(v, AttrList):
+            return AttrList([x - y for x, y in zip(self, v)])
+        else:
+            return AttrList([x - v for x in self])
 
     def __mul__(self, v):
-        return AgentAttrList([x * v for x in self])
+        if isinstance(v, AttrList):
+            return AttrList([x * y for x, y in zip(self, v)])
+        else:
+            return AttrList([x * v for x in self])
 
     def __truediv__(self, v):
-        return AgentAttrList([x / v for x in self])
+        if isinstance(v, AttrList):
+            return AttrList([x / y for x, y in zip(self, v)])
+        else:
+            return AttrList([x / v for x in self])
 
     def __iadd__(self, v):
         return self + v
@@ -332,45 +341,63 @@ class AgentList(list):
     """ List of agents.
 
     Attribute calls and assignments are applied to all agents
-    and return a callable list with attributes of each agent.
+    and return an :class:`AttrList` with attributes of each agent.
     This also works for method calls, which returns a list of return values.
     Arithmetic operators can further be used to manipulate agent attributes,
     and boolean operators can be used to filter list based on agent attributes.
 
     Examples:
 
-        Here is a set of operations that can be applied to an
-        :class:`AgentList` with the name ``agents`` and three agents.
-
-        To set a variable ``x = 1`` for all agents in the list::
+        Let us start by preparing an :class:`AgentList` with three agents::
+            
+            >>> model = ap.Model()
+            >>> model.add_agents(3)
+            >>> agents = model.agents
+            >>> agents
+            AgentList [3 agents]
+             
+        The assignment operator can be used to set a variable for each agent.
+        When the variable is called, an :class:`AttrList` is returned::
 
             >>> agents.x = 1
             >>> agents.x
-            AttrList of attr 'x': [1, 1, 1]
+            AttrList of attribute 'x': [1, 1, 1]
 
-        Arithmetic operators can be used on this attribute lists::
+        One can also set different variables for each agent
+        by passing another :class:`AttrList`::
 
-            >>> agents.x = agents.id + 1
+            >>> agents.y = ap.AttrList([1, 2, 3])
+            >>> agents.y
+            AttrList of attribute 'y': [1, 2, 3]
+
+        Arithmetic operators can be used in a similar way.
+        If an :class:`AttrList` is passed, different values are used for
+        each agent. Otherwise, the same value is used for all agents::
+
+            >>> agents.x = agents.x + agents.y
             >>> agents.x
-            AttrList: [1, 2, 3]
+            AttrList of attribute 'x': [2, 3, 4]
+
+            >>> agents.x *= 2
+            >>> agents.x
+            AttrList of attribute 'x': [4, 6, 8]
 
         Boolean operators can be used to select a subset of agents::
 
-            >>> agents.select(agents.id < 2).id
-            AttrList of attr 'id': [0,1]
+            >>> subset = agents(agents.x > 5)
+            >>> subset
+            AgentList [2 agents]
 
-        The method select() can also be invoked by calling the list directly::
-
-            >>> agents(agents.id < 2).id
-            AttrList of attr 'id': [0,1]
-
-    """  # TODO improve examples
+            >>> subset.x
+            AttrList of attribute 'x': [6, 8]
+    """
 
     def __setattr__(self, name, value):
-        if isinstance(value, AgentAttrList):
+        if isinstance(value, AttrList):
             # Apply each value to each agent
             assert len(self) == len(value)  # TODO Catch Error
             for obj, v in zip(self, value):
+                # print(f"Setting {name} to {v} for {obj}") TODO Remove
                 setattr(obj, name, v)
         else:
             # Apply single value to all agents
@@ -379,7 +406,7 @@ class AgentList(list):
 
     def __getattr__(self, name):
         """ Return callable list of attributes """
-        return AgentAttrList([getattr(obj, name) for obj in self], attr=name)
+        return AttrList([getattr(obj, name) for obj in self], attr=name)
 
     def __repr__(self):
         return f"AgentList [{len(self)} agent{'s' if len(self) > 1 else ''}]"

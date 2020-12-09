@@ -55,3 +55,24 @@ def test_sort():
 
     assert list(model.agents.x) == [0, 1]
     assert list(model.agents.id) == [1, 0]
+
+
+def test_arithmetics():
+
+    model = ap.Model()
+    model.add_agents(3)
+    agents = model.agents
+
+    agents.x = 1
+    assert agents.x.attr == "x"
+    assert list(agents.x) == [1, 1, 1]
+
+    agents.y = ap.AttrList([1, 2, 3])
+    assert list(agents.y) == [1, 2, 3]
+
+    agents.x = agents.x + agents.y
+    assert list(agents.x) == [2, 3, 4]
+
+    agents.x *= 2
+    assert list(agents.x) == [4, 6, 8]
+

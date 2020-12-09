@@ -10,3 +10,6 @@ Agents
 
 .. autoclass:: AgentList
     :members:
+
+.. autoclass:: AttrList
+    :members:
