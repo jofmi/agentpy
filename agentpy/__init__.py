@@ -14,7 +14,8 @@ __all__ = [
     'Experiment',
     'DataDict', 'load',
     'sample', 'sample_discrete', 'sample_saltelli',
-    'sobol_sensitivity', 'gridplot', 'interactive', 'animate'
+    'sobol_sensitivity', 'gridplot', 'interactive', 'animate',
+    'AttrDict'
 ]
 # Meta-data
 __version__ = "0.0.5.dev"
@@ -26,3 +27,4 @@ from .experiment import Experiment
 from .output import DataDict, load
 from .sampling import sample, sample_discrete, sample_saltelli
 from .analysis import sobol_sensitivity, gridplot, interactive, animate
+from .tools import AttrDict

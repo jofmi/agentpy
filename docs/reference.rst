@@ -15,3 +15,4 @@ API Reference
    reference_experiments
    reference_output
    reference_analysis
+   reference_other

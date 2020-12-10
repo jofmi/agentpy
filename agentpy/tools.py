@@ -50,7 +50,19 @@ def param_tuples_to_salib(param_ranges_tuples):
 
 
 class AttrDict(dict):
-    """ Attribute calls are forwarded to items. """
+    """ Dictionary where attribute calls are handled like item calls.
+
+    Examples:
+
+        >>> ad = ap.AttrDict()
+        >>> ad['a'] = 1
+        >>> ad.a
+        1
+
+        >>> ad.b = 2
+        >>> ad['b']
+        2
+    """
 
     def __init__(self, *args, **kwargs):
         if args == (None, ):
