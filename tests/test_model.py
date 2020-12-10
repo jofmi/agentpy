@@ -57,6 +57,17 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict() for a in model.agents])
 
 
+def test_prop_objects():
+
+    model = ap.Model()
+    model.add_agents(3)
+    model.add_env('E')
+
+    assert len(model.objects) == 4
+    assert model.agents[0] in model.objects
+    assert model.envs['E'] in model.objects
+
+
 def test_setup():
     """ Test setup() for all ABM object types """
 

@@ -891,12 +891,16 @@ class Model(ApEnv):
         return rep + ' }'
 
     def __getattr__(self, key):
-
         try:  # Try to access environments
             return self.envs[key]
         except KeyError:
             raise AttributeError(
                 f"Model has no attribute or environment '{key}'")
+
+    @property
+    def objects(self):
+        """The models agents and environments (list of objects)."""
+        return self.agents + list(self.envs.values())
 
     def _new_id(self):
 
