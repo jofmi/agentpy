@@ -598,7 +598,7 @@ class Network(ApEnv):
         self._set_var_ignore()
         self.setup(**kwargs)
 
-    def add_agents(self, agents, agent_class=Agent,
+    def add_agents(self, agents, agent_class=Agent,  # noqa
                    map_to_nodes=False, **kwargs):
         """ Adds agents to the network environment.
         See :func:`Environment.add_agents` for standard arguments.
@@ -805,9 +805,9 @@ class EnvDict(dict):
 
         Attributes:
             selection (list of str): List of keys to be included.
-        """ # TODO NEW TEST
+        """  # TODO NEW TEST
 
-        return EnvDict({k: v for k,v in self.envs.items()
+        return EnvDict({k: v for k, v in self.envs.items()
                         if k in make_list(selection)})
 
     def add_agents(self, agents=1, agent_class=Agent, **kwargs):
@@ -842,7 +842,9 @@ class Model(ApEnv):
         output (DataDict): Output data after simulation.
 
     Arguments:
-        parameters (dict, optional): Model parameters.
+        parameters (dict, optional): Dictionary of model parameters.
+            Recommended types for parameters are int, float, str, list,
+            numpy.integer, numpy.floating, and numpy.ndarray.
         run_id (int, optional): Number of current run.
         scenario (str, optional): Current scenario.
     """
@@ -1087,10 +1089,10 @@ class Model(ApEnv):
         # 3.2 - Create variable output for model
         if self.log:
             df = pd.DataFrame(self.log)
-            df['obj_id'] = 'model'
+            # df['obj_id'] = 'model'
             for k, v in columns.items():
                 df[k] = v
-            df = df.set_index(list(columns.keys()) + ['obj_id', 't'])
+            df = df.set_index(list(columns.keys()) + ['t'])  # 'obj_id',
 
             if self.output['variables']:
                 self.output['variables']['model'] = df

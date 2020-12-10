@@ -120,6 +120,16 @@ class DataDict(AttrDict):
         if obj_types != 'all':
             df_dict = {k: v for k, v in df_dict.items() if k in obj_types}
 
+        # Add 'obj_id' before 't' for model df
+        if 'model' in list(df_dict.keys()):
+            df = df_dict['model']
+            df['obj_id'] = 'model'
+            indexes = list(df.index.names)
+            indexes.insert(-1, 'obj_id')
+            df = df.reset_index()
+            df = df.set_index(indexes)
+            df_dict['model'] = df
+
         # Return none if empty
         if df_dict == {}:
             return None
