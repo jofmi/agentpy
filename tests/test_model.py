@@ -4,7 +4,7 @@ import agentpy as ap
 from agentpy.tools import AgentpyError
 
 
-def test_time():
+def test_run():
     """ Test time limits """
 
     # Parameter step limit
@@ -57,7 +57,7 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict() for a in model.agents])
 
 
-def test_add_and_setup():
+def test_setup():
     """ Test setup() for all ABM object types """
 
     class MySetup:
@@ -111,8 +111,24 @@ def test_record():
     """ Record a dynamic variable """
 
     model = ap.Model()
+    model.add_agents(3)
     model.var1 = 1
     model.var2 = 2
     model.record(['var1', 'var2'])
 
+    assert len(list(model._log.keys())) == 3
+    assert model._log['var1'] == [1]
+    assert model._log['var2'] == [2]
+
+
+def test_record_all():
+    """ Record all dynamic variables automatically """
+
+    model = ap.Model()
+    model.var1 = 1
+    model.var2 = 2
+    model.record(model.var_keys)
+
+    assert len(list(model._log.keys())) == 3
+    assert model._log['var1'] == [1]
     assert model._log['var2'] == [2]

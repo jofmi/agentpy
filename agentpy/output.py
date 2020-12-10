@@ -15,7 +15,7 @@ import numpy as np
 
 
 class NpEncoder(json.JSONEncoder):
-    """ Adds support for numpy number formats to json """
+    """ Adds support for numpy number formats to json. """
     # By Jie Yang https://stackoverflow.com/a/57915246
 
     def default(self, obj):
@@ -50,7 +50,7 @@ class DataDict(AttrDict):
 
     Attributes:
         log (dict): Meta-data of the simulation
-            (e.g. name, time-stamps, settings, etc.)
+            (e.g. name, time-stamps, settings, etc.).
         parameters (dict, pandas.DataFrame, or DataDict):
             Parameters that have been used for the simulation.
         variables (pandas.DataFrame or DataDict)):

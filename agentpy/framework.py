@@ -21,10 +21,19 @@ class ApObj:
         self._log = {}
         self._model = model
         self._envs = EnvDict()
+        self._var_ignore = []
 
     @property
     def type(self):
+        """Class name of the object (str)."""
         return type(self).__name__
+
+    @property
+    def var_keys(self):
+        """The object's variables (list of str)."""
+        return [k for k in self.__dict__.keys()
+                if k[0] != '_'
+                and k not in self._var_ignore]
 
     @property
     def p(self):
@@ -48,6 +57,10 @@ class ApObj:
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+    def _set_var_ignore(self):
+        """Store current attributes to seperate them from custom variables"""
+        self._var_ignore = [k for k in self.__dict__.keys() if k[0] != '_']
+
     def record(self, var_keys, value=None):
         """ Records an objects variables.
 
@@ -55,7 +68,9 @@ class ApObj:
             var_keys (str or list of str):
                 Names of the variables to be recorded.
             value (optional): Value to be recorded.
-                If none is given, object attributes are used.
+                The same value will be used for all `var_keys`.
+                If none is given, the values of object attributes
+                with the same name as each var_key will be used.
 
         Examples:
 
@@ -66,6 +81,10 @@ class ApObj:
             Record a variable ``z`` with the value ``1`` for an object ``a``::
 
                 a.record('z', 1)
+
+            Record all variables of an object::
+
+                a.record(a.var_keys)
         """
 
         for var_key in make_list(var_keys):
@@ -128,15 +147,15 @@ class Agent(ApObj):
     and can be removed from the model with the `del` statement.
 
     Attributes:
-        model (Model): Model instance
-        p (AttrDict): Model parameters
-        envs (EnvDict): Environments of the agent
-        log (dict): Recorded variables
-        id (int): Unique identifier
+        model (Model): Model instance.
+        p (AttrDict): Model parameters.
+        envs (EnvDict): Environments of the agent.
+        log (dict): Recorded variables.
+        id (int): Unique identifier.
 
     Arguments:
-        model (Model): Instance of the current model
-        envs (dict or EnvDict, optional): The agents' initial environments
+        model (Model): Instance of the current model.
+        envs (dict or EnvDict, optional): The agents' initial environments.
 
     """
 
@@ -145,6 +164,7 @@ class Agent(ApObj):
         self.id = model._new_id()
         if envs:  # Add environments
             self.envs.update(envs)
+        self._set_var_ignore()
         self.setup(**kwargs)
 
     def __repr__(self):
@@ -527,21 +547,22 @@ class Environment(ApEnv):
     and can be removed from the model with the ``del`` statement.
 
     Attributes:
-        model (Model): The model instance
-        agents (AgentList): The environments' agents
-        p (AttrDict): The models' parameters
-        key (str): The environments' name
-        topology (str): Topology of the environment
-        log (dict): The environments' recorded variables
+        model (Model): The model instance.
+        agents (AgentList): The environments' agents.
+        p (AttrDict): The models' parameters.
+        key (str): The environments' name.
+        topology (str): Topology of the environment.
+        log (dict): The environments' recorded variables.
 
     Arguments:
-        model (Model): The model instance
-        key (str, optional): The environments' name
-        **kwargs: Will be forwarded to :func:`Environment.setup`
+        model (Model): The model instance.
+        key (str, optional): The environments' name.
+        **kwargs: Will be forwarded to :func:`Environment.setup`.
     """
 
     def __init__(self, model, key, **kwargs):
         super().__init__(model, key)
+        self._set_var_ignore()
         self.setup(**kwargs)
 
 
@@ -556,10 +577,10 @@ class Network(ApEnv):
         and will call the method ``setup()`` after creation (if defined).
 
     Arguments:
-        model (Model): The model instance
-        key (str, optional): The environments' name
-        graph (networkx.Graph): The environments' graph
-        **kwargs: Will be forwarded to :func:`Network.setup`
+        model (Model): The model instance.
+        key (str, optional): The environments' name.
+        graph (networkx.Graph): The environments' graph.
+        **kwargs: Will be forwarded to :func:`Network.setup`.
     """
 
     def __init__(self, model, key, graph=None, **kwargs):
@@ -574,6 +595,7 @@ class Network(ApEnv):
             raise TypeError("'graph' must be of type networkx.Graph")
 
         self._topology = 'network'
+        self._set_var_ignore()
         self.setup(**kwargs)
 
     def add_agents(self, agents, agent_class=Agent,
@@ -627,16 +649,16 @@ class Grid(ApEnv):
     Inherits attributes and methods from :class:`Environment`.
 
     Attributes:
-        _positions(dict): Agent positions
+        _positions(dict): Agent positions.
 
     Arguments:
-        model (Model): The model instance
+        model (Model): The model instance.
         key (dict or EnvDict, optional):  The environments' name
         dim(int, optional): Number of dimensions (default 2).
         size(int or tuple): Size of the grid.
             If int, the same length is assigned to each dimension.
             If tuple, one int item is required per dimension.
-        **kwargs: Will be forwarded to :func:`Grid.setup`
+        **kwargs: Will be forwarded to :func:`Grid.setup`.
     """
 
     def __init__(self, model, key, shape, **kwargs):
@@ -647,6 +669,7 @@ class Grid(ApEnv):
         self._grid = make_matrix(make_list(shape), AgentList)
         self._positions = {}
         self._shape = shape
+        self._set_var_ignore()
         self.setup(**kwargs)
 
     @property
@@ -659,7 +682,7 @@ class Grid(ApEnv):
 
     def neighbors(self, agent, diagonal=False):
 
-        """ Returns agent neighbors """
+        """ Returns agent neighbors. """
 
         if diagonal:  # Include diagonal neighbors (square shape)
             return self._get_neighbors8(self._positions[agent], self._grid)
@@ -689,9 +712,7 @@ class Grid(ApEnv):
         return objects
 
     def _get_neighbors4(self, pos, grid, dist=1):
-
-        """ Return agents in diamond-shaped area around pos """
-
+        """ Return agents in diamond-shaped area around pos."""
         subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
 
         if len(pos) == 1:
@@ -704,7 +725,7 @@ class Grid(ApEnv):
         return objects
 
     def _get_neighbors8(self, pos, grid):
-
+        """ Return agents in square-shaped area around pos."""
         subgrid = grid[max(0, pos[0] - 1):pos[0] + 2]
 
         if len(pos) == 1:
@@ -731,7 +752,6 @@ class Grid(ApEnv):
 
     def add_agents(self, agents, agent_class=Agent, positions=None,
                    random=False, map_to_grid=False, **kwargs):
-
         """ Adds agents to the grid environment.
         See :func:`Environment.add_agents` for standard arguments."""
 
@@ -812,19 +832,19 @@ class Model(ApEnv):
     See :func:`Model.run` for information on the simulation procedure.
 
     Attributes:
-        name (str): The models' name
-        envs (EnvDict): The models' environments
-        agents (AgentList): The models' agents
-        p (AttrDict): The models' parameters
-        t (int): Current time-step of the model
-        t_max (int): Time limit for simulations (default 1_000_000)
-        log (dict): The models' recorded variables
-        output (DataDict): Output data after simulation
+        name (str): The models' name.
+        envs (EnvDict): The models' environments.
+        agents (AgentList): The models' agents.
+        p (AttrDict): The models' parameters.
+        t (int): Current time-step of the model.
+        t_max (int): Time limit for simulations (default 1_000_000).
+        log (dict): The models' recorded variables.
+        output (DataDict): Output data after simulation.
 
     Arguments:
-        parameters (dict, optional): Model parameters
-        run_id (int, optional): Number of current run
-        scenario (str, optional): Current scenario
+        parameters (dict, optional): Model parameters.
+        run_id (int, optional): Number of current run.
+        scenario (str, optional): Current scenario.
     """
 
     def __init__(self,
@@ -850,6 +870,7 @@ class Model(ApEnv):
         self._parameters = AttrDict(parameters)
         self._stop = False
         self._id_counter = -1
+        self._set_var_ignore()
 
     def __repr__(self):
 
@@ -884,28 +905,28 @@ class Model(ApEnv):
 
     def add_env(self, env_key, env_class=Environment, **kwargs):
 
-        """ Creates a new environment """
+        """ Creates a new environment. """
 
         for env_key in make_list(env_key):
             self.envs[env_key] = env_class(self.model, env_key, **kwargs)
 
     def add_network(self, env_key, env_class=Network, **kwargs):
 
-        """ Creates a new network environment """
+        """ Creates a new network environment. """
 
         for env_key in make_list(env_key):
             self.envs[env_key] = env_class(self.model, env_key, **kwargs)
 
     def add_grid(self, env_key, env_class=Grid, **kwargs):
 
-        """ Creates a new spacial grid environment """
+        """ Creates a new spacial grid environment. """
 
         for env_key in make_list(env_key):
             self.envs[env_key] = env_class(self.model, env_key, **kwargs)
 
     def measure(self, measure, value):
 
-        """ Records an evaluation measure """
+        """ Records an evaluation measure. """
 
         self.measure_log[measure] = [value]
 
@@ -999,11 +1020,9 @@ class Model(ApEnv):
         return self.output
 
     def _create_output(self):
-
-        """ Generates an 'output' dictionary out of object logs """
+        """ Generates an 'output' dictionary out of object logs. """
 
         def output_from_obj_list(self, obj_list, id_or_key, columns):
-
             # Aggregate logs per object type
             obj_types = {}
             for obj in obj_list:
