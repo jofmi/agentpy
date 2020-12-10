@@ -130,7 +130,31 @@ def test_datadict_arrange_measures():
     assert mvp_data.equals(mvp_data_2)
 
 
-def test_datadict_save_and_load():
+def test_automatic_loading():
+
+    if 'ap_output' in os.listdir():
+        shutil.rmtree('ap_output')
+
+    results = pytest.model_results
+    results.log['test'] = False
+    results.save(exp_name="a")
+    results.save(exp_name="b", exp_id=1)
+    results.log['test'] = True
+    results.save(exp_name="b", exp_id=3)
+    results.log['test'] = False
+    results.save(exp_name="c")
+    results.save(exp_name="b", exp_id=2)
+
+    loaded = ap.load()
+    shutil.rmtree('ap_output')
+
+    # Latest experiment is chosen (b),
+    # and then highest id is chosen (3)
+
+    assert loaded.log['test'] is True
+
+
+def test_saved_equals_loaded():
 
     results = pytest.exp_results
     results.save()

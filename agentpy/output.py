@@ -6,6 +6,7 @@ Content: DataDict class for output data
 import pandas as pd
 
 from os import listdir, makedirs
+from os.path import getmtime, join
 import json
 
 from .tools import AttrDict, make_list, AgentpyError
@@ -266,11 +267,11 @@ class DataDict(AttrDict):
 
     def save(self, exp_name=None, exp_id=None, path='ap_output', display=True):
 
-        """ Writes output data to directory ``{path}/{exp_name}_{exp_id}/``.
+        """ Writes output data to directory `{path}/{exp_name}_{exp_id}/`.
 
         Arguments:
-            exp_name (str, optional): Name of the experiment.
-                If none is passed, the name of the experiment instance is used.
+            exp_name (str, optional): Name of the experiment to be saved.
+                If none is passed, `self.log['name']` is used.
             exp_id (int, optional): Number of the experiment.
                 If none is passed, a new id is generated.
             path (str, optional): Target directory (default 'ap_output').
@@ -285,6 +286,7 @@ class DataDict(AttrDict):
         # Set exp_name
         if exp_name is None:
             exp_name = self.log['name']
+
         exp_name = exp_name.replace(" ", "_")
 
         # Set exp_id
@@ -314,6 +316,7 @@ class DataDict(AttrDict):
                 with open(f'{path}/{key}.json', 'w') as fp:
                     json.dump(output, fp, cls=NpEncoder)
 
+            # TODO Support grids & graphs
             # elif t == nx.Graph:
             #    nx.write_graphml(output, f'{path}/{key}.graphml')
 
@@ -322,7 +325,8 @@ class DataDict(AttrDict):
 
     def _load(self, exp_name=None, exp_id=None,
               path='ap_output', display=True):
-        # TODO If none is passed, first experiment name in directory is used.
+
+        # TODO Ignore errors handle
 
         def load_file(path, file, display):
 
@@ -339,19 +343,26 @@ class DataDict(AttrDict):
 
             try:
                 if ext == 'csv':
+                    # Convert .csv into pandas dataframe
                     obj = pd.read_csv(path)
+                    # Set potential index columns
                     index = [i for i in i_cols if i in obj.columns]
                     if index:
                         obj = obj.set_index(index)
                 elif ext == 'json':
+                    # Convert .json with json decoder
                     with open(path, 'r') as fp:
                         obj = json.load(fp)
-                # elif ext == 'graphml': TODO Add support for graphs
+                    # Convert dict to AttrDict
+                    if isinstance(obj, dict):
+                        obj = AttrDict(obj)
+
+                # TODO Support grids & graphs
+                # elif ext == 'graphml':
                 #    self[key] = nx.read_graphml(path)
+
                 else:
-                    if display:
-                        print(f"Error: File type '{ext}' not supported")
-                    return None
+                    raise ValueError(f"File type '{ext}' not supported")
 
                 if display:
                     print('Successful')
@@ -362,7 +373,13 @@ class DataDict(AttrDict):
                 print(f'Error: {e}')
 
         # Prepare for loading
-        # TODO if exp_name is None:
+        if exp_name is None:
+            # Choose latest modified experiment
+            exp_names = listdir(path)
+            paths = [join(path, d) for d in exp_names]
+            latest_exp = exp_names[paths.index(max(paths, key=getmtime))]
+            exp_name = latest_exp.rsplit('_', 1)[0]
+
         exp_name = exp_name.replace(" ", "_")
         if not exp_id:
             exp_id = _last_exp_id(exp_name, path)
@@ -384,7 +401,7 @@ class DataDict(AttrDict):
             elif 'parameters_' in file:
                 ext = file.split(".")[-1]
                 key = file[:-(len(ext) + 1)].replace('parameters_', '')
-                if 'parameters' not in self:
+                if 'parameters' not in self:  # TODO Annotations missing
                     self['parameters'] = DataDict()
                 self['parameters'][key] = load_file(path, file, display)
             else:
@@ -395,16 +412,17 @@ class DataDict(AttrDict):
 
 
 def load(exp_name=None, exp_id=None, path='ap_output', display=True):
-    """ Reads output data from directory ``{path}/{exp_name}_{exp_id}/``.
+    """ Reads output data from directory `{path}/{exp_name}_{exp_id}/`.
 
         Arguments:
-            exp_name (str): Experiment name.
-            exp_id (int, optional): Number of the experiment.
-                If none is passed, the highest id in target directory is used.
+            exp_name (str, optional): Experiment name.
+                If none is passed, the most recent experiment is chosen.
+            exp_id (int, optional): Id number of the experiment.
+                If none is passed, the highest available id used.
             path (str, optional): Target directory (default 'ap_output').
             display (bool, optional): Display loading progress (default True).
 
         Returns:
-            DataDict: The loaded data.
+            DataDict: The loaded data from the chosen experiment.
     """
     return DataDict()._load(exp_name, exp_id, path, display)
