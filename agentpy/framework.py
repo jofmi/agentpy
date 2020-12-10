@@ -100,6 +100,8 @@ class ApObj:
         Arguments:
             **kwargs: Keyword arguments that have been passed to
                 :class:`Agent` or :func:`Model.add_agents`.
+                If the original setup method is used,
+                they will be set as attributes of the object.
 
         Examples:
             The following setup initializes an object with three variables::
@@ -109,7 +111,9 @@ class ApObj:
                     self.y = y  # Value defined in kwargs
                     self.z = self.p.z  # Value defined in parameters
         """
-        pass
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 # Level 3 - Agent class
@@ -119,9 +123,9 @@ class Agent(ApObj):
 
     This class can be used as a parent class for custom agent types.
 
-    All agentpy model objects call the method ``setup()`` after creation,
+    All agentpy model objects call the method :func:`setup()` after creation,
     can access class attributes like dictionary items,
-    and can be removed from the model with the ``del`` statement.
+    and can be removed from the model with the `del` statement.
 
     Attributes:
         model (Model): Model instance
@@ -480,7 +484,8 @@ class ApEnv(ApObj):
                 to be created or list of existing agents (default 1).
             agent_class(class, optional): Type of new agents to be created
                 if int is passed for agents (default :class:`Agent`).
-            **kwargs: Forwarded to agent creation if int is passed for agents.
+            **kwargs: Forwarded to :func:`Agent.setup` if new agents are
+                created (i.e. if an integer number is passed to `agents`).
 
         Returns:
             AgentList: List of the new agents.
@@ -532,14 +537,12 @@ class Environment(ApEnv):
     Arguments:
         model (Model): The model instance
         key (str, optional): The environments' name
-        **kwargs: Additional arguments will be set as attributes
+        **kwargs: Will be forwarded to :func:`Environment.setup`
     """
 
     def __init__(self, model, key, **kwargs):
         super().__init__(model, key)
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-        self.setup()
+        self.setup(**kwargs)
 
 
 class Network(ApEnv):
@@ -556,9 +559,10 @@ class Network(ApEnv):
         model (Model): The model instance
         key (str, optional): The environments' name
         graph (networkx.Graph): The environments' graph
+        **kwargs: Will be forwarded to :func:`Network.setup`
     """
 
-    def __init__(self, model, key, graph=None):
+    def __init__(self, model, key, graph=None, **kwargs):
 
         super().__init__(model, key)
 
@@ -570,24 +574,18 @@ class Network(ApEnv):
             raise TypeError("'graph' must be of type networkx.Graph")
 
         self._topology = 'network'
-        self.setup()
+        self.setup(**kwargs)
 
     def add_agents(self, agents, agent_class=Agent,
                    map_to_nodes=False, **kwargs):
-        """ Adds agents to the environment.
+        """ Adds agents to the network environment.
+        See :func:`Environment.add_agents` for standard arguments.
+        Additional arguments for the network are listed below.
 
         Arguments:
-            agents(int or AgentList,optional): Either number of new agents
-                to be created or list of existing agents (default 1).
-            agent_class(class,optional): Type of new agents to be created
-                if int is passed for agents (default :class:`Agent`).
             map_to_nodes(bool,optional): Map new agents to each node of the
                 graph (default False). Should be used if a graph with empty
                 nodes has been passed at network creation.
-            **kwargs: Forwarded to agent creation if int is passed for agents.
-
-        Returns:
-            AgentList: List of the new agents.
         """
 
         # Standard adding
@@ -638,9 +636,10 @@ class Grid(ApEnv):
         size(int or tuple): Size of the grid.
             If int, the same length is assigned to each dimension.
             If tuple, one int item is required per dimension.
+        **kwargs: Will be forwarded to :func:`Grid.setup`
     """
 
-    def __init__(self, model, key, shape):
+    def __init__(self, model, key, shape, **kwargs):
 
         super().__init__(model, key)
 
@@ -648,8 +647,7 @@ class Grid(ApEnv):
         self._grid = make_matrix(make_list(shape), AgentList)
         self._positions = {}
         self._shape = shape
-
-        self.setup()
+        self.setup(**kwargs)
 
     @property
     def grid(self):
@@ -734,16 +732,24 @@ class Grid(ApEnv):
     def add_agents(self, agents, agent_class=Agent, positions=None,
                    random=False, map_to_grid=False, **kwargs):
 
-        """ Adds agents to the grid environment."""
+        """ Adds agents to the grid environment.
+        See :func:`Environment.add_agents` for standard arguments."""
 
         # TODO unfinished
+
+        """Additional arguments for the grid environment are listed below.
+
+        Arguments:
+            map_to_grid(bool, optional): Map new agents to each position
+             in the grid (default False). Should be used if a graph with empty
+                nodes has been passed at network creation."""
 
         # Standard adding
         new_agents = super().add_agents(agents, agent_class, **kwargs)
 
         # Extra grid features
         if map_to_grid:
-            pass  # (!)
+            pass  # TODO unfinished
         elif positions:
             for agent, pos in zip(new_agents, positions):
                 self._positions[agent] = pos
@@ -761,16 +767,7 @@ class Grid(ApEnv):
 
 
 class EnvDict(dict):
-    """ Dictionary for environments
-
-    Attributes:
-        model(Model): The current model instance
-    """
-
-    #def __init__(self, model):
-#
- #       super().__init__()
-  #      self.model = model
+    """ Dictionary for environments """
 
     def __repr__(self):
 

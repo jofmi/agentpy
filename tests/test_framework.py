@@ -57,20 +57,43 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict() for a in model.agents])
 
 
-def test_agent_setup():
-    """ Test Agent.setup() with keyword arguments """
+def test_add_and_setup():
+    """ Test setup() for all ABM object types """
 
-    class MyAgentType(ap.Agent):
-        def setup(self, a, b=None):
-            self.a = a
-            self.b = b
+    class MySetup:
+        def setup(self, a):
+            self.a = a + 1
+
+    class MyAgentType(MySetup, ap.Agent):
+        pass
+
+    class MyEnvType(MySetup, ap.Environment):
+        pass
+
+    class MyNwType(MySetup, ap.Network):
+        pass
+
+    class MyGridType(MySetup, ap.Grid):
+        pass
 
     model = ap.Model()
-    model.add_agents(1, MyAgentType, a=1, b=2)
-    agent = model.agents[0]
+    model.add_agents(1, b=1)
+    model.add_agents(1, MyAgentType, a=1)
+    model.add_env('E1', MyEnvType, a=2)
+    model.add_env('G1', MyGridType, shape=(1, 1), a=3)
+    model.add_env('N1', MyNwType, a=4)
 
-    assert agent.a == 1
-    assert agent.b == 2
+    # Standard setup implements keywords as attributes
+    # Custom setup uses only keyword a and adds 1
+
+    with pytest.raises(TypeError):
+        assert model.add_agents(1, MyAgentType, b=1)
+
+    assert model.agents[0].b == 1
+    assert model.agents[1].a == 2
+    assert model.E1.a == 3
+    assert model.G1.a == 4
+    assert model.N1.a == 5
 
 
 def test_agent_destructor():
