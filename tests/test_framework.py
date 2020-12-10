@@ -57,6 +57,22 @@ def test_add_agents():
     assert all([a.envs == ap.EnvDict() for a in model.agents])
 
 
+def test_agent_setup():
+    """ Test Agent.setup() with keyword arguments """
+
+    class MyAgentType(ap.Agent):
+        def setup(self, a, b=None):
+            self.a = a
+            self.b = b
+
+    model = ap.Model()
+    model.add_agents(1, MyAgentType, a=1, b=2)
+    agent = model.agents[0]
+
+    assert agent.a == 1
+    assert agent.b == 2
+
+
 def test_agent_destructor():
     """ Remove agent from model """
 

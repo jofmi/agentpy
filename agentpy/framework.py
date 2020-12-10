@@ -92,17 +92,22 @@ class ApObj:
 
             self.log[var_key][-1] = v
 
-    def setup(self):
-        """This empty method is called automatically at the objects' creation
-        (after ``__init__()``). Can be overwritten in custom sub-classes
+    def setup(self, **kwargs):
+        """This empty method is called automatically at the objects' creation.
+        Can be overwritten in custom sub-classes
         to define initial attributes and actions.
 
-        Examples:
-            The setup of an object that intializes with a variable ``z = 0``
-            would be defined as follows::
+        Arguments:
+            **kwargs: Keyword arguments that have been passed to
+                :class:`Agent` or :func:`Model.add_agents`.
 
-                def setup(self):
-                    self.z = 0
+        Examples:
+            The following setup initializes an object with three variables::
+
+                def setup(self, y):
+                    self.x = 0  # Value defined locally
+                    self.y = y  # Value defined in kwargs
+                    self.z = self.p.z  # Value defined in parameters
         """
         pass
 
@@ -131,12 +136,12 @@ class Agent(ApObj):
 
     """
 
-    def __init__(self, model, envs=None):
+    def __init__(self, model, envs=None, **kwargs):
         super().__init__(model)
         self.id = model._new_id()
         if envs:  # Add environments
             self.envs.update(envs)
-        self.setup()  # Custom setup
+        self.setup(**kwargs)
 
     def __repr__(self):
         s = f"Agent {self.id}"
