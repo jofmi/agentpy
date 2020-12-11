@@ -158,11 +158,12 @@ class Experiment:
 
             To use parallel processing::
 
+                import multiprocessing as mp
                 if __name__ ==  '__main__':
                     exp = ap.Experiment(MyModel, parameters)
                     pool = mp.Pool(mp.cpu_count())
                     results = exp.run(pool)
-        """
+        """  # TODO Examples can be improved
 
         if display:
             print(f"Scheduled runs: {self.number_of_runs}")

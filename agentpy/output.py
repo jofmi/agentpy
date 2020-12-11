@@ -199,6 +199,15 @@ class DataDict(AttrDict):
                             parameters=parameters, obj_types=obj_types,
                             scenarios=scenarios, index=index)
 
+    def arrange_variables(self, variables='all', measures=None,
+                          parameters='varied', obj_types='all',
+                          scenarios='all', index=False):
+        """ Returns a dataframe with variables and varied parameters.
+        See :func:`DataDict.arrange` for further information."""
+        return self.arrange(variables=variables, measures=measures,
+                            parameters=parameters, obj_types=obj_types,
+                            scenarios=scenarios, index=index)
+
     def arrange(self, variables=None, measures=None, parameters=None,
                 obj_types='all', scenarios='all', index=False):
         """ Combines and/or filters data based on passed arguments.
