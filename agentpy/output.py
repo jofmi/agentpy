@@ -91,6 +91,20 @@ class DataDict(AttrDict):
 
         return rep
 
+    def __eq__(self, other):
+        """ Check equivalence of two DataDicts."""
+        if not isinstance(other, DataDict):
+            return False
+        for key, item in self.items():
+            if key not in other:
+                return False
+            if isinstance(item, pd.DataFrame):
+                if not self[key].equals(other[key]):
+                    return False
+            elif not self[key] == other[key]:
+                return False
+        return True
+
     def _check_consistency(self):
         pass  # TODO Create function to check consistency
 

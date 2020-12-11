@@ -8,13 +8,10 @@ Changelog
 ------------------------
 
 * First major release.
-* New parameter names for :func:`DataDict.arrange`.
+* :func:`Experiment.run` now supports parallel processing.
 * New method :func:`DataDict.arrange_measures` combines
   recorded measures with varied parameters for sensitivity analysis.
-* Improved functionality of :class:`AgentList`: Arithmethic operators
-  can now be used with an :class:`AttrList` to conduct different operations
-  for each agent.
-
-..
-    * Envdict now has select
+* Fixed issues and changed arguments for :func:`DataDict.arrange`.
+* New features for :class:`AgentList`: Arithmethic operators can now be used
+  with an :class:`AttrList` to conduct different operations for each agent.
 
