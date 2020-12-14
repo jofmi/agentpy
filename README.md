@@ -33,6 +33,5 @@ agent-based models in Python.
 
 **Installation:** `pip install agentpy`
 
-**Contact:** This project is still in an early stage of development.
-If you have feedback, need help, or want to contribute,
+**Contact:** If you have feedback, need help, or want to contribute,
 please write to joel.foramitti@uab.cat.

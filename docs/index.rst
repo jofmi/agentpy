@@ -10,7 +10,6 @@ Agentpy - Agent-based modeling in Python
 
 Agentpy is an open-source framework for the development and analysis of
 agent-based models in Python.
-
 To get started, please take a look at :doc:`installation` and :doc:`overview`.
 For a simple demonstration, check out the :doc:`agentpy_wealth_transfer` model.
 Further demonstration models can be found in the :doc:`model_library`.
