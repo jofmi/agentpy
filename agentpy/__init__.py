@@ -18,7 +18,7 @@ __all__ = [
     'AttrDict'
 ]
 # Meta-data
-__version__ = "0.0.5"
+__version__ = "0.0.6.dev"
 
 # Objects
 from .framework import Model, Environment, Network, Grid

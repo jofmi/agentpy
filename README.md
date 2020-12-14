@@ -2,19 +2,28 @@
 
 Agentpy is an open-source framework for the development and analysis of
 agent-based models in Python.
-This project is still in an early stage of development.
-If you have feedback, need help, or want to contribute,
-please write to joel.foramitti@uab.cat.
 
 **Main features:**
 
-- Design of agent-based models with complex procedures.
-- Creation of custom agent types, environments, and networks.
-- Agent lists that can forward attribute calls and select agent groups.
-- Experiments with repeated iterations, parameter samples, and distinct scenarios.
-- Output data that can be saved, loaded, and re-arranged for further analysis.
-- Tools for sensitivity analysis, interactive output, animations, and plots.
-- Compatibility with NumPy, pandas, matplotlib, seaborn, networkx, and SALib.
+*Aim 1:* Intelligent syntax for complex models
+
+- Custom agent, environment, and network types
+- Easy selection and manipulation of agent groups
+- Support of multiple environments for interaction
+
+*Aim 2:* Advanced tools for scientific applications
+
+- Experiments with repeated iterations and parallel processing
+- Parameter sampling and scenario comparison
+- Output data that can be saved, loaded, and re-arranged
+- Sensitivity analysis and (animated) visualizations
+
+*Aim 3:* Compatibility with established Python libraries
+
+- Data analysis with pandas and SALib
+- Statistical visualization with seaborn
+- Networks and graphs with networkx
+- Interactive output with ipywidgets
 
 **Documentation:** https://agentpy.readthedocs.io
 
@@ -23,3 +32,7 @@ please write to joel.foramitti@uab.cat.
 **Requirements:** Python 3.6+, NumPy, scipy, matplotlib, networkx, pandas, SALib, ipywidgets.
 
 **Installation:** `pip install agentpy`
+
+**Contact:** This project is still in an early stage of development.
+If you have feedback, need help, or want to contribute,
+please write to joel.foramitti@uab.cat.

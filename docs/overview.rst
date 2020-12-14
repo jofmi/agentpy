@@ -25,7 +25,7 @@ All of these classes are designed to be customized through the creation of
 with their own variables and methods.
 A custom agent type could be defined as follows::
 
-    class my_agent_type(ap.Agent):
+    class MyAgentType(ap.Agent):
 
         def setup(self):
 
@@ -57,14 +57,14 @@ are equipped with such properties to access different parts of the model:
 Using the new agent type defined above,
 here is how a basic model could look like::
 
-    class my_model(ap.Model):
+    class MyModel(ap.Model):
 
         def setup(self):
 
             """ Called at the start of the simulation """
 
             # Add new agents, with the number given by a parameter
-            self.add_agents(self.p.agents, my_agent_type)
+            self.add_agents(self.p.agents, MyAgentType)
 
         def step(self):
 
@@ -163,7 +163,7 @@ This will return a :class:`DataDict` with recorded data from the simulation. ::
                   'agents':10,
                   'steps':10, }
 
-    model = my_model(parameters)
+    model = MyModel(parameters)
     results = model.run()
 
 The procedure of a simulation is as follows:
@@ -180,6 +180,8 @@ The simulation of a model can be stopped by one of the following two ways:
 1. Calling the :func:`Model.stop`.
 2. Setting a time-limit by defining a parameter ``steps``.
 
+.. _overview_experiments:
+
 Multi-run experiments
 #####################
 
@@ -192,15 +194,14 @@ Here is an example of an experiment with the we model defined above::
 
     parameter_ranges = {'my_parameter': 42,
                         'agents': (10, 20, int),
-                        'steps': (10, 20, int), }
+                        'steps': (10, 20, int)}
 
     sample = ap.sample(parameter_ranges, n=5)
 
-    experiment = ap.Experiment(my_model, sample,
-                               scenarios=('sc1','sc2'),
-                               iterations=2, )
+    exp = ap.Experiment(MyModel, sample, iterations=2,
+                        scenarios=('sc1','sc2'))
 
-    results = experiment.run()
+    results = exp.run()
 
 In this experiment, we use a sample where one parameter is kept fixed
 while the other two are varied 5 times from 10 to 20 and set to integer.
