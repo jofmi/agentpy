@@ -8,16 +8,18 @@ Agentpy - Agent-based modeling in Python
 
     \chapter{Introduction}
 
-Agentpy is an open-source framework for the development and analysis of
+Agentpy is a framework for the development and analysis of
 agent-based models in Python.
-To get started, please take a look at :doc:`installation` and :doc:`overview`.
-For a simple demonstration, check out the :doc:`agentpy_wealth_transfer` model.
-Further demonstration models can be found in the :doc:`model_library`.
-For a detailled description of all classes and functions, refer to :doc:`reference`.
-
-This project is still in an early stage of development.
+The package is open-source, and open to contributions.
 If you have feedback, need help, or want to contribute,
 please write to joel.foramitti@uab.cat.
+
+.. rubric:: Quick orientation
+
+- To get started, please take a look at :doc:`installation` and :doc:`overview`.
+- For a simple demonstration, check out the :doc:`agentpy_wealth_transfer` tutorial in the :doc:`model_library`.
+- For a detailled description of all classes and functions, refer to :doc:`reference`.
+- To learn how Agentpy compares with other frameworks, take a look at :doc:`comparison`.
 
 .. rubric:: Main features
 
@@ -50,6 +52,7 @@ please write to joel.foramitti@uab.cat.
 
    installation
    overview
+   comparison
    model_library
    reference
    changelog

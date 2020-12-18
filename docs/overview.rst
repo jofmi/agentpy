@@ -93,6 +93,8 @@ These different elements will be described in the following sections.
 If you want to see a basic model like this in action,
 take a look at the :doc:`agentpy_wealth_transfer` demonstration in the :doc:`model_library`
 
+.. _overview_agents:
+
 Using agents
 ############
 
@@ -113,6 +115,8 @@ The following command, for example, would select all agents with an id above 1::
 
 Further examples can be found in the :class:`AgentList` reference
 or the :doc:`agentpy_virus_spread` model.
+
+.. _overview_environments:
 
 Using environments
 ##################
@@ -210,6 +214,8 @@ Each run further has one result for each of the two scenarios ``sc1`` and ``sc2`
 For more applied examples of experiments, check out the demonstration models
 :doc:`agentpy_virus_spread`, :doc:`agentpy_button_network`, and :doc:`agentpy_forest_fire`.
 
+.. _overview_output:
+
 Output and analysis
 ###################
 
@@ -243,7 +249,7 @@ which makes it easy to use with statistical packages like `seaborn <https://seab
 Agentpy further provides the following functions for analysis:
 
 - :func:`sobol_sensitivity` performs a Sobol sensitivity analysis.
-- :func:`interactive` generates an interactive widget for paramter variation.
+- :func:`interactive` generates an interactive widget for parameter variation.
 - :func:`animate` generates an animation that can display output over time.
 - :func:`gridplot` visualizes agent positions on a spacial :class:`Grid`.
 
