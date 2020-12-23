@@ -3,11 +3,12 @@ Agentpy Analysis Module
 Content: Sensitivity and interactive analysis, animation, visualization
 """
 
+import matplotlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import ipywidgets as widgets
+import ipywidgets
+import IPython
 
 from scipy.interpolate import griddata
 from SALib.analyze import sobol
@@ -17,7 +18,7 @@ from .tools import make_list, param_tuples_to_salib
 from .framework import AgentList
 
 
-def sobol_sensitivity(output, param_ranges, measures=None, **kwargs):
+def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
     """ Calculates Sobol Sensitivity Indices and adds them to the output,
     using :func:`SALib.analyze.sobol.analyze`.
 
@@ -72,135 +73,123 @@ def sobol_sensitivity(output, param_ranges, measures=None, **kwargs):
 
     # TODO Second-Order Entries Missing
 
-    return output['sensitivity']
+    return output
 
 
-def animate(model, parameters, fig, axs, output_function,
-            skip_t0=False, **kwargs):
-    """ Returns an animation of the model simulation
+def animate(model, fig, axs, plot,
+            skip=0, fargs=(), **kwargs):
+    """ Returns an animation of the model simulation,
+    using :func:`matplotlib.animation.FuncAnimation`.
 
     Arguments:
-        model (type): The model class type.
-        parameters (dict): Model parameters.
-        fig: Figure for the animation.
-        axs: Axis of the figure.
-        output_function: Output to be displayed in the animation.
-        skip_t0: Start animation at t == 1 (default False).
-        **kwargs: Will be forwarded to output_function.
+        model (Model): The model instance.
+        fig (matplotlib.figure.Figure): Figure for the animation.
+        axs (matplotlib.axes.Axes or list): Axis or list of axis of the figure.
+        plot (function): Function that takes `(model, ax, *fargs)`
+            and creates the desired plots on each axis at each time-step.
+        skip (int, optional): Number of rounds to skip before the
+            animation starts (default 0).
+        fargs (tuple, optional): Forwarded fo the `plot` function.
+        **kwargs: Forwarded to :func:`matplotlib.animation.FuncAnimation`.
 
-    Returns:
-        ipywidgets.HBox: Interactive output widget
-    """  # TODO Improve function & docs
+    Examples:
+        An animation can be generated as follows::
 
-    m = model(parameters)
+            def my_plot(model, ax):
+                pass  # Call pyplot functions here
+            
+            fig, ax = plt.subplots() 
+            my_model = MyModel(parameters)
+            animation = ap.animate(my_model, fig, ax, my_plot)
+
+        One way to display the resulting animation object in Jupyter::
+
+            from IPython.display import HTML
+            HTML(animation.to_jshtml())
+    """
+
+    # TODO Improve function & docs
+
+    m = model  # model(parameters)
     steps = m.p['steps'] if 'steps' in m.p else False
     m._stop = False
     m.setup()
     m.update()
     m._update_stop(steps)
+    m._create_output()
+    pre_steps = 0
 
-    step0 = True
-    step00 = not skip_t0
+    for _ in range(skip):
+        m.t += 1
+        m.step()
+        m.update()
+        m._update_stop(steps)
+        # TODO Make make_step function
 
     def frames():
-
-        nonlocal m, step0, step00
-
+        nonlocal m, pre_steps
         while not m._stop:
-
-            if step0:
-                step0 = False
-            elif step00:
-                step00 = False
+            if pre_steps < 2:  # Frames iterates twice before starting plot
+                pre_steps += 1
             else:
                 m.t += 1
                 m.step()
-            m.update()
-            m._update_stop(steps)
-            m._create_output()
+                m.update()
+                m._update_stop(steps)
+                m._create_output()
             yield m.t
 
-    def update(t, m, axs):  # noqa
-
+    def update(t, m, axs, *fargs):  # noqa
+        nonlocal pre_steps
         for ax in make_list(axs):
+            # Clear axes before each plot
             ax.clear()
+        plot(m, axs, *fargs)  # Perform plot
 
-        if m.t == 0 and skip_t0:
-            pass
-        else:
-            output_function(m, axs)
+    ani = animation.FuncAnimation(
+        fig, update, frames=frames, fargs=(m, axs, *fargs), **kwargs)  # noqa
 
-    ani = animation.FuncAnimation(fig, update, frames=frames,  # noqa
-                                  fargs=(m, axs), **kwargs)
-
-    plt.close()  # Don't display static plot
+    plt.close()  # Don't display static plot TODO Put outside?
     return ani
 
 
-def interactive(model, param_ranges, output_function, *args, **kwargs):
-    """
-    Returns 'output_function' as an interactive ipywidget
-    More infos at https://ipywidgets.readthedocs.io/
+def _apply_colors(grid, color_dict, convert):
+    if isinstance(grid[0], list):
+        return [_apply_colors(subgrid, color_dict, convert)
+                for subgrid in grid]
+    else:
+        if color_dict is not None:
+            grid = [i if i is np.nan else color_dict[i] for i in grid]
+        if convert is True:
+            grid = [(0., 0., 0., 0.) if i is np.nan else
+                    matplotlib.colors.to_rgba(i) for i in grid]
+        return grid
+
+
+def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
+    """ Visualizes values on a two-dimensional grid with
+    :func:`matplotlib.pyplot.imshow`.
 
     Arguments:
-        model (type): The model class type.
-        param_ranges (dict): The parameter ranges to be tested.
-        output_function (function): Output to be displayed interactively.
-        *args: Will be forwarded to output_function.
-        **kwargs: Will be forwarded to output_function.
+        grid(list of list): Two-dimensional grid with values.
+            numpy.nan values will be plotted as empty patches.
+        color_dict(dict, optional): Dictionary that translates
+            each value in `grid` to a color specification.
+        convert(bool, optional): Convert values to rgba vectors,
+             using :func:`matplotlib.colors.to_rgba` (default False).
+        ax(matplotlib.pyplot.axis, optional): Axis to be used for plot.
+        **kwargs: Forwarded to :func:`matplotlib.pyplot.imshow`.
+     """
 
-    Returns:
-        ipywidgets.HBox: Interactive output widget
-    """
+    # TODO Create option for legend
 
-    def var_run(**param_updates):
+    if color_dict is not None or convert:
+        grid = _apply_colors(grid, color_dict, convert)
 
-        parameters = dict(param_ranges)
-        parameters.update(param_updates)
-        temp_model = model(parameters)
-        temp_model.run(display=False)
-
-        output_function(temp_model.output, *args, **kwargs)
-
-    # Create widget dict
-    widget_dict = {}
-    param_ranges_tuples = {k: v for k, v in param_ranges.items()
-                           if isinstance(v, tuple)}
-    for var_key, var_range in param_ranges_tuples.items():
-        widget_dict[var_key] = widgets.FloatSlider(
-            description=var_key,
-            value=(var_range[1] - var_range[0]) / 2,
-            min=var_range[0],
-            max=var_range[1],
-            step=(var_range[1] - var_range[0]) / 10,
-            style=dict(description_width='initial'),
-            layout={'width': '300px'})
-
-    out = widgets.interactive_output(var_run, widget_dict)
-
-    return widgets.HBox([widgets.VBox(list(widget_dict.values())), out])
-
-
-def gridplot(model, ax, grid_key, attr_key, color_dict):
-    """ Plots a 2D agent grid """
-
-    def apply_colors(grid, color_assignment, final_type, attr_key):
-        if not isinstance(grid[0], final_type):
-            return [apply_colors(subgrid, color_assignment, final_type,
-                    attr_key) for subgrid in grid]
-        else:
-            return [colors.to_rgb(color_assignment(i, attr_key))
-                    for i in grid]
-
-    def color_assignment(a_list, attr_key):
-        if len(a_list) == 0:
-            return color_dict['empty']
-        else:
-            return color_dict[a_list[0][attr_key]]
-
-    grid = model.envs[grid_key]._grid
-    color_grid = apply_colors(grid, color_assignment, AgentList, attr_key)
-    _ = ax.imshow(color_grid)
+    if ax:
+        ax.imshow(grid, **kwargs)
+    else:
+        plt.imshow(grid, **kwargs)
 
 
 def phaseplot(data, x, y, z, n, fill=True, **kwargs):
@@ -231,3 +220,9 @@ def phaseplot(data, x, y, z, n, fill=True, **kwargs):
     plt.ylabel(y)
 
     plt.show()
+
+
+def interactive(*args, **kwargs):  # noqa
+    m = ("'interactive' has been moved to 'Experiment.interactive', see "
+         "https://agentpy.readthedocs.io/en/latest/reference_experiments.html")
+    raise AgentpyError(m)

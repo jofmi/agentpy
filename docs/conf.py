@@ -55,13 +55,16 @@ html_sourcelink_suffix = ''
 nbsphinx_prolog = """
 .. currentmodule:: agentpy
 .. note::
-    You can download this tutorial as a Jupyter Notebook 
+    You can download this demonstration as a Jupyter Notebook 
     :download:`here<{{ env.doc2path(env.docname,base=None) }}>`
 """
 
 # Connect to other docs
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
+    'ipywidgets': ('https://ipywidgets.readthedocs.io/en/latest/', None),
+    'IPython': ('https://ipython.readthedocs.io/en/stable/', None),
+    'matplotlib': ('https://matplotlib.org/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'salib': ('https://salib.readthedocs.io/en/latest/', None),
     'pandas': ('https://pandas.pydata.org/docs/', None)

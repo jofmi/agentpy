@@ -57,7 +57,7 @@ Finally, the following table provides a comparison of the main features of each 
                             | and parallel processing
 | Output data               | DataDict class that can save,      | Multiple methods to generate
                             | load, and re-arrange output data   | dataframes
-| Visualization             | Tools for plots, animations,       | Extensive browser-based
+| Visualization             | Tools for plots and animations,    | Extensive browser-based
                             | and interactive visualization in   | visualization module
                             | Python
 | Analysis                  | Tools for data arrangement and

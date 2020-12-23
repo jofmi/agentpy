@@ -11,7 +11,7 @@ Default
      :members:
      :inherited-members:
 
-.. autoclass:: EnvDict
+.. autoclass:: EnvList
     :members:
 
 Networks

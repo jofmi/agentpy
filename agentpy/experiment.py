@@ -4,6 +4,8 @@ Content: Experiment class
 """
 
 import pandas as pd
+import ipywidgets
+import IPython
 
 from datetime import datetime, timedelta
 from .tools import make_list
@@ -13,10 +15,10 @@ from .output import DataDict
 class Experiment:
     """ Experiment for an agent-based model.
     Allows for multiple iterations, parameter samples, distict scenarios,
-    and parallel processing.
+    interactive output, and parallel processing.
 
     Arguments:
-        model(type): The model class type that the experiment should use.
+        model_class(class): The model class type that the experiment should use.
         parameters(dict or list of dict, optional): Parameter dictionary
             or sample (list of parameter dictionaries) (default None).
         name(str, optional): Name of the experiment (default model.name).
@@ -28,10 +30,10 @@ class Experiment:
         output(DataDict): Recorded experiment data
     """  # TODO Repeat arguments in attribute list? / Type hint for model?
 
-    def __init__(self, model, parameters=None, name=None, scenarios=None,
+    def __init__(self, model_class, parameters=None, name=None, scenarios=None,
                  iterations=1, record=False):
 
-        self.model = model
+        self.model = model_class
         self.output = DataDict()
         self.iterations = iterations
         self.record = record
@@ -39,13 +41,13 @@ class Experiment:
         if name:
             self.name = name
         else:
-            self.name = model.__name__
+            self.name = model_class.__name__
 
         # Transform input into iterable lists if only a single value is given
         # keep_none assures that make_list(None) returns iterable [None]
         self.scenarios = make_list(scenarios, keep_none=True)
         self.parameters = make_list(parameters, keep_none=True)
-        self._parameters_to_output()
+        self._parameters_to_output()  # Record parameters
 
         # Log
         self.output.log = {'name': self.name,
@@ -55,7 +57,7 @@ class Experiment:
             self.output.log['scenarios'] = scenarios
 
         # Prepare runs
-        self.parameters_per_run = self.parameters * (self.iterations)
+        self.parameters_per_run = self.parameters * self.iterations
         self.number_of_runs = len(self.parameters_per_run)
 
     def _parameters_to_output(self):
@@ -78,6 +80,63 @@ class Experiment:
                 'fixed': fixed_pars,
                 'varied': df
             })
+
+    def interactive(self, plot, *args, **kwargs):
+        """
+        Displays interactive output for Jupyter notebooks,
+        using :mod:`IPython` and :mod:`ipywidgets`.
+        A slider will be shown for all varied parameters,
+        and the output from 'plot' will be refreshed
+        every time a parameter value is changed.
+
+        Arguments:
+            plot: Function that takes a model instance as input
+                and prints or plots the desired output..
+            *args: Will be forwarded to 'plot'.
+            **kwargs: Will be forwarded to 'plot'.
+
+        Returns:
+            ipywidgets.HBox: Interactive output widget
+        """
+
+        # TODO Pass settings to widget
+
+        def var_run(**param_updates):
+
+            IPython.display.clear_output()
+            parameters = dict(self.parameters[0])
+            parameters.update(param_updates)
+            temp_model = self.model(parameters)
+            temp_model.run()
+            IPython.display.clear_output()
+            plot(temp_model, *args, **kwargs)
+
+        # Get variable parameters
+        if 'varied' in self.output['parameters']:
+            var_pars = self.output['parameters']['varied']
+        elif isinstance(self.output['parameters'], pd.DataFrame):
+            var_pars = self.output['parameters']
+        else:
+            raise AgentpyError("No varied parameters found.")
+
+        # Create widget dict
+        widget_dict = {}
+        for par_key in list(var_pars):
+            par_list = list(var_pars[par_key])
+
+            widget_dict[par_key] = ipywidgets.SelectionSlider(
+                options=par_list,
+                value=par_list[0],
+                description=par_key,
+                continuous_update=False,
+                style=dict(description_width='initial'),
+                layout={'width': '300px'}
+            )
+
+        widgets_left = ipywidgets.VBox(list(widget_dict.values()))
+        output_right = ipywidgets.interactive_output(var_run, widget_dict)
+
+        return ipywidgets.HBox([widgets_left, output_right])
 
     def _add_single_output_to_combined(self, single_output, combined_output):
         """Append results from single run to combined output."""
@@ -126,10 +185,14 @@ class Experiment:
         """ Perform a single simulation for parallel processing."""
         sc_id = sim_id % len(self.scenarios)
         run_id = (sim_id - sc_id) // len(self.scenarios)
-        return self.model(
+        model = self.model(
             self.parameters[run_id],
             run_id=run_id,
-            scenario=self.scenarios[sc_id]).run(display=False)
+            scenario=self.scenarios[sc_id])
+        results = model.run(display=False)
+        # TODO RESET FUNCTION
+        # TODO SKIP FUNCTION
+        return results
 
     def run(self, pool=None, display=True):
         """ Executes the simulation of the experiment.
@@ -207,7 +270,3 @@ class Experiment:
             print(f"Experiment finished\nRun time: {ct}")
 
         return self.output
-
-
-
-

@@ -53,19 +53,18 @@ def test_add_agents():
     model.add_agents(3)
 
     assert len(model.agents) == 3
-    assert list(model.agents.id) == [0, 1, 2]
-    assert all([a.envs == ap.EnvDict() for a in model.agents])
+    assert list(model.agents.id) == [1, 2, 3]
 
 
-def test_prop_objects():
+def test_objects_property():
 
     model = ap.Model()
     model.add_agents(3)
-    model.add_env('E')
+    model.add_env()
 
     assert len(model.objects) == 4
     assert model.agents[0] in model.objects
-    assert model.envs['E'] in model.objects
+    assert model.envs[0] in model.objects
 
 
 def test_setup():
@@ -90,9 +89,9 @@ def test_setup():
     model = ap.Model()
     model.add_agents(1, b=1)
     model.add_agents(1, MyAgentType, a=1)
-    model.add_env('E1', MyEnvType, a=2)
-    model.add_env('G1', MyGridType, shape=(1, 1), a=3)
-    model.add_env('N1', MyNwType, a=4)
+    model.E1 = model.add_env(MyEnvType, a=2)
+    model.G1 = model.add_env(MyGridType, shape=(1, 1), a=3)
+    model.N1 = model.add_env(MyNwType, a=4)
 
     # Standard setup implements keywords as attributes
     # Custom setup uses only keyword a and adds 1
@@ -107,15 +106,17 @@ def test_setup():
     assert model.N1.a == 5
 
 
-def test_agent_destructor():
+def test_delete():
     """ Remove agent from model """
 
     model = ap.Model()
     model.add_agents(3)
-    del model.agents[1]
+    model.add_env().add_agents(model.agents)
+    model.agents[1].delete()
 
     assert len(model.agents) == 2
-    assert list(model.agents.id) == [0, 2]
+    assert list(model.agents.id) == [1, 3]
+    assert list(model.env.agents.id) == [1, 3]
 
 
 def test_record():

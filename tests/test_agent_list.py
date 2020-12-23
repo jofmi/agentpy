@@ -27,12 +27,12 @@ def test_select():
     model = ap.Model()
     model.add_agents(3)
 
-    selection1 = model.agents.id == 1
-    selection2 = model.agents.id != 1
-    selection3 = model.agents.id < 1
-    selection4 = model.agents.id > 1
-    selection5 = model.agents.id <= 1
-    selection6 = model.agents.id >= 1
+    selection1 = model.agents.id == 2
+    selection2 = model.agents.id != 2
+    selection3 = model.agents.id < 2
+    selection4 = model.agents.id > 2
+    selection5 = model.agents.id <= 2
+    selection6 = model.agents.id >= 2
 
     assert selection1 == [False, True, False]
     assert selection2 == [True, False, True]
@@ -42,7 +42,7 @@ def test_select():
     assert selection6 == [False, True, True]
 
     assert model.agents(selection1) == model.agents.select(selection1)
-    assert list(model.agents(selection1).id) == [1]
+    assert list(model.agents(selection1).id) == [2]
 
 
 def test_sort():
@@ -54,7 +54,7 @@ def test_sort():
     model.agents.sort('x')
 
     assert list(model.agents.x) == [0, 1]
-    assert list(model.agents.id) == [1, 0]
+    assert list(model.agents.id) == [2, 1]
 
 
 def test_arithmetics():

@@ -156,6 +156,8 @@ in contrast, can be stored only for the model as a whole and only once per run.
 They are useful as summary statistics that can be compared over multiple runs,
 and can be recorded with the method :meth:`Model.measure`.
 
+.. _overview_simulation:
+
 Running a simulation
 ####################
 
@@ -251,7 +253,7 @@ Agentpy further provides the following functions for analysis:
 - :func:`sobol_sensitivity` performs a Sobol sensitivity analysis.
 - :func:`interactive` generates an interactive widget for parameter variation.
 - :func:`animate` generates an animation that can display output over time.
-- :func:`gridplot` visualizes agent positions on a spacial :class:`Grid`.
+- :func:`gridplot` visualizes agent positions on a spatial :class:`Grid`.
 
 To see applied examples of these functions, please check out the :doc:`model_library`.
 

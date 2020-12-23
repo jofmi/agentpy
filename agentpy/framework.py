@@ -4,11 +4,12 @@ Content: Classes for agent-based models, environemnts, and agents
 """
 
 import pandas as pd
+import numpy as np
 import networkx as nx
 import random as rd
+import itertools
 
 from datetime import datetime
-from itertools import product
 
 from .output import DataDict
 from .tools import AttrDict, AgentpyError, make_list, make_matrix
@@ -20,8 +21,10 @@ class ApObj:
     def __init__(self, model):
         self._log = {}
         self._model = model
-        self._envs = EnvDict()
+        self._envs = EnvList()
         self._var_ignore = []
+        self.id = model._new_id()  # Assign id to new object
+        self._model._obj_dict[self.id] = self  # Add object to object dict
 
     @property
     def type(self):
@@ -46,6 +49,11 @@ class ApObj:
     @property
     def model(self):
         return self._model
+
+    @property
+    def env(self):
+        """ The objects first environment. """
+        return self._envs[0] if self._envs else None
 
     @property
     def envs(self):
@@ -161,14 +169,13 @@ class Agent(ApObj):
 
     def __init__(self, model, envs=None, **kwargs):
         super().__init__(model)
-        self.id = model._new_id()
         if envs:  # Add environments
             self.envs.update(envs)
         self._set_var_ignore()
         self.setup(**kwargs)
 
-    def __repr__(self):
-        s = f"Agent {self.id}"
+    def __repr__(self, short=True):
+        s = f"Agent (Obj {self.id})"
         t = type(self).__name__
         if t != 'Agent':
             s += f" ({t})"
@@ -177,113 +184,125 @@ class Agent(ApObj):
     def __getattr__(self, item):
         raise AttributeError(f"{self} has no attribute '{item}'")
 
-    def __del__(self):
-        self.model.agents.remove(self)
+    def delete(self):
+        """ Remove agent from all environments and the model. """
+        for env in self.envs:
+            env.remove_agents(self)
+        self.model.remove_agents(self)
 
-    def position(self, env_key=None):
+    def _find_env(self, env=None, topologies=None):
+        """ Return obj of id or first object with topology. """
+        if topologies:
+            return self._find_env_top(env=env, topologies=topologies)
+        if env is None:
+            if self.envs:
+                return self.envs[0]
+            raise AgentpyError(f"Agent {self.id} has no environments.")
+        else:
+            if isinstance(env, int):
+                env = self.model.get_obj(env)
+            return env
+
+    def _find_env_top(self, env=None, topologies=None):
+        """ Return obj of id or first object with topology"""
+        topologies = make_list(topologies)
+        if env is None:
+            for env in self.envs:
+                if env.topology in topologies:
+                    return env
+            raise AgentpyError(
+                f"Agent {self.id} has no environment "
+                f"with topology '{topologies}'")
+        else:
+            if isinstance(env, int):
+                env = self.model.get_obj(env)
+            if hasattr(env, 'topology') and env.topology in topologies:
+                return env
+            raise AgentpyError(
+                f"Object {env} does not have topology '{topologies}'")
+
+    def position(self, env=None):
         """ Returns the agents' position from a grid.
 
         Arguments:
-            env_key(str, optional): Name of environment of type :class:`grid`.
-                If none is given, the first grid in ``Agent.envs`` is selected.
+            env(int or Environment, optional):
+                Instance or id of environment that should be used.
+                Must have topology 'grid'.
+                If none is given, the first environment of that topology
+                in :attr:`Agent.envs` is used.
         """
 
-        # Default environment
-        if env_key is None:
-            grids = [k for k, v in self.envs.items() if v.topology in ['grid']]
-            try:
-                env_key = grids[0]
-            except IndexError:
-                raise AgentpyError(
-                    f"Agent {self.id} has no environment of type 'grid'")
+        env = self._find_env(env, 'grid')
+        return env._agent_dict[self]
 
-        try:
-            return self.envs[env_key]._positions[self]
-        except KeyError:
-            raise AgentpyError(
-                f"Agent {self.id} has no environment '{env_key}'")
-
-    def move(self, position, env_key=None, relative=True):
+    def move(self, position, env=None, relative=False):
         """ Changes the agents' location in the selected environment.
 
         Arguments:
             position (list of int): Position to move to. If relative is True,
                 position is added to the agent's current position.
-            env_key (str, optional): Grid environment in which to move.
-                If none is given, the agents first grid is selected.
-            relative (bool, optional): See description of 'position'.
+            env(int or Environment, optional):
+                Instance or id of environment that should be used.
+                Must have topology 'grid'.
+                If none is given, the first environment of that topology
+                in :attr:`Agent.envs` is used.
+            relative (bool, optional): See 'position'.
         """
+
+        env = self._find_env(env, 'grid')
 
         if relative:
-            old_pos = self.possition(env_key)
+            old_pos = self.position(env_id)
             position = [p + c for p, c in zip(old_pos, position)]
 
-        self.envs[env_key].change_pos(self, position)
+        env.move_agent(self, position)
 
-    def neighbors(self, env_keys=None):
-        """ Returns the agents' neighbor's from grids and/or networks.
+    def neighbors(self, env=None, mode=None):
+        """ Returns the agents' neighbor's from an environment,
+        by calling the environments :func:`neighbors` function.
 
         Arguments:
-            env_keys(str or list of str, optional): Names of environments
-                from the agent with type :class:`network` or :class:`grid`.
-                If none are given, all such environments are selected.
+            env(int or Environment, optional):
+                Instance or id of environment that should be used.
+                Must have topology 'grid' or 'network'.
+                If none is given, the first environment of that topology
+                in :attr:`Agent.envs` is used.
+            mode(str, optional):
+                Mode of selection, forwarded to the environments
+                :func:`neighbors` function.
 
         Returns:
-            AgentList
+            AgentList: Neighbors of the agent.
         """
+        # TODO Select not topology, but whether they have a method neighbors()
+        env = self._find_env(env, ('grid', 'network'))
+        return env.neighbors(self, mode=mode)
 
-        # Select environments
-        if env_keys is None:
-            env_keys = [k for k, v in self.envs.items()
-                        if v.topology in ['network', 'grid']]
-
-        # Select neighbors
-        agents = AgentList()
-        for key in make_list(env_keys):
-            try:
-                agents.extend(self.envs[key].neighbors(self))
-            except KeyError:
-                AgentpyError(f"Agent {self.id} has no environment '{key}'")
-
-        return agents
-
-    def enter(self, env_keys):
-        """ Adds the agent to passed environments.
+    def enter(self, env):
+        """ Adds agent to passed environment.
 
         Arguments:
-            env_keys(str or list of str):
-                Environments to which the agent should be added.
+            env(int or Environment, optional):
+                Instance or id of environment that should be used.
+                If none is given, the first environment
+                in :attr:`Agent.envs` is used.
         """
 
-        try:
-            envs = {k: self.model.envs[k] for k in make_list(env_keys)}
-        except KeyError as e:
-            raise AgentpyError(f'Model has no environment {e}')
+        env = self._find_env(env)
+        env.add_agents(self)  # TODO Test if works without agentlist
 
-        for key, env in envs.items():
-            env.agents.append(self)
-            self.envs[key] = env
-
-    def exit(self, env_keys=None):
-        """ Removes the agent from chosen environments.
+    def exit(self, env=None):
+        """ Removes agent from chosen environment.
 
         Arguments:
-            env_keys(str or list of str, optional):
-                Environments from which the agent should be removed.
-                If none are given, agent is removed from all its environments.
+            env(int or Environment, optional):
+                Instance or id of environment that should be used.
+                If none is given, the first environment
+                in :attr:`Agent.envs` is used.
         """
 
-        if env_keys is None:
-            envs = self.envs  # Select all environments by default
-        else:
-            try:
-                envs = {k: self.envs[k] for k in make_list(env_keys)}
-            except KeyError as e:
-                raise AgentpyError(f'Agent has no environment {e}')
-
-        for key, env in envs.items():
-            env.agents.remove(self)
-            del self.envs[key]
+        env = self._find_env(env)
+        env.remove_agents(self)
 
 
 class AttrList(list):
@@ -469,14 +488,39 @@ class AgentList(list):
         return self
 
 
+class EnvList(AgentList):
+    """ List of environments. """
+
+    def __repr__(self):
+        s = 's' if len(self) > 1 else ''
+        return f"EnvList [{len(self)} environment{s}]"
+
+    def add_agents(self, agents=1, agent_class=Agent, **kwargs):
+        """ Adds agents to all environments.
+        See :func:`Environment.add_agents`"""
+
+        if self:
+            new_agents = self[0].add_agents(agents, agent_class, **kwargs)
+            if len(self) > 1:
+                for env in self[1:]:
+                    env.add_agents(new_agents)
+
+
+class ObjList(AgentList):
+    """ List of agentpy objects (models, environments, agents). """
+
+    def __repr__(self):
+        s = 's' if len(self) > 1 else ''
+        return f"ObjList [{len(self)} object{s}]"
+
+
 class ApEnv(ApObj):
     """ Agentpy base-class for environments. """
 
-    def __init__(self, model, key):
+    def __init__(self, model):
         super().__init__(model)
         self._agents = AgentList()
         self._topology = None
-        self.key = key
 
     @property
     def topology(self):
@@ -486,15 +530,20 @@ class ApEnv(ApObj):
     def agents(self):
         return self._agents
 
-    def __repr__(self):
-        rep = f"Environment '{self.key}'"
+    def __repr__(self, short=True):
+        rep = f"Environment (Obj {self.id})"
         type_ = type(self).__name__
         if type_ != "Environment":
             rep += f" ({type_})"
         return rep
 
     def __getattr__(self, key):
-        raise AgentpyError(f"Environment '{self.key}' has no attribute {key}.")
+        raise AgentpyError(f"{self} has no attribute {key}.")
+
+    def remove_agents(self, agents):
+        """ Removes agents from the environment. """
+        for agent in list(make_list(agents)):  # Soft copy
+            self._agents.remove(agent)
 
     def add_agents(self, agents=1, agent_class=Agent, **kwargs):
         """ Adds agents to the environment.
@@ -529,7 +578,7 @@ class ApEnv(ApObj):
         # Add environment to agents
         if is_env:
             for agent in agents:
-                agent.envs[self.key] = self
+                agent.envs.append(self)
 
         # Add agents to environment
         self._agents.extend(agents)
@@ -560,8 +609,8 @@ class Environment(ApEnv):
         **kwargs: Will be forwarded to :func:`Environment.setup`.
     """
 
-    def __init__(self, model, key, **kwargs):
-        super().__init__(model, key)
+    def __init__(self, model, **kwargs):
+        super().__init__(model)
         self._set_var_ignore()
         self.setup(**kwargs)
 
@@ -579,53 +628,49 @@ class Network(ApEnv):
     Arguments:
         model (Model): The model instance.
         key (str, optional): The environments' name.
-        graph (networkx.Graph): The environments' graph.
+        graph (networkx.Graph, optional): The environments' graph.
+            Agents of the same number as graph nodes must be passed.
+            If none is passed, an empty graph is created.
+        agents (AgentList, optional): Agents of the network (default None).
+            If a graph is passed, agents are mapped to each node of the graph.
+            Otherwise, new nodes will be created for each agent.
         **kwargs: Will be forwarded to :func:`Network.setup`.
     """
 
-    def __init__(self, model, key, graph=None, **kwargs):
+    def __init__(self, model, graph=None, agents=None, **kwargs):
 
-        super().__init__(model, key)
+        super().__init__(model)
 
         if graph is None:
             self.graph = nx.Graph()
+            if agents:
+                self.add_agents(agents)
         elif isinstance(graph, nx.Graph):
             self.graph = graph
+            # Map each agent to a node of the graph
+            if agents is None or len(agents) != len(self.graph.nodes):
+                la = len(agents) if agents else 0
+                ln = len(self.graph.nodes)
+                raise ValueError(
+                    f"Number of agents ({la}) in 'agents' doesn't match "
+                    f"number of nodes ({ln}) in graph.")
+            super().add_agents(agents)  # Add agents without new nodes
+            mapping = {i: agent for i, agent in enumerate(agents)}
+            nx.relabel_nodes(self.graph, mapping=mapping, copy=False)
         else:
-            raise TypeError("'graph' must be of type networkx.Graph")
+            raise TypeError("Argument 'graph' must be of type networkx.Graph")
 
         self._topology = 'network'
         self._set_var_ignore()
         self.setup(**kwargs)
 
-    def add_agents(self, agents, agent_class=Agent,  # noqa
-                   map_to_nodes=False, **kwargs):
-        """ Adds agents to the network environment.
+    def add_agents(self, agents, agent_class=Agent, **kwargs):
+        """ Adds agents to the network environment as new nodes.
         See :func:`Environment.add_agents` for standard arguments.
-        Additional arguments for the network are listed below.
-
-        Arguments:
-            map_to_nodes(bool,optional): Map new agents to each node of the
-                graph (default False). Should be used if a graph with empty
-                nodes has been passed at network creation.
         """
-
-        # Standard adding
         new_agents = super().add_agents(agents, agent_class, **kwargs)
-
-        # Extra network features
-        if map_to_nodes:
-            # Map each agent to a node of the graph
-            if len(new_agents) != len(self.graph.nodes):
-                raise AgentpyError(
-                    f"Number of agents ({len(new_agents)}) does not "
-                    f"match number of nodes ({len(self.graph.nodes)})")
-            mapping = {i: agent for i, agent in enumerate(new_agents)}
-            nx.relabel_nodes(self.graph, mapping=mapping, copy=False)
-        else:
-            # Add agents to graph as new nodes
-            for agent in new_agents:
-                self.graph.add_node(agent)
+        for agent in new_agents:
+            self.graph.add_node(agent)  # Add agents to graph as new nodes
 
     def neighbors(self, agent):
         """ Returns an :class:`AgentList` of agents
@@ -661,13 +706,17 @@ class Grid(ApEnv):
         **kwargs: Will be forwarded to :func:`Grid.setup`.
     """
 
-    def __init__(self, model, key, shape, **kwargs):
+    def __init__(self, model, shape, **kwargs):
 
-        super().__init__(model, key)
+        super().__init__(model)
+
+        # Convert single-number shape to tuple
+        if isinstance(shape, (int, float)):
+            shape = (shape, shape)
 
         self._topology = 'grid'
         self._grid = make_matrix(make_list(shape), AgentList)
-        self._positions = {}
+        self._agent_dict = {}
         self._shape = shape
         self._set_var_ignore()
         self.setup(**kwargs)
@@ -680,146 +729,203 @@ class Grid(ApEnv):
     def shape(self):
         return self._shape
 
-    def neighbors(self, agent, diagonal=False):
-
-        """ Returns agent neighbors. """
-
-        if diagonal:  # Include diagonal neighbors (square shape)
-            return self._get_neighbors8(self._positions[agent], self._grid)
-        else:  # Diamond shape
-            return self._get_neighbors4(self._positions[agent], self._grid)
-
-    def area(self, area):
-
-        return AgentList(self._get_area(area, self._grid))
-
-    def _get_area(self, area, grid):
-
-        """ Returns agents in area of style:
-        [(x_min,x_max),(y_min,y_max),...]"""
-
-        subgrid = grid[area[0][0]:area[0][1] + 1]
-
-        # Detect last row (must have AgentLists)
-        if isinstance(subgrid[0], AgentList):
-            # Flatten list of AgentLists to list of agents
-            return [y for x in subgrid for y in x]
-
-        objects = []
-        for row in subgrid:
-            objects.extend(self._get_area(area[1:], row))
-
-        return objects
-
-    def _get_neighbors4(self, pos, grid, dist=1):
-        """ Return agents in diamond-shaped area around pos."""
-        subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
-
-        if len(pos) == 1:
-            return [y for x in subgrid for y in x]  # flatten list
-
-        objects = []
-        for row, dist in zip(subgrid, [0, 1, 0]):
-            objects.extend(self._get_neighbors4(pos[1:], row, dist))
-
-        return objects
-
-    def _get_neighbors8(self, pos, grid):
-        """ Return agents in square-shaped area around pos."""
-        subgrid = grid[max(0, pos[0] - 1):pos[0] + 2]
-
-        if len(pos) == 1:
-            return [y for x in subgrid for y in x]  # flatten list
-
-        objects = []
-        for row in subgrid:
-            objects.extend(self._get_neighbors8(pos[1:], row))
-
-        return objects
-
-    def _get_pos(self, grid, pos):
-        if len(pos) == 1:
-            return grid[pos[0]]
-        return self._get_pos(grid[pos[0]], pos[1:])
-
-    def get_pos(self, pos):
-        return self._get_pos(self._grid, pos)
-
-    def change_pos(self, agent, new_position):
-        self.get_pos(self._positions[agent]).drop(agent)  # Remove old position
-        self.get_pos(new_position).append(agent)  # Add new position (grid)
-        self._positions[agent] = new_position  # Add new position (dict)
-
-    def add_agents(self, agents, agent_class=Agent, positions=None,
-                   random=False, map_to_grid=False, **kwargs):
+    def add_agents(self, agents, agent_class=Agent, positions=None,  # noqa
+                   random=False, **kwargs):
         """ Adds agents to the grid environment.
-        See :func:`Environment.add_agents` for standard arguments."""
-
-        # TODO unfinished
-
-        """Additional arguments for the grid environment are listed below.
+        See :func:`Environment.add_agents` for standard arguments.
+        Additional arguments are listed below.
 
         Arguments:
-            map_to_grid(bool, optional): Map new agents to each position
-             in the grid (default False). Should be used if a graph with empty
-                nodes has been passed at network creation."""
+            positions(list of tuples, optional): The positions of the added
+                agents. List must have the same length as number of agents
+                to be added, and each entry must be a tuple with coordinates.
+                If none is passed, agents will fill up the grid systematically.
+            random(bool, optional):
+                If no positions are passed, agents will be placed in random
+                locations instead of systematic filling (default False).
+        """
 
         # Standard adding
         new_agents = super().add_agents(agents, agent_class, **kwargs)
 
         # Extra grid features
-        if map_to_grid:
-            pass  # TODO unfinished
-        elif positions:
-            for agent, pos in zip(new_agents, positions):
-                self._positions[agent] = pos
-        elif random:
-            positions = list(product(*[range(i) for i in self.shape]))
-            sample = rd.sample(positions, agents)
+        if not positions:
+            n_agents = len(new_agents)
+            all_positions = list(self.positions())
+            n_all_positions = len(list(self.positions()))
+            positions = []
+            while n_agents > n_all_positions - len(positions):
+                positions.extend(all_positions)
+            if n_all_positions - len(positions) > 0:
+                if random:
+                    positions.extend(rd.sample(list(self.positions()), agents))
+                else:
+                    positions.extend(all_positions[:n_agents])
+                # for agent in new_agents:
+                #     self._positions[agent] = [0] * self.dim
 
-            for agent, pos in zip(new_agents, sample):
-                self._positions[agent] = pos  # Log Position
-                self.get_pos(pos).append(agent)  # Add to new position
+        for agent, pos in zip(new_agents, positions):
+            self._agent_dict[agent] = pos  # Add position to agent_dict
+            self._get_pos(pos).append(agent)  # Add agent to position
 
+    @staticmethod
+    def _apply(grid, func, *args, **kwargs):
+        if not isinstance(grid[0], AgentList):
+            return [Grid._apply(subgrid, func, *args, **kwargs)
+                    for subgrid in grid]
         else:
-            for agent in new_agents:
-                self._positions[agent] = [0] * self.dim
+            return [func(i, *args, **kwargs) for i in grid]
 
+    def apply(self, func, *args, **kwargs):
+        """ Applies a function to all grid positions,
+        and returns grid with return values. """
+        return self._apply(self.grid, func, *args, **kwargs)
 
-class EnvDict(dict):
-    """ Dictionary for environments """
+    def _get_attr(self, agent_list, attr_key, mode, fill_empty):
+        if len(agent_list) == 0:
+            return fill_empty
+        if mode == 'single':
+            return getattr(agent_list[0], attr_key)
+        if mode == 'list':
+            return list(getattr(agent_list, attr_key))
+        if mode == 'sum':
+            return sum(getattr(agent_list, attr_key))
 
-    def __repr__(self):
+    def attribute(self, attr_key, mode='single', empty=np.nan):
+        """ Returns a grid with the value of the attributes of the agents
+        in each position.
 
-        return f"EnvDict {{{len(self.keys())} environments}}"
+        Arguments:
+            attr_key(str): Name of the attribute.
+            mode(str, optional): What to return in for positions with agents:
+                If 'single' (default), the attribute of the
+                first agent; if 'list', a list of all agents' attributes;
+                if 'sum', the sum of all agents' attributes.
+            empty(optional): What to return for empty positions
+                without agents (default numpy.nan).
+        """
+        return self.apply(self._get_attr, attr_key, mode, empty)
 
-    def do(self, method, *args, **kwargs):
-        """ Calls ``method(*args,**kwargs)``
-        for all environments in the dictionary. """
+    def position(self, agent):
+        """ Returns position of a passed agent.
 
-        for env in self.values():
-            getattr(env, method)(*args, **kwargs)
+        Arguments:
+            agent(int or Agent): Id or instance of the agent.
+        """
+        if isinstance(agent, int):
+            agent = self.model.get_obj(agent)
+        return self._agent_dict[agent]
 
-    def select(self, selection):
-        """ Returns a new :class:`EnvDict` based on `selection`.
+    def positions(self, area=None):
+        """Returns iterable of all grid positions in area.
 
-        Attributes:
-            selection (list of str): List of keys to be included.
-        """  # TODO NEW TEST
+        Arguments:
+            area(list of tuples, optional):
+                Area of positions that should be returned.
+                If none is passed, the whole grid is selected.
+                Style: `[(x_start, x_end), (y_start, y_end), ...]`
+        """
+        if area is None:
+            return itertools.product(*[range(x) for x in self._shape])
+        else:
+            return itertools.product(*[range(x, y+1) for x, y in area])
 
-        return EnvDict({k: v for k, v in self.envs.items()
-                        if k in make_list(selection)})
+    def _get_pos_rec(self, grid, pos):
+        """ Recursive function to get position. """
+        if len(pos) == 1:
+            return grid[pos[0]]
+        return self._get_pos_rec(grid[pos[0]], pos[1:])
 
-    def add_agents(self, agents=1, agent_class=Agent, **kwargs):
-        """ Adds agents to all environments.
-        See :func:`Environment.add_agents`"""
+    def _get_pos(self, pos):
+        return self._get_pos_rec(self._grid, pos)
 
-        envs = list(self.values())
-        new_agents = envs[0].add_agents(agents, agent_class, **kwargs)
+    def _get_agents_from_area(self, area, grid):
+        subgrid = grid[area[0][0]:area[0][1] + 1]
+        # Detect last row (must have AgentLists)
+        if isinstance(subgrid[0], AgentList):
+            # Flatten list of AgentLists to list of agents
+            return [y for x in subgrid for y in x]
+        objects = []
+        for row in subgrid:
+            objects.extend(self._get_agents_from_area(area[1:], row))
+        return objects
 
-        if len(envs) > 0:
-            for env in envs[1:]:
-                env.add_agents(new_agents)
+    def get_agents(self, area):
+        """ Returns an :class:`AgentList` with agents
+        in the selected positions or area.
+        To select all agents, use :attr:`Grid.agents`.
+
+        Arguments:
+            area(list of integers or tuples):
+                Area from which agents should be gathered.
+                Can either indicate a single position `[x, y, ...]`
+                or an area `[(x_start, x_end), (y_start, y_end), ...]`.
+        """
+        if isinstance(area[0], int):
+            return Agentlist(self._get_pos(pos))  # Soft copy
+        else:
+            return AgentList(self._get_agents_from_area(area, self._grid))
+
+    def move_agent(self, agent, position):
+        """ Moves agent to new position.
+
+        Arguments:
+            agent(int or Agent): Id or instance of the agent.
+            position(list of int): New position of the agent.
+        """
+        if isinstance(agent, int):
+            agent = self.model.get_obj(agent)
+        self._get_pos(self._agent_dict[agent]).remove(agent)
+        self._get_pos(position).append(agent)
+        self._agent_dict[agent] = position  # Document new position
+
+    def items(self, area=None):
+        """ Returns iterator with tuples of style: (position, agents). """
+        # TODO Test efficiency, alternative mode for area=None would be faster
+        p_it_1, p_it_2 = itertools.tee(self.positions(area))  # Copy iterator
+        return zip(p_it_1, [self._get_pos(pos) for pos in p_it_2])
+
+    def _get_neighbors4(self, pos, grid, dist=1):
+        """ Return agents in diamond-shaped area around pos."""
+        subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
+        # TODO Includes agents in the middle!
+        if len(pos) == 1:
+            return [y for x in subgrid for y in x]  # flatten list
+        objects = []
+        for row, dist in zip(subgrid, [0, 1, 0]):
+            objects.extend(self._get_neighbors4(pos[1:], row, dist))
+        return objects
+
+    def _get_neighbors8(self, pos, grid):
+        """ Return agents in square-shaped area around pos."""
+        subgrid = grid[max(0, pos[0] - 1):pos[0] + 2]
+        # TODO Includes agents in the middle!
+        if len(pos) == 1:
+            return [y for x in subgrid for y in x]
+        objects = []
+        for row in subgrid:
+            objects.extend(self._get_neighbors8(pos[1:], row))
+        return objects
+
+    def neighbors(self, agent, mode='cube'):
+        """ Returns agent neighbors.
+
+        Arguments:
+            agent(int or Agent): Id or instance of the agent.
+            mode(str, optional): Selection mode (default 'cube').
+                Diagonal neighbors are included if mode is 'cube',
+                or excluded if mode is 'diamond'.
+        """
+        if isinstance(agent, int):
+            agent = self.model.get_obj(agent)
+        if mode is None or mode == 'cube':  # Include diagonal neighbors
+            agents = self._get_neighbors8(self._agent_dict[agent], self._grid)
+        elif mode == 'diamond':  # Do not include diagonal neighbors
+            agents = self._get_neighbors4(self._agent_dict[agent], self._grid)
+        else:
+            raise ValueError(f"Grid.neighbors has no mode '{mode}'.")
+        agents.remove(agent)  # Remove the original agent TODO Automatic
+        return agents
 
 
 class Model(ApEnv):
@@ -827,13 +933,12 @@ class Model(ApEnv):
     An agent-based model that can hold environments and agents.
 
     This class can be used as a parent class for custom models.
-    Attributes can be accessed as items, and
-    environments can be accessed as attributes.
+    Attributes can be accessed as items.
     See :func:`Model.run` for information on the simulation procedure.
 
     Attributes:
         name (str): The models' name.
-        envs (EnvDict): The models' environments.
+        envs (EnvList): The models' environments.
         agents (AgentList): The models' agents.
         p (AttrDict): The models' parameters.
         t (int): Current time-step of the model.
@@ -854,7 +959,9 @@ class Model(ApEnv):
                  run_id=None,
                  scenario=None):
 
-        super().__init__(self, 'model')
+        self._id_counter = -1
+        self._obj_dict = {}  # Objects mapped by their id
+        super().__init__(self)  # Model will be have id 0
 
         self.t = 0
         self.t_max = 1_000_000
@@ -871,12 +978,16 @@ class Model(ApEnv):
         # Private variables
         self._parameters = AttrDict(parameters)
         self._stop = False
-        self._id_counter = -1
         self._set_var_ignore()
 
-    def __repr__(self):
+    def __repr__(self, short=False):
 
-        rep = "Agent-based model {"
+        rep = f"Agent-based model (Obj {self.id})"
+
+        if short:
+            return rep
+
+        rep += " {"
         ignore = ['measure_log', 'key', 'output']
 
         for prop in ['agents', 'envs']:
@@ -892,48 +1003,45 @@ class Model(ApEnv):
 
         return rep + ' }'
 
-    def __getattr__(self, key):
-        try:  # Try to access environments
-            return self.envs[key]
-        except KeyError:
-            raise AttributeError(
-                f"Model has no attribute or environment '{key}'")
-
     @property
     def objects(self):
         """The models agents and environments (list of objects)."""
-        return self.agents + list(self.envs.values())
+        return ObjList(self.agents + self.envs)
+
+    def get_obj(self, obj_id):
+        """ Return model object with obj_id (int). """
+        try:
+            return self._obj_dict[obj_id]
+        except KeyError:
+            raise KeyError(f"Model has no object with obj_id {obj_id}.")
 
     def _new_id(self):
-
+        # Generate new object id
         self._id_counter += 1
         return self._id_counter
 
-    def add_env(self, env_key, env_class=Environment, **kwargs):
-
+    def add_env(self, env_class=Environment, **kwargs):
         """ Creates a new environment. """
+        new_env = env_class(self.model, **kwargs)
+        self.envs.append(new_env)
+        return new_env
 
-        for env_key in make_list(env_key):
-            self.envs[env_key] = env_class(self.model, env_key, **kwargs)
+    def add_network(self, graph=None, agents=None, **kwargs):
+        """ Creates a new environment with a network.
+        Arguments are forwarded to :class:`Network`. """
+        new_env = Network(self.model, graph=graph, agents=agents, **kwargs)
+        self.envs.append(new_env)
+        return new_env
 
-    def add_network(self, env_key, env_class=Network, **kwargs):
-
-        """ Creates a new network environment. """
-
-        for env_key in make_list(env_key):
-            self.envs[env_key] = env_class(self.model, env_key, **kwargs)
-
-    def add_grid(self, env_key, env_class=Grid, **kwargs):
-
-        """ Creates a new spacial grid environment. """
-
-        for env_key in make_list(env_key):
-            self.envs[env_key] = env_class(self.model, env_key, **kwargs)
+    def add_grid(self, shape, **kwargs):
+        """ Creates a new environment with a spatial grid.
+        Arguments are forwarded to :class:`Grid`. """
+        new_env = Grid(self.model, shape=shape, **kwargs)
+        self.envs.append(new_env)
+        return new_env
 
     def measure(self, measure, value):
-
         """ Records an evaluation measure. """
-
         self.measure_log[measure] = [value]
 
     # Main simulation functions
@@ -956,6 +1064,8 @@ class Model(ApEnv):
         """ Defines the model's actions after the last simulation step.
         Can be overwritten and used for final calculations and measures."""
         pass
+
+    # TODO Add reset and skip function
 
     def stop(self):
         """ Stops :meth:`Model.run` during an active simulation. """
@@ -997,6 +1107,8 @@ class Model(ApEnv):
 
         """
 
+        # TODO Make steps an argument again
+
         dt0 = datetime.now()  # Time-Stamp
         steps = self.p['steps'] if 'steps' in self.p else False
 
@@ -1028,7 +1140,7 @@ class Model(ApEnv):
     def _create_output(self):
         """ Generates an 'output' dictionary out of object logs. """
 
-        def output_from_obj_list(self, obj_list, id_or_key, columns):
+        def output_from_obj_list(self, obj_list, columns):
             # Aggregate logs per object type
             obj_types = {}
             for obj in obj_list:
@@ -1036,7 +1148,7 @@ class Model(ApEnv):
                 if obj.log:  # Check for variables
 
                     # Add object id/key to object log
-                    obj.log['obj_id'] = [obj[id_or_key]] * len(obj.log['t'])
+                    obj.log['obj_id'] = [obj.id] * len(obj.log['t'])
 
                     # Initiate object type if new
                     obj_type = type(obj).__name__
@@ -1083,8 +1195,8 @@ class Model(ApEnv):
         self.output['variables'] = DataDict()
 
         # 3.1 - Create variable output for objects
-        output_from_obj_list(self, self.agents, 'id', columns)
-        output_from_obj_list(self, self.envs.values(), 'key', columns)
+        output_from_obj_list(self, self.agents, columns)
+        output_from_obj_list(self, self.envs, columns)
 
         # 3.2 - Create variable output for model
         if self.log:

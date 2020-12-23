@@ -4,16 +4,10 @@
 Analysis
 ========
 
-Interactive output
-------------------
+Sensitivity
+-----------
 
-.. autofunction:: interactive
-
-
-Sobol sensitivity
------------------
-
-.. autofunction:: sobol_sensitivity
+.. autofunction:: sensitivity_sobol
 
 Animations
 ----------

@@ -44,15 +44,15 @@ class EnvType4(ap.Environment):
 class ModelType0(ap.Model):
 
     def setup(self):
-        self.add_env('E31', env_class=EnvType3)
-        self.add_env(['E41', 'E42'], env_class=EnvType4)
+        self.E31 = self.add_env(env_class=EnvType3)
+        self.E41 = self.add_env(env_class=EnvType4)
+        self.E42 = self.add_env(env_class=EnvType4)
         self.envs.add_agents(agents=2, agent_class=AgentType1)
         self.E42.add_agents(agents=2, agent_class=AgentType2)
 
     def step(self):
         self.agents.action()
-        for env in self.envs.values():
-            env.action()  # TODO Change after EnvDict improvements
+        self.envs.action()
 
     def end(self):
         self.measure('m_key', 'm_value')
