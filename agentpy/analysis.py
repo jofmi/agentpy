@@ -10,9 +10,7 @@ import matplotlib.pyplot as plt
 import ipywidgets
 import IPython
 
-from scipy.interpolate import griddata
 from SALib.analyze import sobol
-from matplotlib import animation
 
 from .tools import make_list, param_tuples_to_salib
 from .framework import AgentList
@@ -146,7 +144,7 @@ def animate(model, fig, axs, plot,
             ax.clear()
         plot(m, axs, *fargs)  # Perform plot
 
-    ani = animation.FuncAnimation(
+    ani = matplotlib.animation.FuncAnimation(
         fig, update, frames=frames, fargs=(m, axs, *fargs), **kwargs)  # noqa
 
     plt.close()  # Don't display static plot TODO Put outside?
@@ -190,39 +188,3 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
         ax.imshow(grid, **kwargs)
     else:
         plt.imshow(grid, **kwargs)
-
-
-def phaseplot(data, x, y, z, n, fill=True, **kwargs):
-    """ Creates a contour plot displaying the interpolated
-    sensitivity between the parameters x,y and the measure z """
-    # TODO Function unfinished
-
-    # Create grid
-    x_vals = np.linspace(min(data[x]), max(data[x]), n)
-    y_vals = np.linspace(min(data[y]), max(data[y]), n)
-    x, y = np.meshgrid(x_vals, y_vals)
-
-    # Interpolate z
-    z = griddata((data[x], data[y]), data[z], (x, y))
-
-    # Create contour plot
-    if fill:
-        img = plt.contourf(x, y, z, **kwargs)
-    else:
-        img = plt.contour(x, y, z, **kwargs)
-
-    # Create colorbar
-    plt.colorbar(mappable=img)
-
-    # Labels
-    plt.title(z)
-    plt.xlabel(x)
-    plt.ylabel(y)
-
-    plt.show()
-
-
-def interactive(*args, **kwargs):  # noqa
-    m = ("'interactive' has been moved to 'Experiment.interactive', see "
-         "https://agentpy.readthedocs.io/en/latest/reference_experiments.html")
-    raise AgentpyError(m)

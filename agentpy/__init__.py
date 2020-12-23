@@ -14,7 +14,7 @@ __all__ = [
     'Experiment',
     'DataDict', 'load',
     'sample', 'sample_discrete', 'sample_saltelli',
-    'sensitivity_sobol', 'gridplot', 'interactive', 'animate',
+    'sensitivity_sobol', 'gridplot', 'animate',
     'AttrDict'
 ]
 # Meta-data
@@ -26,5 +26,5 @@ from .framework import Agent, AgentList, EnvList, ObjList, AttrList
 from .experiment import Experiment
 from .output import DataDict, load
 from .sampling import sample, sample_discrete, sample_saltelli
-from .analysis import sensitivity_sobol, gridplot, interactive, animate
+from .analysis import sensitivity_sobol, gridplot, animate
 from .tools import AttrDict

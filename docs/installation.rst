@@ -8,19 +8,24 @@ Installation
 Requirements
 ------------
 
-Agentpy supports Python 3.6 or higher. It further uses the following libraries:
+Agentpy supports Python 3.6 or higher.
+The installation includes the following packages:
 
-- `numpy <https://numpy.org>`_ and scipy, for scientific computing
+- `numpy <https://numpy.org>`_, for scientific computing
 - `matplotlib <https://matplotlib.org/>`_, for visualization
 - `pandas <https://pandas.pydata.org>`_, for output dataframes
 - `networkx <https://networkx.org/documentation/>`_, for network analysis
 - `ipywidgets <https://ipywidgets.readthedocs.io/>`_, for interactive output
 - `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
 
+These optional packages can further be useful in combination with agentpy:
+
+- `seaborn <https://seaborn.pydata.org/>`_, for statistical data visualization
+
 Stable release
 --------------
 
-To install the most recent stable release of the package,
+To install the latest stable release of agentpy,
 run the following command on your console:
 
 .. code-block:: console
@@ -30,7 +35,7 @@ run the following command on your console:
 From source
 -----------
 
-The latest version of agentpy can be cloned from Github as follows:
+The most recent version of agentpy can be cloned from Github:
 
 .. code-block:: console
 
