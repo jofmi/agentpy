@@ -41,7 +41,7 @@ please write to joel.foramitti@uab.cat.
 - Data analysis with pandas and SALib
 - Statistical visualization with seaborn
 - Networks and graphs with networkx
-- Interactive output with ipywidgets
+- Interactive output with IPython
 
 .. only:: html
 

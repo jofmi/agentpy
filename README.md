@@ -1,7 +1,8 @@
 # Agentpy - Agent-based modeling in Python
 
 Agentpy is an open-source framework for the development and analysis of
-agent-based models in Python.
+agent-based models in Python. If you have feedback, need help, or want to contribute,
+please write to joel.foramitti@uab.cat.
 
 **Main features:**
 
@@ -23,15 +24,10 @@ agent-based models in Python.
 - Data analysis with pandas and SALib
 - Statistical visualization with seaborn
 - Networks and graphs with networkx
-- Interactive output with ipywidgets
+- Interactive output with IPython
 
 **Documentation:** https://agentpy.readthedocs.io
 
-**Model library:** https://agentpy.readthedocs.io/en/latest/model_library.html
-
-**Requirements:** Python 3.6+, NumPy, scipy, matplotlib, networkx, pandas, SALib, ipywidgets.
+**Demonstrations:** https://agentpy.readthedocs.io/en/latest/model_library.html
 
 **Installation:** `pip install agentpy`
-
-**Contact:** If you have feedback, need help, or want to contribute,
-please write to joel.foramitti@uab.cat.
