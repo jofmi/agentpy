@@ -13,6 +13,7 @@ Changelog
   Methods that take an agent or environment as an argument
   can now take either the instance or id of the object.
   The :attr:`key` attribute of environments has been removed.
+* :func:`Model.run` now takes an optional argument `steps`.
 * :class:`EnvDict` has been replaced by :class:`EnvList`,
   which has the same functionalities as :class:`AgentList`.
 * Model objects now have a property :attr:`env`
@@ -21,6 +22,7 @@ Changelog
   Instead, agents can be mapped to nodes by passing an AgentList to the agents argument of :func:`Model.add_network`.
 * Revised methods for :class:`Grid`:
 
+  * :func:`Agent.move_to` and :func:`Agent.move_by` can be used to move agents.
   * :func:`Grid.items` returns an iterator of position and agent tuples.
   * :func:`Grid.get_agents` returns agents in selected position or area.
   * :func:`Grid.position` returns the position coordinates for an agent.

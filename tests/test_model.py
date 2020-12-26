@@ -19,17 +19,9 @@ def test_run():
 
     # Maximum time limit
     del model.p.steps
-    model.t = 999_999
-    with pytest.raises(AgentpyError):
-        assert model.run()
-    assert model.t == 1_000_000
-
-    # Custom time limit
-    model = ap.Model({'steps': 1})
-    model.t_max = 0
-    with pytest.raises(AgentpyError):
-        assert model.run()
-    assert model.t == 0
+    model.t = 999
+    model.run()
+    assert model.t == 1000
 
 
 def test_stop():
@@ -52,8 +44,11 @@ def test_add_agents():
     model = ap.Model()
     model.add_agents(3)
 
-    assert len(model.agents) == 3
+    assert len(model.agents) == 3  # New agents
     assert list(model.agents.id) == [1, 2, 3]
+
+    model.add_agents(model.agents)  # Existing agents
+    assert list(model.agents.id) == [1, 2, 3] * 2
 
 
 def test_objects_property():
@@ -68,7 +63,7 @@ def test_objects_property():
 
 
 def test_setup():
-    """ Test setup() for all ABM object types """
+    """ Test setup() for all object types """
 
     class MySetup:
         def setup(self, a):
@@ -119,28 +114,22 @@ def test_delete():
     assert list(model.env.agents.id) == [1, 3]
 
 
-def test_record():
-    """ Record a dynamic variable """
+def test_create_output():
+    """ Should put variables directly into output if there are only model
+    variables, or make a subdict if there are also other variables. """
 
     model = ap.Model()
-    model.add_agents(3)
-    model.var1 = 1
-    model.var2 = 2
-    model.record(['var1', 'var2'])
+    model.record('x', 0)
+    model.run(1)
+    assert list(model.output.variables.keys()) == ['x']
 
-    assert len(list(model._log.keys())) == 3
-    assert model._log['var1'] == [1]
-    assert model._log['var2'] == [2]
+    model = ap.Model(run_id=1, scenario='test')
+    model.add_agents()
+    model.agents.record('x', 0)
+    model.record('x', 0)
+    model.run(1)
+    assert list(model.output.variables.keys()) == ['Agent', 'Model']
 
-
-def test_record_all():
-    """ Record all dynamic variables automatically """
-
-    model = ap.Model()
-    model.var1 = 1
-    model.var2 = 2
-    model.record(model.var_keys)
-
-    assert len(list(model._log.keys())) == 3
-    assert model._log['var1'] == [1]
-    assert model._log['var2'] == [2]
+    # Run id and scenario should be added to output
+    assert model.output.variables.Model.reset_index()['run_id'][0] == 1
+    assert model.output.variables.Model.reset_index()['scenario'][0] == 'test'

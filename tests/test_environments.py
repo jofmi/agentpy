@@ -16,6 +16,16 @@ def make_forest():
     return model
 
 
+def test_agent_errors():
+
+    model = ap.Model()
+    env = model.add_env()
+    agent = model.add_agents()[0]
+    with pytest.raises(AgentpyError):
+        agent.neighbors()
+    with pytest.raises(AgentpyError):
+        agent.neighbors(env)
+
 def test_add_env():
     """ Add environment to model """
 
@@ -30,15 +40,24 @@ def test_add_env():
     assert model.agents[0].envs == model.envs
 
 
-def test_exit_env():
-    """ Remove single agent from environment """
+def test_enter_exit():
 
-    model = make_forest()
-    model.agents[-1].exit(1)
+    model = ap.Model()
+    model.add_agents()
+    agent = model.get_obj(1)
+    env = model.add_env()
 
-    assert len(model.env.agents) == 2
-    assert len(model.agents) == 3
-    assert list(model.env.agents.id) == [2, 3]
+    assert len(env.agents) == 0
+    agent.enter(env)
+    assert len(env.agents) == 1
+    agent.exit(env)
+    assert len(env.agents) == 0
+    agent.enter(2)
+    assert len(env.agents) == 1
+    agent.exit(2)
+    assert len(env.agents) == 0
+    with pytest.raises(AgentpyError):
+        agent.exit()
 
 
 def test_remove_agents():

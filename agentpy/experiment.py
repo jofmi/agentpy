@@ -81,6 +81,145 @@ class Experiment:
                 'varied': df
             })
 
+    def _add_single_output_to_combined(self, single_output, combined_output):
+        """Append results from single run to combined output."""
+        for key, value in single_output.items():
+
+            # Skip parameters & log
+            if key in ['parameters', 'log']:
+                continue
+
+            # Skip variables if record is False
+            if key == 'variables' and not self.record:
+                continue
+
+            # Handle variable subdicts
+            if key == 'variables' and isinstance(value, DataDict):
+
+                if key not in combined_output:
+                    combined_output[key] = {}
+
+                for obj_type, obj_df in single_output[key].items():
+
+                    if obj_type not in combined_output[key]:
+                        combined_output[key][obj_type] = []
+
+                    combined_output[key][obj_type].append(obj_df)
+
+            # Handle other output types
+            else:
+                if key not in combined_output:
+                    combined_output[key] = []
+                combined_output[key].append(value)
+
+    def _combine_dataframes(self, combined_output):
+        for key, values in combined_output.items():
+            if values and all([isinstance(value, pd.DataFrame)
+                               for value in values]):
+                self.output[key] = pd.concat(values)
+            elif isinstance(values, dict):  # Create SubDataDict
+                self.output[key] = DataDict()
+                for sk, sv in values.items():
+                    # TODO Handle dicts that don't have dataframes
+                    self.output[key][sk] = pd.concat(sv)
+            elif key != 'log':
+                # TODO How to handle other objects
+                self.output[key] = values
+
+    def run(self, pool=None, display=True):
+        """ Executes the simulation of the experiment.
+
+        The simulation will run the model once for each set of parameters
+        and will repeat this process for the set number of iterations.
+        Parallel processing is possible if a `pool` is passed.
+        Simulation results will be stored in `Experiment.output`.
+
+        Arguments:
+            pool(multiprocessing.Pool, optional):
+                Pool of active processes for parallel processing.
+                If none is passed, normal processing is used.
+            display(bool, optional):
+                Display simulation progress (default True).
+
+        Returns:
+            DataDict: Recorded experiment data.
+
+        Examples:
+
+            To run a normal experiment::
+
+                exp = ap.Experiment(MyModel, parameters)
+                results = exp.run()
+
+            To use parallel processing::
+
+                import multiprocessing as mp
+                if __name__ ==  '__main__':
+                    exp = ap.Experiment(MyModel, parameters)
+                    pool = mp.Pool(mp.cpu_count())
+                    results = exp.run(pool)
+        """
+        # TODO Improve examples
+
+        if display:
+            print(f"Scheduled runs: {self.number_of_runs}")
+        t0 = datetime.now()  # Time-Stamp Start
+        combined_output = {}
+
+        # Normal processing
+        if pool is None:
+            for i, parameters in enumerate(self.parameters_per_run):
+                for scenario in self.scenarios:
+                    # Run model for current parameters & scenario
+                    output = self.model(
+                        parameters, run_id=i,
+                        scenario=scenario).run(display=False)
+                    self._add_single_output_to_combined(output,
+                                                        combined_output)
+
+                if display:
+                    td = (datetime.now() - t0).total_seconds()
+                    te = timedelta(seconds=int(td / (i + 1)
+                                               * (self.number_of_runs - i - 1)))
+                    print(f"\rCompleted: {i + 1}, "
+                          f"estimated time remaining: {te}", end='')
+            if display:
+                print("")  # Because the last print ended without a line-break
+
+        # Parallel processing
+        else:
+            if display:
+                print(f"Active processes: {pool._processes}")
+            sim_ids = list(range(self.number_of_runs * len(self.scenarios)))
+            output_list = pool.map(self._single_sim, sim_ids)
+            # TODO dynamic variables take a lot of memory
+            for single_output in output_list:
+                self._add_single_output_to_combined(single_output, combined_output)
+
+        self._combine_dataframes(combined_output)
+        self.output.log['run_time'] = ct = str(datetime.now() - t0)
+
+        if display:
+            print(f"Experiment finished\nRun time: {ct}")
+
+        return self.output
+
+    # -----------------------
+    # Interactive experiments
+
+    def _single_sim(self, sim_id):
+        """ Perform a single simulation for parallel processing."""
+        sc_id = sim_id % len(self.scenarios)
+        run_id = (sim_id - sc_id) // len(self.scenarios)
+        model = self.model(
+            self.parameters[run_id],
+            run_id=run_id,
+            scenario=self.scenarios[sc_id])
+        results = model.run(display=False)
+        # TODO RESET FUNCTION
+        # TODO SKIP FUNCTION
+        return results
+
     def interactive(self, plot, *args, **kwargs):
         """
         Displays interactive output for Jupyter notebooks,
@@ -137,136 +276,3 @@ class Experiment:
         output_right = ipywidgets.interactive_output(var_run, widget_dict)
 
         return ipywidgets.HBox([widgets_left, output_right])
-
-    def _add_single_output_to_combined(self, single_output, combined_output):
-        """Append results from single run to combined output."""
-        for key, value in single_output.items():
-
-            # Skip parameters & log
-            if key in ['parameters', 'log']:
-                continue
-
-            # Skip variables if record is False
-            if key == 'variables' and not self.record:
-                continue
-
-            # Handle variable subdicts
-            if key == 'variables' and isinstance(value, DataDict):
-
-                if key not in combined_output:
-                    combined_output[key] = {}
-
-                for obj_type, obj_df in single_output[key].items():
-
-                    if obj_type not in combined_output[key]:
-                        combined_output[key][obj_type] = []
-
-                    combined_output[key][obj_type].append(obj_df)
-
-            # Handle other output types
-            else:
-                if key not in combined_output:
-                    combined_output[key] = []
-                combined_output[key].append(value)
-
-    def _combine_dataframes(self, combined_output):
-        for key, values in combined_output.items():
-            if values and all([isinstance(value, pd.DataFrame)
-                               for value in values]):
-                self.output[key] = pd.concat(values)
-            elif isinstance(values, dict):  # Create SubDataDict
-                self.output[key] = DataDict()
-                for sk, sv in values.items():
-                    self.output[key][sk] = pd.concat(sv)
-            elif key != 'log':
-                self.output[key] = values
-
-    def _single_sim(self, sim_id):
-        """ Perform a single simulation for parallel processing."""
-        sc_id = sim_id % len(self.scenarios)
-        run_id = (sim_id - sc_id) // len(self.scenarios)
-        model = self.model(
-            self.parameters[run_id],
-            run_id=run_id,
-            scenario=self.scenarios[sc_id])
-        results = model.run(display=False)
-        # TODO RESET FUNCTION
-        # TODO SKIP FUNCTION
-        return results
-
-    def run(self, pool=None, display=True):
-        """ Executes the simulation of the experiment.
-
-        The simulation will run the model once for each set of parameters
-        and will repeat this process for the set number of iterations.
-        Parallel processing is possible if a `pool` is passed.
-        Simulation results will be stored in `Experiment.output`.
-
-        Arguments:
-            pool(multiprocessing.Pool, optional):
-                Pool of active processes for parallel processing.
-                If none is passed, normal processing is used.
-            display(bool, optional):
-                Display simulation progress (default True).
-
-        Returns:
-            DataDict: Recorded experiment data.
-
-        Examples:
-
-            To run a normal experiment::
-
-                exp = ap.Experiment(MyModel, parameters)
-                results = exp.run()
-
-            To use parallel processing::
-
-                import multiprocessing as mp
-                if __name__ ==  '__main__':
-                    exp = ap.Experiment(MyModel, parameters)
-                    pool = mp.Pool(mp.cpu_count())
-                    results = exp.run(pool)
-        """  # TODO Examples can be improved
-
-        if display:
-            print(f"Scheduled runs: {self.number_of_runs}")
-        t0 = datetime.now()  # Time-Stamp Start
-        combined_output = {}
-
-        # Normal processing
-        if pool is None:
-            for i, parameters in enumerate(self.parameters_per_run):
-                for scenario in self.scenarios:
-                    # Run model for current parameters & scenario
-                    output = self.model(
-                        parameters, run_id=i,
-                        scenario=scenario).run(display=False)
-                    self._add_single_output_to_combined(output,
-                                                        combined_output)
-
-                if display:
-                    td = (datetime.now() - t0).total_seconds()
-                    te = timedelta(seconds=int(td / (i + 1)
-                                               * (self.number_of_runs - i - 1)))
-                    print(f"\rCompleted: {i + 1}, "
-                          f"estimated time remaining: {te}", end='')
-            if display:
-                print("")  # Because the last print ended without a line-break
-
-        # Parallel processing
-        else:
-            if display:
-                print(f"Active processes: {pool._processes}")
-            sim_ids = list(range(self.number_of_runs * len(self.scenarios)))
-            output_list = pool.map(self._single_sim, sim_ids)
-            # TODO dynamic variables take a lot of memory
-            for single_output in output_list:
-                self._add_single_output_to_combined(single_output, combined_output)
-
-        self._combine_dataframes(combined_output)
-        self.output.log['run_time'] = ct = str(datetime.now() - t0)
-
-        if display:
-            print(f"Experiment finished\nRun time: {ct}")
-
-        return self.output

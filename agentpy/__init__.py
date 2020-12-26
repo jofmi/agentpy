@@ -21,8 +21,11 @@ __all__ = [
 __version__ = "0.0.6.dev"
 
 # Objects
-from .framework import Model, Environment, Network, Grid
-from .framework import Agent, AgentList, EnvList, ObjList, AttrList
+from .lists import AttrList, ObjList, AgentList, EnvList
+from .objects import Agent, Environment
+from .network import Network
+from .grid import Grid
+from .model import Model
 from .experiment import Experiment
 from .output import DataDict, load
 from .sampling import sample, sample_discrete, sample_saltelli

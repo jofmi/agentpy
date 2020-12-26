@@ -13,7 +13,7 @@ import IPython
 from SALib.analyze import sobol
 
 from .tools import make_list, param_tuples_to_salib
-from .framework import AgentList
+from .objects import AgentList
 
 
 def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
@@ -113,15 +113,17 @@ def animate(model, fig, axs, plot,
     m._stop = False
     m.setup()
     m.update()
-    m._update_stop(steps)
-    m._create_output()
+    if m.t >= steps:
+        m._stop = True
+    m._create_output()  # TODO Flag wether this should happen
     pre_steps = 0
 
     for _ in range(skip):
         m.t += 1
         m.step()
         m.update()
-        m._update_stop(steps)
+        if m.t >= steps:
+            m._stop = True
         # TODO Make make_step function
 
     def frames():
@@ -133,7 +135,8 @@ def animate(model, fig, axs, plot,
                 m.t += 1
                 m.step()
                 m.update()
-                m._update_stop(steps)
+                if m.t >= steps:
+                    m._stop = True
                 m._create_output()
             yield m.t
 

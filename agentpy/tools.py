@@ -84,3 +84,7 @@ class AttrDict(dict):
 
     def __repr__(self):
         return f"AttrDict {super().__repr__()}"
+
+    def _short_repr(self):
+        len_ = len(self.keys())
+        return f"AttrDict {{{len_} entr{'y' if len_ == 1 else 'ies'}}}"

@@ -1,22 +1,29 @@
 import pytest
 import agentpy as ap
 
-from agentpy.tools import AgentpyError
+
+def test_repr():
+    model = ap.Model()
+    model.add_agents()
+    model.add_env()
+    assert model.agents.__repr__() == "AgentList [1 agent]"
+    assert model.envs.__repr__() == "EnvList [1 environment]"
+    assert model.objects.__repr__() == "ObjList [2 objects]"
+    l1 = model.agents.id
+    l2 = l1 + 1
+    assert l1.__repr__() == "AttrList of attribute 'id': [1]"
+    assert l2.__repr__() == "AttrList: [2]"
 
 
 def test_attr_calls():
-
     model = ap.Model()
     model.add_agents(2)
     model.agents.x = 1
     model.agents.f = lambda: 2
-
     assert list(model.agents.x) == [1, 1]
     assert list(model.agents.f()) == [2, 2]
-
     with pytest.raises(AttributeError):
         assert model.agents.y
-
     with pytest.raises(TypeError):
         assert model.agents.x()  # noqa
 
@@ -45,6 +52,15 @@ def test_select():
     assert list(model.agents(selection1).id) == [2]
 
 
+def test_random():
+
+    model = ap.Model()
+    model.add_agents(2)
+
+    assert len(model.agents) == len(model.agents.shuffle())
+    assert len(model.agents.random()) == 1
+
+
 def test_sort():
 
     model = ap.Model()
@@ -58,6 +74,7 @@ def test_sort():
 
 
 def test_arithmetics():
+    """ Test arithmetic operators """
 
     model = ap.Model()
     model.add_agents(3)
@@ -73,6 +90,23 @@ def test_arithmetics():
     agents.x = agents.x + agents.y
     assert list(agents.x) == [2, 3, 4]
 
-    agents.x *= 2
-    assert list(agents.x) == [4, 6, 8]
+    agents.x = agents.x - ap.AttrList([1, 1, 1])
+    assert list(agents.x) == [1, 2, 3]
 
+    agents.x += 1
+    assert list(agents.x) == [2, 3, 4]
+
+    agents.x -= 1
+    assert list(agents.x) == [1, 2, 3]
+
+    agents.x *= 2
+    assert list(agents.x) == [2, 4, 6]
+
+    agents.x = agents.x * agents.x
+    assert list(agents.x) == [4, 16, 36]
+
+    agents.x = agents.x / agents.x
+    assert list(agents.x)[0] == pytest.approx(1.)
+
+    agents.x /= 2
+    assert list(agents.x)[0] == pytest.approx(0.5)

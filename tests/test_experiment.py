@@ -14,6 +14,15 @@ class MyModel(ap.Model):
         self.measure('measured_id', self.model.run_id)
 
 
+def test_basics():
+
+    exp = ap.Experiment(MyModel, [{'steps': 1}] * 3)
+    assert exp.name == 'MyModel'
+
+    exp = ap.Experiment(MyModel, [{'steps': 1}] * 3, name='test')
+    assert exp.name == 'test'
+
+
 def test_parallel_processing():
 
     exp = ap.Experiment(MyModel, [{'steps': 1}] * 3)

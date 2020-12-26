@@ -14,7 +14,7 @@ from .tools import param_tuples_to_salib
 
 def sample(parameter_ranges, n, digits=None):
     """ Creates a sample of different parameter combinations
-    by seperating each range into 'n' values, using :func:`numpy.arange`.
+    by seperating each range into 'n' values, using :func:`numpy.linspace`.
 
     Arguments:
         parameter_ranges (dict): Dictionary of parameters.
@@ -29,12 +29,14 @@ def sample(parameter_ranges, n, digits=None):
         list of dict: List of parameter dictionaries
     """
 
+    # TODO Create soft copy of the parameter ranges first
+
     for k, v in parameter_ranges.items():
         if isinstance(v, tuple):
-            p_range = np.arange(v[0], v[1], (v[1] - v[0]) / n)
+            p_range = np.linspace(v[0], v[1], n)
             if all([isinstance(pv, int) for pv in v[:2]]):
                 p_range = [int(round(pv)) for pv in p_range]
-            elif digits:
+            elif digits is not None:
                 p_range = [round(pv, digits) for pv in p_range]
             parameter_ranges[k] = p_range
         else:

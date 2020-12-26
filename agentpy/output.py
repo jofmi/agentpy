@@ -91,6 +91,10 @@ class DataDict(AttrDict):
 
         return rep
 
+    def _short_repr(self):
+        len_ = len(self.keys())
+        return f"DataDict {{{len_} entr{'y' if len_ == 1 else 'ies'}}}"
+
     def __eq__(self, other):
         """ Check equivalence of two DataDicts."""
         if not isinstance(other, DataDict):
@@ -104,9 +108,6 @@ class DataDict(AttrDict):
             elif not self[key] == other[key]:
                 return False
         return True
-
-    def _check_consistency(self):
-        pass  # TODO Create function to check consistency
 
     def _combine_vars(self, obj_types='all', var_keys='all'):
         """ Returns pandas dataframe with combined variables """

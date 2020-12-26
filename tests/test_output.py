@@ -66,7 +66,7 @@ def test_testing_model():
                 'scenarios': ['test1', 'test2'],
                 'record': True}
 
-    model = ModelType0(sample[0])
+    pytest.model_instance = model = ModelType0(sample[0])
     pytest.model_results = model_results = model.run(display=False)
 
     exp = ap.Experiment(ModelType0, sample, **settings)
@@ -130,6 +130,14 @@ def test_datadict_arrange_measures():
     assert mvp_data.equals(mvp_data_2)
 
 
+def test_datadict_arrange_variables():
+
+    results = pytest.exp_results
+    mvp_data = results.arrange(variables='all', parameters='varied')
+    mvp_data_2 = results.arrange_variables()
+    assert mvp_data.equals(mvp_data_2)
+
+
 def test_automatic_loading():
 
     if 'ap_output' in os.listdir():
@@ -161,14 +169,5 @@ def test_saved_equals_loaded():
     loaded = ap.load('ModelType0')
     shutil.rmtree('ap_output')
 
-    for key, item in results.items():
-        if isinstance(item, pd.DataFrame):
-            assert loaded[key].equals(results[key])
-        elif isinstance(item, ap.DataDict):
-            for k, i in item.items():
-                if isinstance(i, pd.DataFrame):
-                    assert loaded[key][k].equals(results[key][k])
-                else:
-                    assert loaded[key][k] == results[key][k]
-        else:
-            assert loaded[key] == results[key]
+    assert results == loaded
+
