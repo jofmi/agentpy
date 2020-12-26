@@ -126,6 +126,20 @@ class Experiment:
                 # TODO How to handle other objects
                 self.output[key] = values
 
+    def _single_sim(self, sim_id):
+        """ Perform a single simulation for parallel processing."""
+        sc_id = sim_id % len(self.scenarios)
+        run_id = (sim_id - sc_id) // len(self.scenarios)
+        model = self.model(
+            self.parameters[run_id],
+            run_id=run_id,
+            scenario=self.scenarios[sc_id])
+        results = model.run(display=False)
+        # TODO Remove variables here if record == False
+        # TODO RESET FUNCTION
+        # TODO SKIP FUNCTION
+        return results
+
     def run(self, pool=None, display=True):
         """ Executes the simulation of the experiment.
 
@@ -174,6 +188,7 @@ class Experiment:
                     output = self.model(
                         parameters, run_id=i,
                         scenario=scenario).run(display=False)
+                    # TODO Remove variables here if record == False
                     self._add_single_output_to_combined(output,
                                                         combined_output)
 
@@ -203,22 +218,6 @@ class Experiment:
             print(f"Experiment finished\nRun time: {ct}")
 
         return self.output
-
-    # -----------------------
-    # Interactive experiments
-
-    def _single_sim(self, sim_id):
-        """ Perform a single simulation for parallel processing."""
-        sc_id = sim_id % len(self.scenarios)
-        run_id = (sim_id - sc_id) // len(self.scenarios)
-        model = self.model(
-            self.parameters[run_id],
-            run_id=run_id,
-            scenario=self.scenarios[sc_id])
-        results = model.run(display=False)
-        # TODO RESET FUNCTION
-        # TODO SKIP FUNCTION
-        return results
 
     def interactive(self, plot, *args, **kwargs):
         """

@@ -194,7 +194,7 @@ class AgentList(ObjList):
     """
 
     def __repr__(self):
-        return f"AgentList [{len(self)} agent{'s' if len(self) > 1 else ''}]"
+        return f"AgentList [{len(self)} agent{'s' if len(self) != 1 else ''}]"
 
 
 class EnvList(ObjList):
