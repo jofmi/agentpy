@@ -1,6 +1,9 @@
 # Agentpy - Agent-based modeling in Python
 
+![PyPI](https://img.shields.io/pypi/v/agentpy)
+![GitHub](https://img.shields.io/github/license/joelforamitti/agentpy)
 [![Build Status](https://travis-ci.com/JoelForamitti/agentpy.svg?branch=master)](https://travis-ci.com/JoelForamitti/agentpy)
+[![codecov](https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0)](https://codecov.io/gh/JoelForamitti/agentpy)
 
 Agentpy is an open-source framework for the development and analysis of
 agent-based models in Python. If you have feedback, need help, or want to contribute,
