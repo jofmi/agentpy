@@ -2,4 +2,6 @@ language: python
 install:
   - pip install -r docs/requirements.txt
 script:
-  - pytest
+  - coverage run -m pytest
+after-success:
+  - bash <(curl -s https://codecov.io/bash)
