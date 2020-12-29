@@ -7,6 +7,34 @@ import os
 from agentpy.tools import AgentpyError
 
 
+repr = """DataDict {
+'parameters': 
+    'fixed': Dictionary with 1 key
+    'varied': DataFrame with 1 variable and 10 rows
+'log': Dictionary with 5 keys
+'measures': DataFrame with 1 variable and 10 rows
+'variables': 
+    'Agent': DataFrame with 1 variable and 10 rows
+    'MyModel': DataFrame with 1 variable and 10 rows
+}"""
+
+
+class MyModel(ap.Model):
+    def step(self):
+        self.measure('x', self.p.x)
+        self.add_agents()
+        self.agents.record('id')
+        self.record('id')
+        self.stop()
+
+
+def test_repr():
+    param_ranges = {'x': (0., 1.), 'y': 1}
+    sample = ap.sample(param_ranges, n=10)
+    results = ap.Experiment(MyModel, sample, record=True).run()
+    assert results.__repr__() == repr
+
+
 class AgentType1(ap.Agent):
     def setup(self):
         self.x = 'x1'
@@ -168,6 +196,15 @@ def test_saved_equals_loaded():
     results.save()
     loaded = ap.load('ModelType0')
     shutil.rmtree('ap_output')
-
     assert results == loaded
+    # Test that equal doesn't hold if parts are changed
+    assert results != 1
+    loaded.measures = 1
+    assert results != loaded
+    results.measures = 1
+    assert results == loaded
+    loaded.log = 1
+    assert results != loaded
+    del loaded.log
+    assert results != loaded
 

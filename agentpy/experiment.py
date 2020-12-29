@@ -51,6 +51,7 @@ class Experiment:
 
         # Log
         self.output.log = {'name': self.name,
+                           'model_type': model_class.__name__,
                            'time_stamp': str(datetime.now()),
                            'iterations': iterations}
         if scenarios:
@@ -240,7 +241,7 @@ class Experiment:
         # TODO Pass settings to widget
 
         def var_run(**param_updates):
-
+            """ Display plot for updated parameters. """
             IPython.display.clear_output()
             parameters = dict(self.parameters[0])
             parameters.update(param_updates)
@@ -250,12 +251,7 @@ class Experiment:
             plot(temp_model, *args, **kwargs)
 
         # Get variable parameters
-        if 'varied' in self.output['parameters']:
-            var_pars = self.output['parameters']['varied']
-        elif isinstance(self.output['parameters'], pd.DataFrame):
-            var_pars = self.output['parameters']
-        else:
-            raise AgentpyError("No varied parameters found.")
+        var_pars = self.output._combine_pars(varied=True, static=False)
 
         # Create widget dict
         widget_dict = {}

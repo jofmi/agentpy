@@ -55,7 +55,7 @@ class Model(ApEnv):
         # Recording
         self._measure_log = {}
         self.output = DataDict()
-        self.output.log = {'type': self.type,
+        self.output.log = {'model_type': self.type,
                            'time_stamp': str(datetime.now())}
 
         # Private variables

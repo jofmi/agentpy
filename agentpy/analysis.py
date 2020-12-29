@@ -61,7 +61,9 @@ def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
         for dfs, keys in zip(dfs_list, keys_list):
             s = {k: v for k, v in si.items() if k in keys}
             df = pd.DataFrame(s)
-            df['parameter'] = output.parameters.varied.keys()
+
+            var_pars = output._combine_pars(varied=True, static=False)
+            df['parameter'] = var_pars.keys()
             df['measure'] = measure
             df = df.set_index(['measure', 'parameter'])
             dfs.append(df)
@@ -128,16 +130,19 @@ def animate(model, fig, axs, plot,
 
     def frames():
         nonlocal m, pre_steps
-        while not m._stop:
-            if pre_steps < 2:  # Frames iterates twice before starting plot
-                pre_steps += 1
-            else:
-                m.t += 1
-                m.step()
-                m.update()
-                if m.t >= steps:
-                    m._stop = True
-                m._create_output()
+        if m._stop is False:
+            while not m._stop:
+                if pre_steps < 2:  # Frames iterates twice before starting plot
+                    pre_steps += 1
+                else:
+                    m.t += 1
+                    m.step()
+                    m.update()
+                    if m.t >= steps:
+                        m._stop = True
+                    m._create_output()
+                yield m.t
+        else:  # Yield current if model stops before the animation starts
             yield m.t
 
     def update(t, m, axs, *fargs):  # noqa

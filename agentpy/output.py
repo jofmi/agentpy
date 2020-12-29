@@ -61,12 +61,10 @@ class DataDict(AttrDict):
     """
 
     def __repr__(self, indent=False):
-
         rep = ""
         if not indent:
             rep += "DataDict {"
         i = '    ' if indent else ''
-
         for k, v in self.items():
             rep += f"\n{i}'{k}': "
             if isinstance(v, pd.DataFrame):
@@ -85,10 +83,8 @@ class DataDict(AttrDict):
                 rep += f"List with {lv} entr{'ies' if lv != 1 else 'y'}"
             else:
                 rep += f"Object of type {type(v)}"
-
         if not indent:
             rep += "\n}"
-
         return rep
 
     def _short_repr(self):
@@ -108,6 +104,9 @@ class DataDict(AttrDict):
             elif not self[key] == other[key]:
                 return False
         return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def _combine_vars(self, obj_types='all', var_keys='all'):
         """ Returns pandas dataframe with combined variables """
@@ -136,7 +135,7 @@ class DataDict(AttrDict):
             df_dict = {k: v for k, v in df_dict.items() if k in obj_types}
 
         # Add 'obj_id' before 't' for model df
-        if 'model' in list(df_dict.keys()):
+        if self.log['model_type'] in list(df_dict.keys()):
             df = df_dict['model']
             df['obj_id'] = 'model'
             indexes = list(df.index.names)
@@ -167,7 +166,7 @@ class DataDict(AttrDict):
         if isinstance(self.parameters, DataDict):
             dfp = pd.DataFrame()
             if varied:
-                dfp = self.parameters.varied
+                dfp = self.parameters.varied.copy()
             if static:
                 for k, v in self.parameters.fixed.items():
                     dfp[k] = v
@@ -176,7 +175,7 @@ class DataDict(AttrDict):
             dfp = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
         # Case 3: There is a dataframe with varied parameters
         elif varied and isinstance(self.parameters, pd.DataFrame):
-            dfp = self.parameters
+            dfp = self.parameters.copy()
         # Case 4: No parameters have been selected
         else:
             return None
