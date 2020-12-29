@@ -4,12 +4,15 @@
 Agentpy - Agent-based modeling in Python
 ========================================
 
-.. image:: https://img.shields.io/pypi/v/agentpy   :alt: PyPI
-.. image:: https://img.shields.io/github/license/joelforamitti/agentpy   :alt: GitHub
+.. image:: https://img.shields.io/pypi/v/agentpy.svg
+    :target: https://pypi.org/project/agentpy/
+.. image:: https://img.shields.io/github/license/joelforamitti/agentpy
+    :target: https://github.com/JoelForamitti/agentpy/blob/master/LICENSE
 .. image:: https://travis-ci.com/JoelForamitti/agentpy.svg?branch=master
     :target: https://travis-ci.com/JoelForamitti/agentpy
 .. image:: https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0
     :target: https://codecov.io/gh/JoelForamitti/agentpy
+
 
 .. raw:: latex
 
