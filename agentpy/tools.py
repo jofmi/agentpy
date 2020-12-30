@@ -12,9 +12,7 @@ class AgentpyError(Exception):
 
 def make_matrix(shape, class_):
     """ Returns a nested list with given shape and class instance. """
-
     # H/T Thierry Lathuille https://stackoverflow.com/a/64467230/
-
     if len(shape) == 1:
         return [class_() for _ in range(shape[0])]
     return [make_matrix(shape[1:], class_) for _ in range(shape[0])]

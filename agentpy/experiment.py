@@ -14,7 +14,7 @@ from .output import DataDict
 
 class Experiment:
     """ Experiment for an agent-based model.
-    Allows for multiple iterations, parameter samples, distict scenarios,
+    Allows for multiple iterations, parameter samples, scenario comparison,
     interactive output, and parallel processing.
 
     Arguments:
@@ -24,7 +24,8 @@ class Experiment:
         name(str, optional): Name of the experiment (default model.name).
         scenarios(str or list, optional): Experiment scenarios (default None).
         iterations(int, optional): Experiment repetitions (default 1).
-        record(bool, optional): Record dynamic variables (default False).
+        record(bool, optional): Keep record of dynamic variables. 
+            If False, only measures will be recorded (default False).
 
     Attributes:
         output(DataDict): Recorded experiment data
@@ -68,7 +69,6 @@ class Experiment:
         fixed_pars = {}
         for col in df.columns:
             s = df[col]
-            # TODO Error if parameters are unhashable (e.g. dict) (not list?)
             if len(s.unique()) == 1:
                 fixed_pars[s.name] = df[col][0]
                 df.drop(col, inplace=True, axis=1)
@@ -83,66 +83,60 @@ class Experiment:
             })
 
     def _add_single_output_to_combined(self, single_output, combined_output):
-        """Append results from single run to combined output."""
+        """Append results from single run to combined output.
+        Each key in single_output becomes a key in combined_output.
+        DataDicts entries become dicts with lists of values.
+        Other entries become lists of values. """
         for key, value in single_output.items():
-
-            # Skip parameters & log
-            if key in ['parameters', 'log']:
+            if key in ['parameters', 'log']:  # Skip parameters & log
                 continue
-
-            # Skip variables if record is False
-            if key == 'variables' and not self.record:
-                continue
-
-            # Handle variable subdicts
-            if key == 'variables' and isinstance(value, DataDict):
-
-                if key not in combined_output:
-                    combined_output[key] = {}
-
+            if isinstance(value, DataDict):  # Handle subdicts
+                if key not in combined_output:  # New key
+                    combined_output[key] = {}  # as dict
                 for obj_type, obj_df in single_output[key].items():
-
-                    if obj_type not in combined_output[key]:
-                        combined_output[key][obj_type] = []
-
+                    if obj_type not in combined_output[key]:  # New subkey
+                        combined_output[key][obj_type] = []  # as list
                     combined_output[key][obj_type].append(obj_df)
-
-            # Handle other output types
-            else:
-                if key not in combined_output:
-                    combined_output[key] = []
+            else:  # Handle other output types
+                if key not in combined_output:  # New key
+                    combined_output[key] = []  # as list
                 combined_output[key].append(value)
 
     def _combine_dataframes(self, combined_output):
+        """ Combines data from combined output.
+        Dataframes are combined with concat.
+        Dicts are transformed to DataDict.
+        Other objects are kept as original.
+        Combined data is written to self.output. """
         for key, values in combined_output.items():
             if values and all([isinstance(value, pd.DataFrame)
                                for value in values]):
-                self.output[key] = pd.concat(values)
-            elif isinstance(values, dict):  # Create SubDataDict
+                self.output[key] = pd.concat(values)  # Df are combined
+            elif isinstance(values, dict):  # Dict is transformed to DataDict
                 self.output[key] = DataDict()
                 for sk, sv in values.items():
-                    # TODO Handle dicts that don't have dataframes
-                    self.output[key][sk] = pd.concat(sv)
-            elif key != 'log':
-                # TODO How to handle other objects
+                    if all([isinstance(v, pd.DataFrame) for v in sv]):
+                        self.output[key][sk] = pd.concat(sv)  # Df are combined
+                    else:  # Other objects are kept as original
+                        self.output[key][sk] = sv
+            elif key != 'log':  # Other objects are kept as original
                 self.output[key] = values
 
     def _single_sim(self, sim_id):
-        """ Perform a single simulation for parallel processing."""
+        """ Perform a single simulation."""
         sc_id = sim_id % len(self.scenarios)
         run_id = (sim_id - sc_id) // len(self.scenarios)
         model = self.model(
-            self.parameters[run_id],
+            self.parameters_per_run[run_id],
             run_id=run_id,
             scenario=self.scenarios[sc_id])
         results = model.run(display=False)
-        # TODO Remove variables here if record == False
-        # TODO RESET FUNCTION
-        # TODO SKIP FUNCTION
+        if 'variables' in results and self.record is False:
+            del results['variables']  # Remove dynamic variables from record
         return results
 
     def run(self, pool=None, display=True):
-        """ Executes the simulation of the experiment.
+        """ Executes a multi-run experiment.
 
         The simulation will run the model once for each set of parameters
         and will repeat this process for the set number of iterations.
@@ -174,43 +168,33 @@ class Experiment:
                     pool = mp.Pool(mp.cpu_count())
                     results = exp.run(pool)
         """
-        # TODO Improve examples
 
+        sim_ids = list(range(self.number_of_runs * len(self.scenarios)))
+        n_sims = len(sim_ids)
         if display:
-            print(f"Scheduled runs: {self.number_of_runs}")
+            print(f"Scheduled runs: {n_sims}")
         t0 = datetime.now()  # Time-Stamp Start
         combined_output = {}
 
-        # Normal processing
-        if pool is None:
-            for i, parameters in enumerate(self.parameters_per_run):
-                for scenario in self.scenarios:
-                    # Run model for current parameters & scenario
-                    output = self.model(
-                        parameters, run_id=i,
-                        scenario=scenario).run(display=False)
-                    # TODO Remove variables here if record == False
-                    self._add_single_output_to_combined(output,
-                                                        combined_output)
-
+        if pool is None:  # Normal processing
+            for sim_id in sim_ids:
+                self._add_single_output_to_combined(
+                    self._single_sim(sim_id), combined_output)
                 if display:
                     td = (datetime.now() - t0).total_seconds()
-                    te = timedelta(seconds=int(td / (i + 1)
-                                               * (self.number_of_runs - i - 1)))
-                    print(f"\rCompleted: {i + 1}, "
+                    te = timedelta(seconds=int(td / (sim_id + 1)
+                                               * (n_sims - sim_id - 1)))
+                    print(f"\rCompleted: {sim_id + 1}, "
                           f"estimated time remaining: {te}", end='')
             if display:
                 print("")  # Because the last print ended without a line-break
-
-        # Parallel processing
-        else:
+        else:  # Parallel processing
             if display:
                 print(f"Active processes: {pool._processes}")
-            sim_ids = list(range(self.number_of_runs * len(self.scenarios)))
             output_list = pool.map(self._single_sim, sim_ids)
-            # TODO dynamic variables take a lot of memory
             for single_output in output_list:
-                self._add_single_output_to_combined(single_output, combined_output)
+                self._add_single_output_to_combined(
+                    single_output, combined_output)
 
         self._combine_dataframes(combined_output)
         self.output.log['run_time'] = ct = str(datetime.now() - t0)
@@ -224,9 +208,10 @@ class Experiment:
         """
         Displays interactive output for Jupyter notebooks,
         using :mod:`IPython` and :mod:`ipywidgets`.
-        A slider will be shown for all varied parameters,
-        and the output from 'plot' will be refreshed
-        every time a parameter value is changed.
+        A slider will be shown for varied parameters.
+        Every time a parameter value is changed on the slider,
+        the experiment will re-run the model and pass it
+        to the 'plot' function.
 
         Arguments:
             plot: Function that takes a model instance as input
@@ -236,9 +221,23 @@ class Experiment:
 
         Returns:
             ipywidgets.HBox: Interactive output widget
+            
+        Examples:
+            The following example uses a custom model :class:`MyModel`
+            and creates a slider for the parameters 'x' and 'y',
+            both of which can be varied interactively over 10 different values.
+            Every time a value is changed, the experiment will simulate the
+            model with the new parameters and pass it to the plot function::
+            
+                def plot(model):
+                    # Display interactive output here
+                    print(model.output)
+                    
+                param_ranges = {'x': (0, 10), 'y': (0., 1.)}
+                sample = ap.sample(param_ranges, n=10)
+                exp = ap.Experiment(MyModel, sample)
+                exp.interactive(plot)
         """
-
-        # TODO Pass settings to widget
 
         def var_run(**param_updates):
             """ Display plot for updated parameters. """
@@ -251,7 +250,7 @@ class Experiment:
             plot(temp_model, *args, **kwargs)
 
         # Get variable parameters
-        var_pars = self.output._combine_pars(varied=True, static=False)
+        var_pars = self.output._combine_pars(varied=True, fixed=False)
 
         # Create widget dict
         widget_dict = {}

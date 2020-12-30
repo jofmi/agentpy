@@ -1,5 +1,6 @@
 import pytest
 import agentpy as ap
+import numpy as np
 import pandas as pd
 import shutil
 import os
@@ -207,4 +208,62 @@ def test_saved_equals_loaded():
     assert results != loaded
     del loaded.log
     assert results != loaded
+
+
+class WeirdObject:
+    pass
+
+
+repr2 = """DataDict {
+'i1': 1 <class 'int'>
+'i2': 1 <class 'numpy.int64'>
+'f1': 1.0 <class 'float'>
+'f2': 1.0 <class 'numpy.float64'>
+'s1': 'test' <class 'str'>
+'s2': 'testtesttesttesttesttest...' (length 24) <class 'str'>
+'l1': List with 3 entries
+'l2': Object of type <class 'numpy.ndarray'>
+'wo': Object of type <class 'tests.test_output.WeirdObject'>
+}"""
+
+
+repr3 = """DataDict {
+'f1': 1.0 <class 'float'>
+'f2': 1.0 <class 'float'>
+'i1': 1 <class 'int'>
+'i2': 1 <class 'int'>
+'l1': List with 3 entries
+'l2': List with 3 entries
+'s1': 'test' <class 'str'>
+'s2': 'testtesttesttesttesttest...' (length 24) <class 'str'>
+}"""
+
+
+def test_save_load():
+
+    dd = ap.DataDict()
+    dd['i1'] = 1
+    dd['i2'] = np.int64(1)
+    dd['f1'] = 1.
+    dd['f2'] = np.float64(1.)
+    dd['s1'] = 'test'
+    dd['s2'] = 'testtesttesttesttesttest'
+    dd['l1'] = [1, 2, [3, 4]]
+    dd['l2'] = np.array([1, 2, 3])
+    dd['wo'] = WeirdObject()
+
+    dd.save()
+    dl = ap.load()
+    with pytest.raises(FileNotFoundError):
+        assert ap.load("Doesn't_exist")
+    shutil.rmtree('ap_output')
+    with pytest.raises(FileNotFoundError):
+        assert ap.load("Doesn't_exist")
+
+    assert dd.__repr__() == repr2
+    assert dl.__repr__() == repr3
+    assert len(dd) == 9
+    assert len(dl) == 8
+    assert dl.l1[2][1] == 4
+
 

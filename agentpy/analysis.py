@@ -62,7 +62,7 @@ def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
             s = {k: v for k, v in si.items() if k in keys}
             df = pd.DataFrame(s)
 
-            var_pars = output._combine_pars(varied=True, static=False)
+            var_pars = output._combine_pars(varied=True, fixed=False)
             df['parameter'] = var_pars.keys()
             df['measure'] = measure
             df = df.set_index(['measure', 'parameter'])

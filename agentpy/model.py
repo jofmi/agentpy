@@ -35,8 +35,9 @@ class Model(ApEnv):
         parameters (dict, optional): Dictionary of model parameters.
             Recommended types for parameters are int, float, str, list,
             numpy.integer, numpy.floating, and numpy.ndarray.
-        run_id (int, optional): Number of current run.
-        scenario (str, optional): Current scenario.
+            Other types might cause errors.
+        run_id (int, optional): Number of current run (default None).
+        scenario (str, optional): Current scenario (default None).
     """
 
     def __init__(self,

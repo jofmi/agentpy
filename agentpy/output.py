@@ -4,20 +4,18 @@ Content: DataDict class for output data
 """
 
 import pandas as pd
-
+import os
 from os import listdir, makedirs
 from os.path import getmtime, join
-import json
 
 from .tools import AttrDict, make_list, AgentpyError
-
+import json
 import numpy as np
 
 
 class NpEncoder(json.JSONEncoder):
     """ Adds support for numpy number formats to json. """
     # By Jie Yang https://stackoverflow.com/a/57915246
-
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -67,7 +65,13 @@ class DataDict(AttrDict):
         i = '    ' if indent else ''
         for k, v in self.items():
             rep += f"\n{i}'{k}': "
-            if isinstance(v, pd.DataFrame):
+            if isinstance(v, (int, float, np.integer, np.floating)):
+                rep += f"{v} {type(v)}"
+            elif isinstance(v, str):
+                x0 = f"(length {len(v)})"
+                x = f"...' {x0}" if len(v) > 20 else "'"
+                rep += f"'{v[:30]}{x} {type(v)}"
+            elif isinstance(v, pd.DataFrame):
                 lv = len(list(v.columns))
                 rv = len(list(v.index))
                 rep += f"DataFrame with {lv} " \
@@ -159,7 +163,7 @@ class DataDict(AttrDict):
 
         return df
 
-    def _combine_pars(self, varied=True, static=True):
+    def _combine_pars(self, varied=True, fixed=True):
         """ Returns pandas dataframe with parameters and run_id """
 
         # Case 1: There is a subdict with fixed & combined
@@ -167,11 +171,11 @@ class DataDict(AttrDict):
             dfp = pd.DataFrame()
             if varied:
                 dfp = self.parameters.varied.copy()
-            if static:
+            if fixed:
                 for k, v in self.parameters.fixed.items():
                     dfp[k] = v
-        # Case 2: There is a dict with static parameters
-        elif static and isinstance(self.parameters, dict):
+        # Case 2: There is a dict with fixed parameters
+        elif fixed and isinstance(self.parameters, dict):
             dfp = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
         # Case 3: There is a dataframe with varied parameters
         elif varied and isinstance(self.parameters, pd.DataFrame):
@@ -221,7 +225,7 @@ class DataDict(AttrDict):
                 If 'all', all are selected.
             parameters (str or list of str, optional):
                 Parameters to include in the new dataframe (default None).
-                If 'static', all static parameters are selected.
+                If 'fixed', all fixed parameters are selected.
                 If 'varied', all varied parameters are selected.
                 If 'all', all are selected.
             obj_types (str or list of str, optional):
@@ -300,7 +304,11 @@ class DataDict(AttrDict):
 
     def save(self, exp_name=None, exp_id=None, path='ap_output', display=True):
 
-        """ Writes output data to directory `{path}/{exp_name}_{exp_id}/`.
+        """ Writes data to directory `{path}/{exp_name}_{exp_id}/`.
+        Works only for entries that are of type :class:`DataDict`,
+        :class:`pandas.DataFrame`, or serializable with JSON
+        (int, float, str, dict, list). Numpy objects will be converted
+        to standard objects, if possible.
 
         Arguments:
             exp_name (str, optional): Name of the experiment to be saved.
@@ -318,7 +326,10 @@ class DataDict(AttrDict):
 
         # Set exp_name
         if exp_name is None:
-            exp_name = self.log['name']
+            if 'log' in self and 'name' in self.log:
+                exp_name = self.log['name']
+            else:
+                exp_name = 'Unnamed'
 
         exp_name = exp_name.replace(" ", "_")
 
@@ -345,9 +356,14 @@ class DataDict(AttrDict):
                         with open(f'{path}/{key}_{k}.json', 'w') as fp:
                             json.dump(o, fp, cls=NpEncoder)
 
-            elif isinstance(output, dict):
-                with open(f'{path}/{key}.json', 'w') as fp:
-                    json.dump(output, fp, cls=NpEncoder)
+            else:  # Use JSON for other object types
+                try:
+                    with open(f'{path}/{key}.json', 'w') as fp:
+                        json.dump(output, fp, cls=NpEncoder)
+                except TypeError as e:
+                    print(f"Warning: Object '{key}' could not be saved. "
+                          f"(Reason: {e})")
+                    os.remove(f'{path}/{key}.json')
 
             # TODO Support grids & graphs
             # elif t == nx.Graph:
@@ -417,8 +433,8 @@ class DataDict(AttrDict):
         if not exp_id:
             exp_id = _last_exp_id(exp_name, path)
             if exp_id == 0:
-                raise AgentpyError(f"No experiment found with "
-                                   f"name '{exp_name}' in path '{path}'")
+                raise FileNotFoundError(f"No experiment found with "
+                                        f"name '{exp_name}' in path '{path}'")
         path = f'{path}/{exp_name}_{exp_id}/'
         if display:
             print(f'Loading from directory {path}')
