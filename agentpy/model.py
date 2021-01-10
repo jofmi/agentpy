@@ -38,12 +38,10 @@ class Model(ApEnv):
             Other types might cause errors.
         run_id (int, optional): Number of current run (default None).
         scenario (str, optional): Current scenario (default None).
+        **kwargs: Will be forwarded to :func:`Model.setup`
     """
 
-    def __init__(self,
-                 parameters=None,
-                 run_id=None,
-                 scenario=None):
+    def __init__(self, parameters=None, run_id=None, scenario=None, **kwargs):
 
         self._id_counter = -1
         self._obj_dict = {}  # Objects mapped by their id
@@ -63,6 +61,7 @@ class Model(ApEnv):
         self._parameters = AttrDict(parameters)
         self._stop = False
         self._set_var_ignore()
+        self._setup_kwargs = kwargs
 
     def __repr__(self):
         rep = f"Agent-based model {{"
@@ -119,9 +118,10 @@ class Model(ApEnv):
 
     # Main simulation functions
 
-    def setup(self):
+    def setup(self, **kwargs):
         """ Defines the model's actions before the first simulation step.
         Can be overwritten and used to initiate agents and environments."""
+        pass
 
     def step(self):
         """ Defines the model's actions during each simulation step.
@@ -174,7 +174,7 @@ class Model(ApEnv):
             steps = self.p['steps'] if 'steps' in self.p else 1000
 
         self._stop = False
-        self.setup()
+        self.setup(**self._setup_kwargs)
         self.update()
         if self.t >= steps:
             self._stop = True

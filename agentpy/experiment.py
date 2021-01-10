@@ -32,12 +32,13 @@ class Experiment:
     """  # TODO Repeat arguments in attribute list? / Type hint for model?
 
     def __init__(self, model_class, parameters=None, name=None, scenarios=None,
-                 iterations=1, record=False):
+                 iterations=1, record=False, **kwargs):
 
         self.model = model_class
         self.output = DataDict()
         self.iterations = iterations
         self.record = record
+        self._model_kwargs = kwargs
 
         if name:
             self.name = name
@@ -129,7 +130,8 @@ class Experiment:
         model = self.model(
             self.parameters_per_run[run_id],
             run_id=run_id,
-            scenario=self.scenarios[sc_id])
+            scenario=self.scenarios[sc_id],
+            **self._model_kwargs)
         results = model.run(display=False)
         if 'variables' in results and self.record is False:
             del results['variables']  # Remove dynamic variables from record
@@ -244,7 +246,8 @@ class Experiment:
             IPython.display.clear_output()
             parameters = dict(self.parameters[0])
             parameters.update(param_updates)
-            temp_model = self.model(parameters)
+            # TODO Scenario etc. missing here, use single_sim?
+            temp_model = self.model(parameters, **self._model_kwargs)
             temp_model.run()
             IPython.display.clear_output()
             plot(temp_model, *args, **kwargs)
