@@ -29,6 +29,7 @@ Changelog
   * :func:`Grid.positions` returns an iterator of position coordinates.
   * :func:`Grid.attribute` returns a nested list with values of agent attributes.
   * :func:`Grid.apply` returns nested list with return values of a custom function.
+  * :func:`Grid.neighbors` has new arguments `diagonal` and `distance`.
 
 * :func:`gridplot` now takes a grid of values as an input and can convert them to rgba.
 * :func:`animate` now takes a model instance as an input instead of a class and parameters.

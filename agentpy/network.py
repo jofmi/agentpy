@@ -3,13 +3,14 @@
 import networkx as nx
 from .objects import ApEnv, Agent
 from .lists import AgentList
+from .tools import make_list
 
 
 class Network(ApEnv):
     """ Agent environment with a graph topology.
 
     This class can be used as a parent class for custom network types.
-    Unknown attribute and method calls are forwarded to self.graph.
+    Every node of the network represents an agent in the environment.
 
     Notes:
         All agentpy model objects can access attributes as items
@@ -25,6 +26,9 @@ class Network(ApEnv):
             If a graph is passed, agents are mapped to each node of the graph.
             Otherwise, new nodes will be created for each agent.
         **kwargs: Will be forwarded to :func:`Network.setup`.
+
+    Attributes:
+        graph(networkx.Graph): The environments' graph.
     """
 
     def __init__(self, model, graph=None, agents=None, **kwargs):
@@ -62,18 +66,13 @@ class Network(ApEnv):
         for agent in new_agents:
             self.graph.add_node(agent)  # Add agents to graph as new nodes
 
-    def neighbors(self, agent, mode=None):
+    def remove_agents(self, agents):
+        """ Removes agents from the environment. """
+        for agent in make_list(agents):
+            self.graph.remove_node(agent)
+        super().remove_agents(agents)
+
+    def neighbors(self, agent, **kwargs):
         """ Returns an :class:`AgentList` of agents
         that are connected to the passed agent. """
         return AgentList([n for n in self.graph.neighbors(agent)])
-
-    def __getattr__(self, name):
-        # Forward unknown method call to self.graph
-        def method(*args, **kwargs):
-            return getattr(self.graph, name)(*args, **kwargs)
-
-        try:
-            return method
-        except AttributeError:
-            raise AttributeError(
-                f"Environment '{self.key}' has no attribute '{name}'")

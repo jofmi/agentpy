@@ -256,7 +256,7 @@ class Agent(ApObj):
         env = self._find_env(env, 'grid')
         env.move_agent(self, position)
 
-    def neighbors(self, env=None, mode=None):
+    def neighbors(self, env=None, distance=1, diagonal=True):
         """ Returns the agents' neighbor's from an environment,
         by calling the environments :func:`neighbors` function.
 
@@ -266,16 +266,17 @@ class Agent(ApObj):
                 Must have topology 'grid' or 'network'.
                 If none is given, the first environment of that topology
                 in :attr:`Agent.envs` is used.
-            mode(str, optional):
-                Mode of selection, forwarded to the environments
-                :func:`neighbors` function.
+            distance(int, optional):
+                Distance from agent in which to look for neighbors.
+            diagonal(bool, optional):
+                Whether to include diagonal neighbors (only for :class:`Grid`).
 
         Returns:
             AgentList: Neighbors of the agent.
         """
         # TODO Select not topology, but whether they have a method neighbors()
         env = self._find_env(env, ('grid', 'network'))
-        return env.neighbors(self, mode=mode)
+        return env.neighbors(self, distance=distance, diagonal=diagonal)
 
     def enter(self, env):
         """ Adds agent to passed environment.

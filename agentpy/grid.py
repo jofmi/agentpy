@@ -7,35 +7,33 @@ Content: Classes for spatial grids
 import itertools
 import numpy as np
 import random as rd
+import collections.abc as abc
 from .objects import ApEnv, Agent
 from .tools import make_list, make_matrix
 from .lists import AgentList
 
 
 class Grid(ApEnv):
-    """ Grid environment that contains agents with a spatial topology.
-    Inherits attributes and methods from :class:`Environment`.
+    """ Environment that contains agents with a spatial topology.
+    Use :func:`Model.add_grid` to add this environment to a model.
+    Every location consists of an :class:`AgentList` that can hold
+    zero, one, or more agents.
 
     Attributes:
-        _positions(dict): Agent positions.
+        grid(list of lists): Matrix of :class:`AgentList`.
+        shape(tuple of int): Length of each grid dimension.
 
     Arguments:
-        model (Model): The model instance.
-        key (dict or EnvDict, optional):  The environments' name
-        dim(int, optional): Number of dimensions (default 2).
-        size(int or tuple): Size of the grid.
-            If int, the same length is assigned to each dimension.
-            If tuple, one int item is required per dimension.
+        model(Model): The model instance.
+        shape(tuple of int): Size of the grid. The length of the tuple defines
+            the number of dimensions, the values in the tuple define the length
+            of each dimension.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
     """
 
     def __init__(self, model, shape, **kwargs):
 
         super().__init__(model)
-
-        # Convert single-number shape to tuple
-        if isinstance(shape, (int, float)):
-            shape = (shape, shape)
 
         self._topology = 'grid'
         self._grid = make_matrix(make_list(shape), AgentList)
@@ -74,22 +72,31 @@ class Grid(ApEnv):
         # Extra grid features
         if not positions:
             n_agents = len(new_agents)
-            all_positions = list(self.positions())
-            n_all_positions = len(list(self.positions()))
+            available_positions = list(self.positions())
+
+            # Extend positions if necessary
+            while n_agents > len(available_positions):
+                available_positions.extend(available_positions)
+
+            # Fill agent positions
             positions = []
-            while n_agents > n_all_positions - len(positions):
-                positions.extend(all_positions)
-            if n_all_positions - len(positions) > 0:
-                if random:
-                    positions.extend(rd.sample(list(self.positions()), agents))
-                else:
-                    positions.extend(all_positions[:n_agents])
+            if random:
+                positions.extend(rd.sample(available_positions, n_agents))
+            else:
+                positions.extend(available_positions[:n_agents])
                 # for agent in new_agents:
                 #     self._positions[agent] = [0] * self.dim
 
         for agent, pos in zip(new_agents, positions):
             self._agent_dict[agent] = pos  # Add position to agent_dict
-            self._get_pos(pos).append(agent)  # Add agent to position
+            self._get_agents_from_pos(pos).append(agent)  # Add agent to position
+
+    def remove_agents(self, agents):
+        """ Removes agents from the environment. """
+        for agent in make_list(agents):
+            self._get_agents_from_pos(self.position(agent)).remove(agent)
+            del self._agent_dict[agent]
+        super().remove_agents(agents)
 
     @staticmethod
     def _apply(grid, func, *args, **kwargs):
@@ -104,30 +111,27 @@ class Grid(ApEnv):
         and returns grid with return values. """
         return self._apply(self.grid, func, *args, **kwargs)
 
-    def _get_attr(self, agent_list, attr_key, mode, fill_empty):
+    def _get_attr(self, agent_list, attr_key, sum_values, fill_empty):
         if len(agent_list) == 0:
             return fill_empty
-        if mode == 'single':
-            return getattr(agent_list[0], attr_key)
-        if mode == 'list':
-            return list(getattr(agent_list, attr_key))
-        if mode == 'sum':
+        if sum_values:
             return sum(getattr(agent_list, attr_key))
+        else:
+            return list(getattr(agent_list, attr_key))
 
-    def attribute(self, attr_key, mode='single', empty=np.nan):
+    def attribute(self, attr_key, sum_values=True, empty=np.nan):
         """ Returns a grid with the value of the attributes of the agents
         in each position.
 
         Arguments:
             attr_key(str): Name of the attribute.
-            mode(str, optional): What to return in for positions with agents:
-                If 'single' (default), the attribute of the
-                first agent; if 'list', a list of all agents' attributes;
-                if 'sum', the sum of all agents' attributes.
+            sum_values(str, optional): What to return in a position where there
+                are multiple agents. If True (default), the sum of attributes.
+                If False, a list of attributes.
             empty(optional): What to return for empty positions
                 without agents (default numpy.nan).
         """
-        return self.apply(self._get_attr, attr_key, mode, empty)
+        return self.apply(self._get_attr, attr_key, sum_values, empty)
 
     def position(self, agent):
         """ Returns position of a passed agent.
@@ -153,16 +157,18 @@ class Grid(ApEnv):
         else:
             return itertools.product(*[range(x, y+1) for x, y in area])
 
-    def _get_pos_rec(self, grid, pos):
+    def _get_agents_from_pos_rec(self, grid, pos):
         """ Recursive function to get position. """
         if len(pos) == 1:
             return grid[pos[0]]
-        return self._get_pos_rec(grid[pos[0]], pos[1:])
+        return self._get_agents_from_pos_rec(grid[pos[0]], pos[1:])
 
-    def _get_pos(self, pos):
-        return self._get_pos_rec(self._grid, pos)
+    def _get_agents_from_pos(self, pos):
+        """ Return content of a position. """
+        return self._get_agents_from_pos_rec(self._grid, pos)
 
     def _get_agents_from_area(self, area, grid):
+        """ Recursive function to get agents in area. """
         subgrid = grid[area[0][0]:area[0][1] + 1]
         # Detect last row (must have AgentLists)
         if isinstance(subgrid[0], AgentList):
@@ -173,19 +179,22 @@ class Grid(ApEnv):
             objects.extend(self._get_agents_from_area(area[1:], row))
         return objects
 
-    def get_agents(self, area):
+    def get_agents(self, area=None):
         """ Returns an :class:`AgentList` with agents
         in the selected positions or area.
-        To select all agents, use :attr:`Grid.agents`.
 
         Arguments:
-            area(list of integers or tuples):
+            area(tuple of integers or tuples):
                 Area from which agents should be gathered.
                 Can either indicate a single position `[x, y, ...]`
                 or an area `[(x_start, x_end), (y_start, y_end), ...]`.
         """
+        if area is None:
+            return self.agents
+        if not isinstance(area, abc.Iterable):
+            raise ValueError(f"area '{area}' is not iterable.")
         if isinstance(area[0], int):
-            return Agentlist(self._get_pos(pos))  # Soft copy
+            return AgentList(self._get_agents_from_pos(area))  # Soft copy
         else:
             return AgentList(self._get_agents_from_area(area, self._grid))
 
@@ -198,54 +207,48 @@ class Grid(ApEnv):
         """
         if isinstance(agent, int):
             agent = self.model.get_obj(agent)
-        self._get_pos(self._agent_dict[agent]).remove(agent)
-        self._get_pos(position).append(agent)
+        self._get_agents_from_pos(self._agent_dict[agent]).remove(agent)
+        self._get_agents_from_pos(position).append(agent)
         self._agent_dict[agent] = position  # Document new position
 
     def items(self, area=None):
         """ Returns iterator with tuples of style: (position, agents). """
-        # TODO Test efficiency, alternative mode for area=None would be faster
         p_it_1, p_it_2 = itertools.tee(self.positions(area))  # Copy iterator
-        return zip(p_it_1, [self._get_pos(pos) for pos in p_it_2])
+        return zip(p_it_1, [self._get_agents_from_pos(pos)
+                            for pos in p_it_2])
 
-    def _get_neighbors4(self, pos, grid, dist=1):
+    def _get_diamond(self, pos, grid, dist=1):
         """ Return agents in diamond-shaped area around pos."""
+        # TODO Include distance argument, exclude original agent, & limit dmax
         subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
-        # TODO Includes agents in the middle!
         if len(pos) == 1:
             return [y for x in subgrid for y in x]  # flatten list
         objects = []
         for row, dist in zip(subgrid, [0, 1, 0]):
-            objects.extend(self._get_neighbors4(pos[1:], row, dist))
+            objects.extend(self._get_diamond(pos[1:], row, dist))
         return objects
 
-    def _get_neighbors8(self, pos, grid):
-        """ Return agents in square-shaped area around pos."""
-        subgrid = grid[max(0, pos[0] - 1):pos[0] + 2]
-        # TODO Includes agents in the middle!
-        if len(pos) == 1:
-            return [y for x in subgrid for y in x]
-        objects = []
-        for row in subgrid:
-            objects.extend(self._get_neighbors8(pos[1:], row))
-        return objects
-
-    def neighbors(self, agent, mode='cube'):
+    def neighbors(self, agent, distance=1, diagonal=True):
         """ Returns agent neighbors.
 
         Arguments:
             agent(int or Agent): Id or instance of the agent.
-            mode(str, optional): Selection mode (default 'cube').
-                Diagonal neighbors are included if mode is 'cube',
-                or excluded if mode is 'diamond'.
+            distance(int, optional): Number of positions to cover in each
+                direction.
+            diagonal(bool, optional):
+                If True (default), diagonal neighbors are included.
+                If False, only direct neighbors are included
+                (currently only works with distance == 1).
         """
         if isinstance(agent, int):
             agent = self.model.get_obj(agent)
-        if mode is None or mode == 'cube':  # Include diagonal neighbors
-            agents = self._get_neighbors8(self._agent_dict[agent], self._grid)
-        elif mode == 'diamond':  # Do not include diagonal neighbors
-            agents = self._get_neighbors4(self._agent_dict[agent], self._grid)
-        else:
-            raise ValueError(f"Grid.neighbors has no mode '{mode}'.")
-        agents.remove(agent)  # Remove the original agent TODO Automatic
-        return agents
+        if diagonal:  # Include diagonal neighbors
+            a_pos = self._agent_dict[agent]
+            area = [(max(p-distance, 0),
+                     min(p+distance, dmax))
+                    for p, dmax in zip(a_pos, self._shape)]
+            agents = self.get_agents(area)
+        else:  # Do not include diagonal neighbors
+            agents = self._get_diamond(self._agent_dict[agent], self._grid)
+        agents.remove(agent)  # Remove original agent
+        return AgentList(agents)

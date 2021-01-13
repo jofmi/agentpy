@@ -113,7 +113,7 @@ def animate(model, fig, axs, plot,
     m = model  # model(parameters)
     steps = m.p['steps'] if 'steps' in m.p else False
     m._stop = False
-    m.setup(**self._setup_kwargs)
+    m.setup(**m._setup_kwargs)
     m.update()
     if m.t >= steps:
         m._stop = True
