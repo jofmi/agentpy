@@ -147,22 +147,20 @@ class Agent(ApObj):
     """ Individual agent of an agent-based model.
 
     This class can be used as a parent class for custom agent types.
-
     All agentpy model objects call the method :func:`setup()` after creation,
-    can access class attributes like dictionary items,
-    and can be removed from the model with the `del` statement.
+    and can access class attributes like dictionary items. To add new agents
+    to a model, use :func:`Model.add_agents` or :func:`Environment.add_agents`.
+
+    Arguments:
+        model (Model): Instance of the current model.
+        **kwargs: Will be forwarded to :func:`Agent.setup`.
 
     Attributes:
         model (Model): Model instance.
         p (AttrDict): Model parameters.
-        envs (EnvDict): Environments of the agent.
+        envs (EnvList): Environments of the agent.
         log (dict): Recorded variables.
         id (int): Unique identifier.
-
-    Arguments:
-        model (Model): Instance of the current model.
-        envs (dict or EnvDict, optional): The agents' initial environments.
-
     """
 
     def __init__(self, model, **kwargs):
@@ -214,7 +212,7 @@ class Agent(ApObj):
         """ Returns the agents' position from a grid.
 
         Arguments:
-            env(int or Environment, optional):
+            env (int or Environment, optional):
                 Instance or id of environment that should be used.
                 Must have topology 'grid'.
                 If none is given, the first environment of that topology
@@ -230,7 +228,7 @@ class Agent(ApObj):
 
         Arguments:
             path (list of int): Relative change of position.
-            env(int or Environment, optional):
+            env (int or Environment, optional):
                 Instance or id of environment that should be used.
                 Must have topology 'grid'.
                 If none is given, the first environment of that topology
@@ -333,7 +331,7 @@ class ApEnv(ApObj):
         Arguments:
             agents(int or AgentList, optional): Either number of new agents
                 to be created or list of existing agents (default 1).
-            agent_class(class, optional): Type of new agents to be created
+            agent_class(type, optional): Type of new agents to be created
                 if int is passed for agents (default :class:`Agent`).
             **kwargs: Forwarded to :func:`Agent.setup` if new agents are
                 created (i.e. if an integer number is passed to `agents`).
@@ -372,10 +370,13 @@ class Environment(ApEnv):
     """ Standard environment for agents (no topology).
 
     This class can be used as a parent class for custom environment types.
+    All agentpy model objects call the method :func:`setup()` after creation,
+    and can access class attributes like dictionary items. To add new
+    environments to a model, use :func:`Model.add_env`.
 
-    All agentpy model objects call the method ``setup()`` after creation,
-    can access class attributes like dictionary items,
-    and can be removed from the model with the ``del`` statement.
+    Arguments:
+        model (Model): The model instance.
+        **kwargs: Will be forwarded to :func:`Environment.setup`.
 
     Attributes:
         model (Model): The model instance.
@@ -384,11 +385,6 @@ class Environment(ApEnv):
         key (str): The environments' name.
         topology (str): Topology of the environment.
         log (dict): The environments' recorded variables.
-
-    Arguments:
-        model (Model): The model instance.
-        key (str, optional): The environments' name.
-        **kwargs: Will be forwarded to :func:`Environment.setup`.
     """
 
     def __init__(self, model, **kwargs):

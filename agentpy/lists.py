@@ -195,15 +195,24 @@ class AgentList(ObjList):
 
 
 class EnvList(ObjList):
-    """ List of environments. """
+    """ List of environments.
+
+    Attribute calls and assignments are applied to all environments
+    and return an :class:`AttrList` with attributes of each environment.
+    This also works for method calls, which returns a list of return values.
+    Arithmetic operators can further be used to manipulate attributes,
+    and boolean operators can be used to filter list based on attributes.
+
+    See :class:`AgentList` for examples.
+    """
 
     def __repr__(self):
         s = 's' if len(self) > 1 else ''
         return f"EnvList [{len(self)} environment{s}]"
 
     def add_agents(self, *args, **kwargs):
-        """ Adds agents to all environments.
-        See :func:`Environment.add_agents`"""
+        """ Add the same agents to all environments in the list.
+        See :func:`Environment.add_agents` for arguments and keywords."""
 
         if self:
             new_agents = self[0].add_agents(*args, **kwargs)

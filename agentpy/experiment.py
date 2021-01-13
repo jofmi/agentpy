@@ -15,17 +15,21 @@ from .output import DataDict
 class Experiment:
     """ Experiment for an agent-based model.
     Allows for multiple iterations, parameter samples, scenario comparison,
-    interactive output, and parallel processing.
+    and parallel processing. See :func:`Experiment.run` for standard
+    simulations and :func:`Experiment.interactive` for interactive output.
 
     Arguments:
         model_class(type): The model class type that the experiment should use.
-        parameters(dict or list of dict, optional): Parameter dictionary
-            or sample (list of parameter dictionaries) (default None).
+        parameters(dict or list of dict, optional):
+            Parameter dictionary or sample (default None).
         name(str, optional): Name of the experiment (default model.name).
         scenarios(str or list, optional): Experiment scenarios (default None).
         iterations(int, optional): Experiment repetitions (default 1).
-        record(bool, optional): Keep record of dynamic variables. 
-            If False, only measures will be recorded (default False).
+        record(bool, optional):
+            Whether to keep the record of dynamic variables (default False).
+            Note that this does not affect evaluation measures.
+        **kwargs: Will be forwarded to the creation of every model instance
+            during the experiment.
 
     Attributes:
         output(DataDict): Recorded experiment data
@@ -64,7 +68,7 @@ class Experiment:
         self.number_of_runs = len(self.parameters_per_run)
 
     def _parameters_to_output(self):
-        """ Document parameters (seperately for fixed & variable) """
+        """ Document parameters (seperately for fixed & variable). """
         df = pd.DataFrame(self.parameters)
         df.index.rename('sample_id', inplace=True)
         fixed_pars = {}

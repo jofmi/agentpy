@@ -15,13 +15,14 @@ from .lists import AgentList
 
 class Grid(ApEnv):
     """ Environment that contains agents with a spatial topology.
-    Use :func:`Model.add_grid` to add this environment to a model.
     Every location consists of an :class:`AgentList` that can hold
     zero, one, or more agents.
+    To add new grid environments to a model, use :func:`Model.add_grid`.
 
-    Attributes:
-        grid(list of lists): Matrix of :class:`AgentList`.
-        shape(tuple of int): Length of each grid dimension.
+    This class can be used as a parent class for custom network types.
+    All agentpy model objects call the method :func:`setup` after creation,
+    and can access class attributes like dictionary items.
+    See :class:`Environment` for general properties of all environments.
 
     Arguments:
         model(Model): The model instance.
@@ -29,6 +30,10 @@ class Grid(ApEnv):
             the number of dimensions, the values in the tuple define the length
             of each dimension.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
+
+    Attributes:
+        grid(list of lists): Matrix of :class:`AgentList`.
+        shape(tuple of int): Length of each grid dimension.
     """
 
     def __init__(self, model, shape, **kwargs):

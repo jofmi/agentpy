@@ -21,7 +21,7 @@ Networks
      :members:
      :inherited-members:
 
-Spacial grids
+Spatial grids
 -------------
 
 .. autoclass:: Grid

@@ -19,8 +19,11 @@ class Model(ApEnv):
     An agent-based model that can hold environments and agents.
 
     This class can be used as a parent class for custom models.
-    Attributes can be accessed as items.
-    See :func:`Model.run` for information on the simulation procedure.
+    Class attributes can be accessed like dictionary items.
+    To define the procedures of a simulation, override the methods
+    :func:`Model.setup`, :func:`Model.step`,
+    :func:`Model.update`, and :func:`Model.end`.
+    See :func:`Model.run` for more information on the simulation procedure.
 
     Attributes:
         name (str): The models' name.
@@ -183,7 +186,7 @@ class Model(ApEnv):
 
         Returns:
             DataDict: Recorded model data,
-                which can also be found in ``Model.output``.
+            which can also be found in :attr:`Model.output`.
         """
 
         dt0 = datetime.now()  # Time-Stamp

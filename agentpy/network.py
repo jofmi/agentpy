@@ -8,17 +8,16 @@ from .tools import make_list
 
 class Network(ApEnv):
     """ Agent environment with a graph topology.
+    Every node of the network represents an agent in the environment.
+    To add new network environments to a model, use :func:`Model.add_network`.
 
     This class can be used as a parent class for custom network types.
-    Every node of the network represents an agent in the environment.
-
-    Notes:
-        All agentpy model objects can access attributes as items
-        and will call the method ``setup()`` after creation (if defined).
+    All agentpy model objects call the method :func:`setup` after creation,
+    and can access class attributes like dictionary items.
+    See :class:`Environment` for general properties of all environments.
 
     Arguments:
         model (Model): The model instance.
-        key (str, optional): The environments' name.
         graph (networkx.Graph, optional): The environments' graph.
             Agents of the same number as graph nodes must be passed.
             If none is passed, an empty graph is created.
