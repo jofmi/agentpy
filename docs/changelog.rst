@@ -18,9 +18,12 @@ Changelog
   which has the same functionalities as :class:`AgentList`.
 * Model objects now have a property :attr:`env`
   that returns the first environment of the object.
-* Argument `map_to_nodes` has been removed from :func:`Network.add_agents`.
+* Revision of :class:`Network`.
+  The argument `map_to_nodes` has been removed from :func:`Network.add_agents`.
   Instead, agents can be mapped to nodes by passing an AgentList to the agents argument of :func:`Model.add_network`.
-* Revised methods for :class:`Grid`:
+  Direct forwarding of attribute calls to :attr:`Network.graph` has been
+  removed to avoid confusion.
+* New and revised methods for :class:`Grid`:
 
   * :func:`Agent.move_to` and :func:`Agent.move_by` can be used to move agents.
   * :func:`Grid.items` returns an iterator of position and agent tuples.

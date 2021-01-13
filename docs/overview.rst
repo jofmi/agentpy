@@ -223,10 +223,10 @@ The output from the experiment defined above looks as follows::
 
 The output can contain the following categories of data:
 
-- ``log`` holds meta-data about the model and simulation performance.
-- ``parameters`` holds the parameter values that have been used for the experiment.
-- ``variables`` holds dynamic variables, which can be recorded at multiple time-steps. 
-- ``measures`` holds evaluation measures that are recoreded only once per simulation.
+- :attr:`log` holds meta-data about the model and simulation performance.
+- :attr:`parameters` holds the parameter values that have been used for the experiment.
+- :attr:`variables` holds dynamic variables, which can be recorded at multiple time-steps.
+- :attr:`measures` holds evaluation measures that are recoreded only once per simulation.
 
 This data can be stored with :func:`DataDict.save` and :func:`load`.
 :func:`DataDict.arrange` can further be used to generate a specific

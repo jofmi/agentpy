@@ -26,9 +26,12 @@ class Grid(ApEnv):
 
     Arguments:
         model(Model): The model instance.
-        shape(tuple of int): Size of the grid. The length of the tuple defines
-            the number of dimensions, the values in the tuple define the length
-            of each dimension.
+        shape(int or tuple of int): Size of the grid.
+            If an integer is given, this value is taken as both the
+            height and width for a two-dimensional grid.
+            If a tuple is given, the length of the tuple defines
+            the number of dimensions, and the values in the tuple
+            define the length of each dimension.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
 
     Attributes:
@@ -41,7 +44,9 @@ class Grid(ApEnv):
         super().__init__(model)
 
         self._topology = 'grid'
-        self._grid = make_matrix(make_list(shape), AgentList)
+        if isinstance(shape, int):
+            shape = (shape, shape)
+        self._grid = make_matrix(shape, AgentList)
         self._agent_dict = {}
         self._shape = shape
         self._set_var_ignore()
