@@ -56,8 +56,14 @@ def test_enter_exit():
     assert len(env.agents) == 1
     agent.exit(2)
     assert len(env.agents) == 0
+    agent.enter(2)
+    assert len(env.agents) == 1
+    agent.exit()  # Take only env by default
+    assert len(env.agents) == 0
     with pytest.raises(AgentpyError):
-        agent.exit()
+        agent.exit()  # Agent is not part of any environment
+    with pytest.raises(AgentpyError):
+        agent.exit(2)  # Agent is not part of this environment
 
 
 def test_remove_agents():

@@ -116,17 +116,18 @@ class DataDict(AttrDict):
         """ Returns pandas dataframe with combined variables """
 
         # Retrieve variables
-        vs = self['variables']
+        if 'variables' in self:
+            vs = self['variables']
+        else:
+            return None
         if isinstance(vs, pd.DataFrame):
             return vs  # Return df if vs is already a df
         elif isinstance(vs, DataDict) and len(vs.keys()) == 1:
             return list(vs.values())[0]  # Return df if vs has only one entry
-        elif isinstance(vs, DataDict):
+        elif isinstance(vs, (dict,DataDict)):
             df_dict = dict(vs)  # Convert to dict if vs is DataDict
-        elif isinstance(vs, dict):
-            df_dict = vs
         else:
-            raise ValueError("DataDict.variables must be of type dict,"
+            raise TypeError("DataDict.variables must be of type dict,"
                              "agentpy.DataDict, or pandas.DataFrame.")
 
         # Remove dataframes that don't include any of the selected var_keys
@@ -136,17 +137,19 @@ class DataDict(AttrDict):
 
         # Select object types
         if obj_types != 'all':
-            df_dict = {k: v for k, v in df_dict.items() if k in obj_types}
+            df_dict = {k: v for k, v in df_dict.items()
+                       if k in make_list(obj_types)}
 
         # Add 'obj_id' before 't' for model df
-        if self.log['model_type'] in list(df_dict.keys()):
-            df = df_dict['model']
-            df['obj_id'] = 'model'
+        model_type = self.log['model_type']
+        if model_type in list(df_dict.keys()):
+            df = df_dict[model_type]
+            df['obj_id'] = 0
             indexes = list(df.index.names)
             indexes.insert(-1, 'obj_id')
             df = df.reset_index()
             df = df.set_index(indexes)
-            df_dict['model'] = df
+            df_dict[model_type] = df
 
         # Return none if empty
         if df_dict == {}:
@@ -165,8 +168,11 @@ class DataDict(AttrDict):
 
     def _combine_pars(self, varied=True, fixed=True):
         """ Returns pandas dataframe with parameters and run_id """
-
+        # Case 0: Cancel if there are no parameters
+        if 'parameters' not in self:
+            return None
         # Case 1: There is a subdict with fixed & combined
+        dfp = None
         if isinstance(self.parameters, DataDict):
             dfp = pd.DataFrame()
             if varied:
@@ -175,23 +181,25 @@ class DataDict(AttrDict):
                 for k, v in self.parameters.fixed.items():
                     dfp[k] = v
         # Case 2: There is a dict with fixed parameters
-        elif fixed and isinstance(self.parameters, dict):
-            dfp = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
+        elif isinstance(self.parameters, dict):
+            if fixed:
+                dfp = pd.DataFrame({k: [v] for k, v in self.parameters.items()})
         # Case 3: There is a dataframe with varied parameters
-        elif varied and isinstance(self.parameters, pd.DataFrame):
-            dfp = self.parameters.copy()
+        elif isinstance(self.parameters, pd.DataFrame):
+            if varied:
+                dfp = self.parameters.copy()
         # Case 4: No parameters have been selected
         else:
+            raise TypeError("DataDict.parameters must be of type"
+                            "DataDict, dict, or pandas.DataFrame.")
+        # Case 5: Cancel if no parameters have been selected
+        if dfp is None or dfp.shape == (0, 0):
             return None
-
-        # Multiply for iterations
+        # Case 1-3: Multiply for iterations, set new index, and return
         if 'iterations' in self.log and self.log['iterations'] > 1:
             dfp = pd.concat([dfp] * self.log['iterations'])
-
-        # Set new index
         dfp = dfp.reset_index(drop=True)
         dfp.index.name = 'run_id'
-
         return dfp
 
     def arrange_measures(self, variables=None, measures='all',
@@ -290,6 +298,8 @@ class DataDict(AttrDict):
                     for k, v in dfp.items():
                         # dfp is a dataframe, items returns columns, Series
                         df[k] = v[0]
+        if df is None:
+            return None
 
         # Step 5: Select scenarios
         if scenarios != 'all' and 'scenario' in df.index.names:
@@ -378,25 +388,17 @@ class DataDict(AttrDict):
         # TODO Ignore errors handle
 
         def load_file(path, file, display):
-
             if display:
                 print(f'Loading {file} - ', end='')
-
             i_cols = ['sample_id', 'run_id', 'scenario',
                       'env_key', 'agent_id', 'obj_id', 't']
-
             ext = file.split(".")[-1]
-            # key = file[:-(len(ext) + 1)]
-
             path = path + file
-
             try:
                 if ext == 'csv':
-                    # Convert .csv into pandas dataframe
-                    obj = pd.read_csv(path)
-                    # Set potential index columns
+                    obj = pd.read_csv(path) # Convert .csv into DataFrane
                     index = [i for i in i_cols if i in obj.columns]
-                    if index:
+                    if index:  # Set potential index columns
                         obj = obj.set_index(index)
                 elif ext == 'json':
                     # Convert .json with json decoder
@@ -405,19 +407,14 @@ class DataDict(AttrDict):
                     # Convert dict to AttrDict
                     if isinstance(obj, dict):
                         obj = AttrDict(obj)
-
                 # TODO Support grids & graphs
                 # elif ext == 'graphml':
                 #    self[key] = nx.read_graphml(path)
-
                 else:
                     raise ValueError(f"File type '{ext}' not supported")
-
                 if display:
                     print('Successful')
-
                 return obj
-
             except Exception as e:
                 print(f'Error: {e}')
 

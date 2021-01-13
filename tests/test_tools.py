@@ -4,6 +4,15 @@ import agentpy as ap
 from agentpy.tools import AgentpyError
 
 
+def test_make_list():
+
+    make_list = ap.tools.make_list
+    assert make_list('123') == ['123']
+    assert make_list(['123']) == ['123']
+    assert make_list(None) == []
+    assert make_list(None, keep_none=True) == [None]
+
+
 def test_attr_dict():
 
     ad = ap.AttrDict({'a': 1})

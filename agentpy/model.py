@@ -234,7 +234,7 @@ class Model(ApEnv):
                 self.output['variables'][obj_type] = df
 
         # 0 - Document parameters
-        if self.p is not None:
+        if self.p:
             self.output['parameters'] = self.p
 
         # 1 - Define additional index columns

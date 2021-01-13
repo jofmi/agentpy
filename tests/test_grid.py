@@ -86,7 +86,7 @@ def test_movement():
     assert grid.attribute('id') == [[2, 3], [np.nan, np.nan]]
     agent.move_to((1, 0))  # Move in absolute terms
     assert grid.attribute('id') == [[np.nan, 3], [2, np.nan]]
-    agent.move_by((-1, 0))  # Move in relative terms
+    agent.move_by((-1, 0), env=grid.id)  # Move in relative terms
     assert grid.attribute('id') == [[2, 3], [np.nan, np.nan]]
     grid.move_agent(2, (1, 0))  # Move through grid call by id
     assert grid.attribute('id') == [[np.nan, 3], [2, np.nan]]

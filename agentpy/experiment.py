@@ -118,9 +118,9 @@ class Experiment:
                 for sk, sv in values.items():
                     if all([isinstance(v, pd.DataFrame) for v in sv]):
                         self.output[key][sk] = pd.concat(sv)  # Df are combined
-                    else:  # Other objects are kept as original
+                    else:  # Other objects are kept as original TODO TESTS
                         self.output[key][sk] = sv
-            elif key != 'log':  # Other objects are kept as original
+            elif key != 'log':  # Other objects are kept as original TODO TESTS
                 self.output[key] = values
 
     def _single_sim(self, sim_id):

@@ -8,6 +8,73 @@ import os
 from agentpy.tools import AgentpyError
 
 
+def test_combine_vars():
+
+    model = ap.Model()
+    model.record('test', 1)
+    results = model.run(1, display=False)
+    assert results._combine_vars().shape == (1, 1)
+
+    model = ap.Model()
+    agents = model.add_agents()
+    agents.record('test', 1)
+    results = model.run(1, display=False)
+    assert results._combine_vars().shape == (1, 1)
+
+    model = ap.Model()
+    agents = model.add_agents()
+    model.record('test', 1)
+    agents.record('test', 2)
+    results = model.run(1, display=False)
+    assert results._combine_vars().shape == (2, 1)
+
+    model = ap.Model()
+    agents = model.add_agents()
+    model.record('test', 1)
+    agents.record('test', 2)
+    results = model.run(1, display=False)
+    assert results._combine_vars(obj_types="Model").shape == (1, 1)
+
+    model = ap.Model()
+    agents = model.add_agents()
+    model.record('test', 1)
+    agents.record('test', 2)
+    results = model.run(1, display=False)
+    assert results._combine_vars(obj_types="Doesn't exist") is None
+
+    model = ap.Model()
+    results = model.run(1, display=False)
+    assert results._combine_vars() is None
+    assert results._combine_pars() is None
+
+    model = ap.Model({'test': 1})
+    results = model.run(1, display=False)
+    assert results._combine_pars(fixed=False) is None
+
+    results.variables = 1
+    with pytest.raises(TypeError):
+        assert results._combine_vars()
+    results.parameters = 1
+    with pytest.raises(TypeError):
+        assert results._combine_pars()
+
+
+def test_arrange_scenarios():
+
+    class MyModel(ap.Model):
+        def step(self):
+            self.record('test', 1)
+            self.measure('test', 1)
+            self.stop()
+
+    exp = ap.Experiment(MyModel, scenarios=['sc1', 'sc2'], record=True)
+    results = exp.run()
+
+    assert results.arrange() is None
+    assert results.arrange(variables='all', scenarios='sc1').shape == (1, 4)
+    assert results.arrange(measures='all', scenarios='sc1').shape == (1, 3)
+
+
 repr = """DataDict {
 'parameters': 
     'fixed': Dictionary with 1 key
@@ -214,38 +281,13 @@ class WeirdObject:
     pass
 
 
-repr2 = """DataDict {
-'i1': 1 <class 'int'>
-'i2': 1 <class 'numpy.int64'>
-'f1': 1.0 <class 'float'>
-'f2': 1.0 <class 'numpy.float64'>
-'s1': 'test' <class 'str'>
-'s2': 'testtesttesttesttesttest...' (length 24) <class 'str'>
-'l1': List with 3 entries
-'l2': Object of type <class 'numpy.ndarray'>
-'wo': Object of type <class 'tests.test_output.WeirdObject'>
-}"""
-
-
-repr3 = """DataDict {
-'f1': 1.0 <class 'float'>
-'f2': 1.0 <class 'float'>
-'i1': 1 <class 'int'>
-'i2': 1 <class 'int'>
-'l1': List with 3 entries
-'l2': List with 3 entries
-'s1': 'test' <class 'str'>
-'s2': 'testtesttesttesttesttest...' (length 24) <class 'str'>
-}"""
-
-
 def test_save_load():
 
     dd = ap.DataDict()
     dd['i1'] = 1
     dd['i2'] = np.int64(1)
     dd['f1'] = 1.
-    dd['f2'] = np.float64(1.)
+    dd['f2'] = np.float32(1.1)
     dd['s1'] = 'test'
     dd['s2'] = 'testtesttesttesttesttest'
     dd['l1'] = [1, 2, [3, 4]]
@@ -260,10 +302,20 @@ def test_save_load():
     with pytest.raises(FileNotFoundError):
         assert ap.load("Doesn't_exist")
 
-    # TODO assert dd.__repr__() == repr2
-    # TODO assert dl.__repr__() == repr3
+    assert dd.__repr__().count('\n') == 10
+    assert dl.__repr__().count('\n') == 9
     assert len(dd) == 9
     assert len(dl) == 8
     assert dl.l1[2][1] == 4
 
+
+def test_load_unreadable():
+    """ Unreadable entries are loaded as None. """
+    path = f'ap_output/fake_experiment_1/'
+    os.makedirs(path)
+    f = open(path + "unreadable_entry.xxx", "w+")
+    f.close()
+    dl = ap.load()
+    shutil.rmtree('ap_output')
+    assert dl.unreadable_entry is None
 
