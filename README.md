@@ -21,5 +21,8 @@ or subscribe to the [agentpy mailing list](https://groups.google.com/g/agentpy).
 
 **Comparison with other frameworks**: https://agentpy.readthedocs.io/en/latest/comparison.html
 
+---
 
+*Example of two Jupyter Notebooks from the agentpy model library.*
 
+![](docs/agentpy_example.png)
