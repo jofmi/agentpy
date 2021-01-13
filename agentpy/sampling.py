@@ -9,28 +9,25 @@ import numpy as np
 from SALib.sample import saltelli
 from .tools import param_tuples_to_salib
 
-# TODO Function with custom step size/number per parameter
-
-
 def sample(parameter_ranges, n, digits=None):
     """ Creates a sample of different parameter combinations
     by seperating each range into 'n' values, using :func:`numpy.linspace`.
 
     Arguments:
-        parameter_ranges (dict): Dictionary of parameters.
+        parameter_ranges(dict): Dictionary of parameters.
             Only values that are given as a tuple will be varied.
             Tuple must be of the following style: (min_value, max_value).
             If both values are of type int,
             the output will be rounded and converted to int.
-        n: Number of values to sample per varied parameter.
-        digits (int, optional):
+        n(int): Number of values to sample per varied parameter.
+        digits(int, optional):
             Number of digits to round the output values to (default None).
+
     Returns:
         list of dict: List of parameter dictionaries
     """
 
-    # TODO Create soft copy of the parameter ranges first
-
+    parameter_ranges = dict(parameter_ranges)
     for k, v in parameter_ranges.items():
         if isinstance(v, tuple):
             p_range = np.linspace(v[0], v[1], n)

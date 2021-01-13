@@ -52,16 +52,13 @@ def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
 
     for measure in measures:
         y = np.array(output.measures[measure])
-
         si = sobol.analyze(param_ranges_salib, y, **kwargs)
 
         # Make dataframes out of sensitivities
         keys_list = [['S1', 'ST'], ['S1_conf', 'ST_conf']]
-
         for dfs, keys in zip(dfs_list, keys_list):
             s = {k: v for k, v in si.items() if k in keys}
             df = pd.DataFrame(s)
-
             var_pars = output._combine_pars(varied=True, fixed=False)
             df['parameter'] = var_pars.keys()
             df['measure'] = measure
@@ -70,13 +67,12 @@ def sensitivity_sobol(output, param_ranges, measures=None, **kwargs):
 
     output['sensitivity'] = pd.concat(dfs_si)
     output['sensitivity_conf'] = pd.concat(dfs_si_conf)
-
     # TODO Second-Order Entries Missing
 
     return output
 
 
-def animate(model, fig, axs, plot,
+def animate(model, fig, axs, plot, steps=None,
             skip=0, fargs=(), **kwargs):
     """ Returns an animation of the model simulation,
     using :func:`matplotlib.animation.FuncAnimation`.
@@ -87,6 +83,10 @@ def animate(model, fig, axs, plot,
         axs (matplotlib.axes.Axes or list): Axis or list of axis of the figure.
         plot (function): Function that takes `(model, ax, *fargs)`
             and creates the desired plots on each axis at each time-step.
+        steps(int, optional):
+                Maximum number of steps for the simulation to run.
+                If none is given, the parameter 'Model.p.steps' will be used.
+                If there is no such parameter, 'steps' will be set to 1000.
         skip (int, optional): Number of rounds to skip before the
             animation starts (default 0).
         fargs (tuple, optional): Forwarded fo the `plot` function.
@@ -108,42 +108,25 @@ def animate(model, fig, axs, plot,
             HTML(animation.to_jshtml())
     """
 
-    # TODO Improve function & docs
-
-    m = model  # model(parameters)
-    steps = m.p['steps'] if 'steps' in m.p else False
-    m._stop = False
-    m.setup(**m._setup_kwargs)
-    m.update()
-    if m.t >= steps:
-        m._stop = True
-    m._create_output()  # TODO Flag wether this should happen
+    model._setup_run(steps)
+    model._create_output()
     pre_steps = 0
 
     for _ in range(skip):
-        m.t += 1
-        m.step()
-        m.update()
-        if m.t >= steps:
-            m._stop = True
-        # TODO Make make_step function
+        model._make_step()
 
     def frames():
-        nonlocal m, pre_steps
-        if m._stop is False:
-            while not m._stop:
+        nonlocal model, pre_steps
+        if model._stop is False:
+            while not model._stop:
                 if pre_steps < 2:  # Frames iterates twice before starting plot
                     pre_steps += 1
                 else:
-                    m.t += 1
-                    m.step()
-                    m.update()
-                    if m.t >= steps:
-                        m._stop = True
-                    m._create_output()
-                yield m.t
+                    model._make_step()
+                    model._create_output()
+                yield model.t
         else:  # Yield current if model stops before the animation starts
-            yield m.t
+            yield model.t
 
     def update(t, m, axs, *fargs):  # noqa
         nonlocal pre_steps
@@ -153,9 +136,9 @@ def animate(model, fig, axs, plot,
         plot(m, axs, *fargs)  # Perform plot
 
     ani = matplotlib.animation.FuncAnimation(
-        fig, update, frames=frames, fargs=(m, axs, *fargs), **kwargs)  # noqa
+        fig, update, frames=frames, fargs=(model, axs, *fargs), **kwargs)  # noqa
 
-    plt.close()  # Don't display static plot TODO Put outside?
+    plt.close()  # Don't display static plot
     return ani
 
 
@@ -187,11 +170,9 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
         **kwargs: Forwarded to :func:`matplotlib.pyplot.imshow`.
      """
 
-    # TODO Create option for legend
-
+    # TODO Make feature for legend
     if color_dict is not None or convert:
         grid = _apply_colors(grid, color_dict, convert)
-
     if ax:
         ax.imshow(grid, **kwargs)
     else:

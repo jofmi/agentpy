@@ -18,7 +18,7 @@ class Experiment:
     interactive output, and parallel processing.
 
     Arguments:
-        model_class(class): The model class type that the experiment should use.
+        model_class(type): The model class type that the experiment should use.
         parameters(dict or list of dict, optional): Parameter dictionary
             or sample (list of parameter dictionaries) (default None).
         name(str, optional): Name of the experiment (default model.name).
@@ -29,7 +29,7 @@ class Experiment:
 
     Attributes:
         output(DataDict): Recorded experiment data
-    """  # TODO Repeat arguments in attribute list? / Type hint for model?
+    """
 
     def __init__(self, model_class, parameters=None, name=None, scenarios=None,
                  iterations=1, record=False, **kwargs):
@@ -246,7 +246,6 @@ class Experiment:
             IPython.display.clear_output()
             parameters = dict(self.parameters[0])
             parameters.update(param_updates)
-            # TODO Scenario etc. missing here, use single_sim?
             temp_model = self.model(parameters, **self._model_kwargs)
             temp_model.run()
             IPython.display.clear_output()

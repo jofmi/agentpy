@@ -58,6 +58,7 @@ class Model(ApEnv):
                            'time_stamp': str(datetime.now())}
 
         # Private variables
+        self._steps = None
         self._parameters = AttrDict(parameters)
         self._stop = False
         self._set_var_ignore()
@@ -81,7 +82,6 @@ class Model(ApEnv):
 
     def get_obj(self, obj_id):
         """ Return model object with obj_id (int). """
-        # TODO Return latest object by default
         try:
             return self._obj_dict[obj_id]
         except KeyError:
@@ -138,11 +138,30 @@ class Model(ApEnv):
         Can be overwritten and used for final calculations and measures."""
         pass
 
-    # TODO Add reset and skip function
-
     def stop(self):
         """ Stops :meth:`Model.run` during an active simulation. """
         self._stop = True
+
+    def _setup_run(self, steps=None):
+        """ Prepare round 0 of a simulation. """
+
+        if steps is None:
+            self._steps = self.p['steps'] if 'steps' in self.p else 1000
+        else:
+            self._steps = steps
+        self._stop = False
+        self.setup(**self._setup_kwargs)
+        self.update()
+        if self.t >= self._steps:
+            self._stop = True
+
+    def _make_step(self):
+        """ Proceed simulation by one step. """
+        self.t += 1
+        self.step()
+        self.update()
+        if self.t >= self._steps:
+            self._stop = True
 
     def run(self, steps=None, display=True):
         """ Executes the simulation of the model.
@@ -167,26 +186,11 @@ class Model(ApEnv):
                 which can also be found in ``Model.output``.
         """
 
-        # TODO Make steps an argument again
-
         dt0 = datetime.now()  # Time-Stamp
-        if steps is None:
-            steps = self.p['steps'] if 'steps' in self.p else 1000
-
-        self._stop = False
-        self.setup(**self._setup_kwargs)
-        self.update()
-        if self.t >= steps:
-            self._stop = True
+        self._setup_run(steps)
 
         while not self._stop:
-
-            self.t += 1
-            self.step()
-            self.update()
-            if self.t >= steps:
-                self._stop = True
-
+            self._make_step()
             if display:
                 print(f"\rCompleted: {self.t} steps", end='')
 

@@ -96,9 +96,7 @@ class ObjList(list):
     def __setattr__(self, name, value):
         if isinstance(value, AttrList):
             # Apply each value to each agent
-            assert len(self) == len(value)  # TODO Catch Error
             for obj, v in zip(self, value):
-                # print(f"Setting {name} to {v} for {obj}") TODO Remove
                 setattr(obj, name, v)
         else:
             # Apply single value to all agents
@@ -119,7 +117,6 @@ class ObjList(list):
             selection (list of bool): List with same length as the agent list.
                 Positions that return True will be selected.
         """
-        assert len(self) == len(selection)  # TODO Catch Error
         return AgentList([a for a, s in zip(self, selection) if s])
 
     def random(self, n=1):

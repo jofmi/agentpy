@@ -385,8 +385,6 @@ class DataDict(AttrDict):
     def _load(self, exp_name=None, exp_id=None,
               path='ap_output', display=True):
 
-        # TODO Ignore errors handle
-
         def load_file(path, file, display):
             if display:
                 print(f'Loading {file} - ', end='')
@@ -447,7 +445,7 @@ class DataDict(AttrDict):
             elif 'parameters_' in file:
                 ext = file.split(".")[-1]
                 key = file[:-(len(ext) + 1)].replace('parameters_', '')
-                if 'parameters' not in self:  # TODO Annotations missing
+                if 'parameters' not in self:
                     self['parameters'] = DataDict()
                 self['parameters'][key] = load_file(path, file, display)
             else:

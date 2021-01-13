@@ -178,6 +178,7 @@ class Agent(ApObj):
 
     def _find_env(self, env=None, topologies=None, new=False):
         """ Return obj of id or first object with topology. """
+        # TODO Select based on method existance instead of topology
         if topologies:
             return self._find_env_top(env=env, topologies=topologies)
         if env is None:
@@ -223,7 +224,7 @@ class Agent(ApObj):
         env = self._find_env(env, 'grid')
         return env._agent_dict[self]
 
-    def move_by(self, path, env=None,):
+    def move_by(self, path, env=None):
         """ Changes the agents' location in the selected environment,
         relative to the current position.
 
@@ -235,7 +236,7 @@ class Agent(ApObj):
                 If none is given, the first environment of that topology
                 in :attr:`Agent.envs` is used.
         """
-        # TODO Add Torus functionality
+        # TODO Add border jumping feature
         env = self._find_env(env, 'grid')
         old_pos = self.position(env)
         position = [p + c for p, c in zip(old_pos, path)]
@@ -274,7 +275,6 @@ class Agent(ApObj):
         Returns:
             AgentList: Neighbors of the agent.
         """
-        # TODO Select not topology, but whether they have a method neighbors()
         env = self._find_env(env, ('grid', 'network'))
         return env.neighbors(self, distance=distance, diagonal=diagonal)
 
@@ -287,9 +287,8 @@ class Agent(ApObj):
                 If none is given, the first environment
                 in :attr:`Agent.envs` is used.
         """
-
         env = self._find_env(env, new=True)
-        env.add_agents(self)  # TODO Test if works without agentlist
+        env.add_agents(self)
 
     def exit(self, env=None):
         """ Removes agent from chosen environment.
@@ -300,7 +299,6 @@ class Agent(ApObj):
                 If none is given, the first environment
                 in :attr:`Agent.envs` is used.
         """
-
         env = self._find_env(env)
         env.remove_agents(self)
 
