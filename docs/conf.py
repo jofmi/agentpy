@@ -19,7 +19,7 @@ from agentpy import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'agentpy'
-copyright = '2020, Joël Foramitti'
+copyright = '2021, Joël Foramitti'
 author = 'Joël Foramitti'
 
 # The full version, including alpha/beta/rc tags
