@@ -23,6 +23,7 @@ or subscribe to the [agentpy mailing list](https://groups.google.com/g/agentpy).
 
 ---
 
-*Example of two Jupyter Notebooks from the agentpy model library.*
+*A screenshot of [Jupyter Lab](https://jupyter.org/) with two interactive tutorials from the 
+[agentpy model library](https://agentpy.readthedocs.io/en/latest/model_library.html):*
 
 ![](docs/agentpy_example.png)

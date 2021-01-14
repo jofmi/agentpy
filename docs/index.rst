@@ -33,6 +33,14 @@ or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy>`
 - For a detailled description of all classes and functions, refer to :doc:`reference`.
 - To learn how agentpy compares with other frameworks, take a look at :doc:`comparison`.
 
+.. rubric:: Example
+
+*A screenshot of Jupyter Lab with two interactive tutorials from the model library:*
+
+.. image:: agentpy_example.png
+  :width: 700
+  :alt: Screenshot of Jupyter Lab with two interactive tutorials from the model library
+
 .. rubric:: Main features
 
 *Aim 1:* Intelligent syntax for complex models
