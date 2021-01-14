@@ -18,7 +18,7 @@ __all__ = [
     'AttrDict'
 ]
 # Meta-data
-__version__ = "0.0.6.dev"
+__version__ = "0.0.6"
 
 # Objects
 from .lists import AttrList, ObjList, AgentList, EnvList

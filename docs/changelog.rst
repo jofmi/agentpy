@@ -4,15 +4,16 @@
 Changelog
 =========
 
-0.0.6.dev
----------
+0.0.6 (January 2021)
+--------------------
 
-* New demonstration model :doc:`agentpy_segregation`.
-  Other demonstrations have been updated.
+* A new demonstration model :doc:`agentpy_segregation` has been added.
 * All model objects now have a unique id number of type :class:`int`.
   Methods that take an agent or environment as an argument
   can now take either the instance or id of the object.
   The :attr:`key` attribute of environments has been removed.
+* Extra keyword arguments to :class:`Model` and :class:`Experiment`
+  are now forwarded to :func:`Model.setup`.
 * :func:`Model.run` now takes an optional argument `steps`.
 * :class:`EnvDict` has been replaced by :class:`EnvList`,
   which has the same functionalities as :class:`AgentList`.
