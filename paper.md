@@ -36,7 +36,7 @@ and subsequent data analysis and visualization within a single environment, and 
 optimized for interactive computing with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/) (see \autoref{fig:example}). A reference of all features
 as well as a model library with tutorials and examples can be found in the [documentation](https://agentpy.readthedocs.io/).
 
-![A screenshot of Jupyter Lab with two interactive tutorials from the agentpy model library.\label{fig:example}](docs/agentpy_example.png){ width=80% }
+![A screenshot of Jupyter Lab with two interactive tutorials from the agentpy model library.\label{fig:example}](docs/agentpy_example.png)
 
 # Overview
 
@@ -47,7 +47,7 @@ A model is used to initiate these objects, perform a simulation, and record data
 Experiments, in turn, can take a model and run it over multiple iterations and parameter combinations.
 The resulting output data can be saved, loaded, and re-arranged for analysis and visualization.
 
-![Nested structure of the agentpy framework.\label{fig:structure}](docs/structure.png){ width=80% }
+![Nested structure of the agentpy framework.\label{fig:structure}](docs/structure.png){ width=70% }
 
 An example of how to design and execute a simple model can be seen on the left panel of \autoref{fig:example}. 
 The syntax of the framework is designed to be both intuitive and efficient. 
