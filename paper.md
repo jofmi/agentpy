@@ -1,5 +1,5 @@
 ---
-title: 'Agentpy: A Python package for agent-based modeling'
+title: 'Agentpy: A package for agent-based modeling in Python'
 tags:
   - Agent-based modeling
   - Complex systems
