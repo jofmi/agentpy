@@ -7,3 +7,5 @@ python:
       path: .  # Install from current directory
       extra_requirements:
         - docs
+    - method: setuptools
+      path: .
