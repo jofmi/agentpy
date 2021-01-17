@@ -14,12 +14,12 @@ setuptools.setup(
     url="https://agentpy.readthedocs.io/",
     download_url="https://github.com/JoelForamitti/agentpy",
     install_requires=[
-        "numpy >= 1.19"
-        "matplotlib >= 3.3.3"
-        "networkx >= 2.5"
-        "pandas >= 1.1.3"
-        "SALib >= 1.3.7"
-        "IPython >= 7.15.0"
+        "numpy >= 1.19",
+        "matplotlib >= 3.3.3",
+        "networkx >= 2.5",
+        "pandas >= 1.1.3",
+        "SALib >= 1.3.7",
+        "IPython >= 7.15.0",
         "ipywidgets >= 7.5.1"
     ],
     classifiers=[
