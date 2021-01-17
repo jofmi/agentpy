@@ -1,5 +1,3 @@
-ipykernel
-IPython
 nbsphinx
 numpy
 scipy
@@ -7,4 +5,6 @@ matplotlib
 networkx
 pandas
 SALib
+ipykernel
+IPython
 ipywidgets

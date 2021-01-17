@@ -1,7 +1,9 @@
-version: 2
-formats: all
+version: 2  # Required
+formats: all  # Include pdf & epub
 python:
-  version: 3
+  version: 3.7
   install:
-    - requirements: requirements.txt
-  system_packages: true
+    - method: pip
+      path: .  # Install from current directory
+      extra_requirements:
+        - docs
