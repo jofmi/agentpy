@@ -3,9 +3,9 @@ formats: all  # Include pdf & epub
 python:
   version: 3.7
   install:
-    - method: setuptools
+    - method: pip
       path: .
     - method: pip
-      path: .  # Install from current directory
+      path: .  
       extra_requirements:
         - docs
