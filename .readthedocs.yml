@@ -1,5 +1,5 @@
-version: 2  # Required
-formats: all  # Include pdf & epub
+version: 2
+formats: all
 python:
   version: 3.7
   install:
