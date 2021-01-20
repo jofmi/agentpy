@@ -1,1 +1,0 @@
-setuptools == 51.3.3
