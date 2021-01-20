@@ -8,13 +8,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
-import sys
-import sphinx_rtd_theme
-
-sys.path.insert(0, os.path.abspath('..'))  # Add path to package
-
-from agentpy import __version__
+from agentpy import __version__  # Agentpy must be installed first
 
 # -- Project information -----------------------------------------------------
 

@@ -18,7 +18,14 @@ __all__ = [
     'AttrDict'
 ]
 # Meta-data
-__version__ = "0.0.7.dev"
+
+try:
+    from importlib import metadata
+except ImportError:
+    # Running on pre-3.8 Python; use importlib-metadata package
+    import importlib_metadata as metadata
+
+__version__ = metadata.version('agentpy')
 
 # Objects
 from .lists import AttrList, ObjList, AgentList, EnvList
