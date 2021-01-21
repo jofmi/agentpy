@@ -17,8 +17,14 @@ __all__ = [
     'sensitivity_sobol', 'gridplot', 'animate',
     'AttrDict'
 ]
-# Meta-data
-__version__ = "0.0.7.dev"
+
+# Version
+try:
+    from importlib import metadata
+except ImportError:
+    # Running on pre-3.8 Python
+    import importlib_metadata as metadata  # noqa
+__version__ = metadata.version('agentpy')
 
 # Objects
 from .lists import AttrList, ObjList, AgentList, EnvList
