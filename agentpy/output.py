@@ -260,7 +260,7 @@ class DataDict(AttrDict):
         # Step 2: Measures
         if measures is not None:
             dfm = self.measures
-            if measures is not 'all':  # Select measure keys
+            if measures != 'all':  # Select measure keys
                 # make_list prevents conversion to pd.Series for single value
                 dfm = dfm[make_list(measures)]
 
