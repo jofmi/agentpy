@@ -17,14 +17,13 @@ __all__ = [
     'sensitivity_sobol', 'gridplot', 'animate',
     'AttrDict'
 ]
-# Meta-data
 
+# Version
 try:
     from importlib import metadata
 except ImportError:
-    # Running on pre-3.8 Python; use importlib-metadata package
-    import importlib_metadata as metadata
-
+    # Running on pre-3.8 Python
+    import importlib_metadata as metadata  # noqa
 __version__ = metadata.version('agentpy')
 
 # Objects
