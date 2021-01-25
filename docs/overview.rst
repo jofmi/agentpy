@@ -110,16 +110,16 @@ Environments can contain agents just like the main model,
 and are useful if one wants to regard particular topologies for interaction
 or multiple environments that can hold seperate populations of agents.
 Agents can be moved between environments with the methods
-:func:`Agent.enter`, :func:`Agent.exit`, and :func:`Agent.move`.
+:func:`Agent.enter` and :func:`Agent.exit`.
 
 New environments can be created with :func:`Model.add_env`.
 Similar to agents, the attribute :attr:`envs` returns an :class:`EnvList`
 with special features to deal with groups of environments.
 There are three different types of environments:
 
-- :class:`Environment`, which simply contain agents without any topology
-- :class:`Network`, in which agents can be connected via a networkx graph
-- :class:`Grid`, in which agents occupy a position on a x-dimensional space
+- :class:`Environment`, which simply contain agents without any topology.
+- :class:`Network`, in which agents can be connected via a networkx graph.
+- :class:`Grid`, in which agents occupy a position on a x-dimensional space.
 
 Applied examples of networks can be found in the demonstration models
 :doc:`agentpy_virus_spread` and :doc:`agentpy_button_network`,
@@ -159,18 +159,20 @@ A simple run could be prepared and executed as follows::
 
 The procedure of a simulation is as follows:
 
-0. The model initializes with the time-step ``Model.t = 0``
+0. The model initializes with the time-step :attr:`Model.t = 0`
 1. :func:`Model.setup` and :func:`Model.update` are called
 2. The model's time-step is increased by 1
 3. :func:`Model.step` and :func:`Model.update` are called
 4. Step 2 and 3 are repeated until the simulation is stopped.
 5. :func:`Model.end` is called.
 
-The simulation of a model can be stopped by one of the following two ways:
+The simulation of a model can be stopped by one of the following three ways:
 
 1. Calling the :func:`Model.stop` during the simulation.
-2. Reaching the time-limit, which can be passed as an entry `steps` in the
-   parameter dictionary or as an argument `steps` to :func:`Model.run`.
+2. Reaching the time-limit, which be defined as follows:
+
+   - Defining :attr:`steps` in the paramater dictionary.
+   - Passing :attr:`steps` as an argument to :func:`Model.run`.
 
 .. _overview_experiments:
 

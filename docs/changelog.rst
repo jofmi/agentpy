@@ -4,6 +4,12 @@
 Changelog
 =========
 
+0.0.7.dev0
+----------
+
+* :class:`Environment` has a new optional argument :attr:`agents`.
+* :func:`AgentList.random` has a new optional argument :attr:`generator`.
+
 0.0.6 (January 2021)
 --------------------
 

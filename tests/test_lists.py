@@ -1,5 +1,6 @@
 import pytest
 import agentpy as ap
+import random
 
 
 def test_repr():
@@ -29,46 +30,43 @@ def test_attr_calls():
 
 
 def test_select():
-    """ Select subsets with boolean operators """
-
+    """ Select subsets with boolean operators. """
     model = ap.Model()
     model.add_agents(3)
-
     selection1 = model.agents.id == 2
     selection2 = model.agents.id != 2
     selection3 = model.agents.id < 2
     selection4 = model.agents.id > 2
     selection5 = model.agents.id <= 2
     selection6 = model.agents.id >= 2
-
     assert selection1 == [False, True, False]
     assert selection2 == [True, False, True]
     assert selection3 == [True, False, False]
     assert selection4 == [False, False, True]
     assert selection5 == [True, True, False]
     assert selection6 == [False, True, True]
-
     assert model.agents(selection1) == model.agents.select(selection1)
     assert list(model.agents(selection1).id) == [2]
 
 
 def test_random():
-
+    """ Test random shuffle and selection. """
     model = ap.Model()
     model.add_agents(2)
-
+    generator = random.Random(1)  # Custom generator with seperate seed
     assert len(model.agents) == len(model.agents.shuffle())
     assert len(model.agents.random()) == 1
+    assert len(model.agents.random(generator=generator)) == 1
+    assert model.agents.random(generator=generator).id[0] == 1
 
 
 def test_sort():
-
+    """ Test sorting method. """
     model = ap.Model()
     model.add_agents(2)
     model.agents[0].x = 1
     model.agents[1].x = 0
     model.agents.sort('x')
-
     assert list(model.agents.x) == [0, 1]
     assert list(model.agents.id) == [2, 1]
 

@@ -15,7 +15,7 @@ class ApObj:
         self._model = model
         self._envs = EnvList()
         self._var_ignore = []
-        self.id = model._new_id()  # Assign id to new object
+        self._id = model._new_id()  # Assign id to new object
         self._model._obj_dict[self.id] = self  # Add object to object dict
 
     def __repr__(self, short=True):
@@ -35,6 +35,10 @@ class ApObj:
         return [k for k in self.__dict__.keys()
                 if k[0] != '_'
                 and k not in self._var_ignore]
+
+    @property
+    def id(self):
+        return self._id
 
     @property
     def p(self):
@@ -159,8 +163,8 @@ class Agent(ApObj):
         model (Model): Model instance.
         p (AttrDict): Model parameters.
         envs (EnvList): Environments of the agent.
-        log (dict): Recorded variables.
-        id (int): Unique identifier.
+        log (dict): Recorded variables of the agent.
+        id (int): Unique identifier of the agent.
     """
 
     def __init__(self, model, **kwargs):
@@ -304,10 +308,12 @@ class Agent(ApObj):
 class ApEnv(ApObj):
     """ Agentpy base-class for environments. """
 
-    def __init__(self, model):
+    def __init__(self, model, agents=None):
         super().__init__(model)
         self._agents = AgentList()
         self._topology = None
+        if agents:
+            self.add_agents(agents)
 
     @property
     def topology(self):
@@ -376,6 +382,7 @@ class Environment(ApEnv):
 
     Arguments:
         model (Model): The model instance.
+        agents (AgentList, optional): Agents to be added to the environment (default None).
         **kwargs: Will be forwarded to :func:`Environment.setup`.
 
     Attributes:
@@ -387,7 +394,7 @@ class Environment(ApEnv):
         log (dict): The environments' recorded variables.
     """
 
-    def __init__(self, model, **kwargs):
-        super().__init__(model)
+    def __init__(self, model, agents=None, **kwargs):
+        super().__init__(model, agents)
         self._set_var_ignore()
         self.setup(**kwargs)
