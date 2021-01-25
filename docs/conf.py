@@ -2,18 +2,22 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 # Written for sphinx 3.2.1
 
+import sys
+import os
+from agentpy import __version__  # Agentpy must be installed first
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-from agentpy import __version__  # Agentpy must be installed first
+sys.path.insert(0, os.path.abspath('../examples'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'agentpy'
-copyright = '2021, Joël Foramitti'
+copyright = '2020-2021, Joël Foramitti'
 author = 'Joël Foramitti'
 
 # The full version, including alpha/beta/rc tags

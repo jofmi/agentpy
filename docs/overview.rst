@@ -159,10 +159,10 @@ A simple run could be prepared and executed as follows::
 
 The procedure of a simulation is as follows:
 
-0. The model initializes with the time-step :attr:`Model.t = 0`
-1. :func:`Model.setup` and :func:`Model.update` are called
-2. The model's time-step is increased by 1
-3. :func:`Model.step` and :func:`Model.update` are called
+0. The model initializes with the time-step :attr:`Model.t = 0`.
+1. :func:`Model.setup` and :func:`Model.update` are called.
+2. The model's time-step is increased by 1.
+3. :func:`Model.step` and :func:`Model.update` are called.
 4. Step 2 and 3 are repeated until the simulation is stopped.
 5. :func:`Model.end` is called.
 
@@ -220,7 +220,7 @@ The output from the experiment defined above looks as follows::
         'varied': DataFrame with 2 variables and 25 rows
     'measures': DataFrame with 1 variable and 50 rows
     'variables':
-        'my_agent_type': DataFrame with 1 variable and 10500 rows
+        'MyAgentType': DataFrame with 1 variable and 10500 rows
     }
 
 The output can contain the following categories of data:

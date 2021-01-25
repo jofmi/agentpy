@@ -3,6 +3,7 @@ Agentpy Model Module
 Content: Main class for agent-based models
 """
 
+import random
 import pandas as pd
 from datetime import datetime
 
@@ -148,6 +149,8 @@ class Model(ApEnv):
     def _setup_run(self, steps=None):
         """ Prepare round 0 of a simulation. """
 
+        if 'seed' in self.p:  # TODO NEW
+            random.seed(self.p['seed'])
         if steps is None:
             self._steps = self.p['steps'] if 'steps' in self.p else 1000
         else:
@@ -170,6 +173,7 @@ class Model(ApEnv):
         """ Executes the simulation of the model.
 
         The simulation proceeds as follows.
+        If there is a parameter 'seed', it is used for `random.seed`.
         It starts by calling :func:`Model.setup` and :func:`Model.update`.
         After that, ``Model.t`` is increased by 1 and
         :func:`Model.step` and :func:`Model.update` are called.

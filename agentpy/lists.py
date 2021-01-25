@@ -134,13 +134,23 @@ class ObjList(list):
             return AgentList(rd.sample(self, n))
 
     def sort(self, var_key, reverse=False):
-        """ Sorts the list based on var_key and returns self """
+        """ Sorts the list based on the `var_key` of its agents
+         and returns itself. """
         super().sort(key=lambda x: x[var_key], reverse=reverse)
         return self
 
-    def shuffle(self):
-        """ Shuffles the list and returns self """
-        rd.shuffle(self)
+    def shuffle(self, generator=None):
+        """ Shuffles the list randomly and returns itself.
+
+        Arguments:
+            generator (random.Random, optional): Random number generator.
+                If none is passed, the hidden instance of :module:`random`
+                is used.
+        """
+        if generator:
+            generator.shuffle(self)
+        else:
+            rd.shuffle(self)
         return self
 
 

@@ -1,0 +1,5 @@
+.. currentmodule:: agentpy
+
+=====
+About
+=====
