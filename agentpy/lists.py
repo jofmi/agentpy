@@ -146,11 +146,10 @@ class AgentList(ObjList):
 
     Examples:
 
-        Let us start by preparing an :class:`AgentList` with three agents::
+        Prepare an :class:`AgentList` with three agents::
 
             >>> model = ap.Model()
-            >>> model.add_agents(3)
-            >>> agents = model.agents
+            >>> agents = model.add_agents(3)
             >>> agents
             AgentList [3 agents]
 
