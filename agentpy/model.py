@@ -176,7 +176,7 @@ class Model(ApEnv):
 
         The simulation proceeds as follows.
         It starts by calling :func:`Model.setup` and :func:`Model.update`.
-        After that, ``Model.t`` is increased by 1 and
+        After that, :attr:`Model.t` is increased by 1 and
         :func:`Model.step` and :func:`Model.update` are called.
         This step is repeated until the method :func:`Model.stop` is called
         or steps is reached. After the last step, :func:`Model.end` is called.
