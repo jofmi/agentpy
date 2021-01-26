@@ -56,10 +56,11 @@ def test_random():
     assert len(model.agents) == len(model.agents.shuffle())
     assert len(model.agents.random()) == 1
     model = ap.Model()
-    model.add_agents(2)
+    model.add_agents(5)
     generator = random.Random(1)  # Custom generator with seperate seed
     assert len(model.agents.random(generator=generator)) == 1
-    assert model.agents.random(generator=generator).id[0] == 1
+    assert model.agents.random(generator=generator).id[0] == 5
+    assert list(model.agents.shuffle(generator=generator).id) == [4, 2, 5, 3, 1]
 
 
 def test_sort():
