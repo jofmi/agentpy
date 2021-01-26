@@ -10,8 +10,9 @@ before_install:
   - pip install -U pytest
   - pip install coverage
   - pip install codecov
-install:  # Test minimum versions
+install:
   - pip install .
+  # Set minimum requirements
   - pip install numpy==1.19
   - pip install matplotlib==3.3.3
   - pip install networkx==2.5

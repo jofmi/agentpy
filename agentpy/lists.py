@@ -113,25 +113,44 @@ class ObjList(list):
     def select(self, selection):
         """ Returns a new :class:`AgentList` based on `selection`.
 
-        Attributes:
+        Arguments:
             selection (list of bool): List with same length as the agent list.
                 Positions that return True will be selected.
         """
         return AgentList([a for a, s in zip(self, selection) if s])
 
-    def random(self, n=1):
-        """ Returns a new :class:`AgentList`
-        with ``n`` random agents (default 1)."""
-        return AgentList(rd.sample(self, n))
+    def random(self, n=1, generator=None):
+        """ Returns a new :class:`AgentList` with a random subset of agents.
+
+        Arguments:
+            n (int, optional): Number of agents (default 1).
+            generator (random.Random, optional): Random number generator.
+                If none is passed, the hidden instance of :obj:`random`
+                is used.
+        """
+        if generator:
+            return AgentList(generator.sample(self, n))
+        else:
+            return AgentList(rd.sample(self, n))
 
     def sort(self, var_key, reverse=False):
-        """ Sorts the list based on var_key and returns self """
+        """ Sorts the list based on the `var_key` of its agents
+         and returns itself. """
         super().sort(key=lambda x: x[var_key], reverse=reverse)
         return self
 
-    def shuffle(self):
-        """ Shuffles the list and returns self """
-        rd.shuffle(self)
+    def shuffle(self, generator=None):
+        """ Shuffles the list randomly and returns itself.
+
+        Arguments:
+            generator (random.Random, optional): Random number generator.
+                If none is passed, the hidden instance of :obj:`random`
+                is used.
+        """
+        if generator:
+            generator.shuffle(self)
+        else:
+            rd.shuffle(self)
         return self
 
 

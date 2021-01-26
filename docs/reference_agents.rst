@@ -10,3 +10,4 @@ Agents
 
 .. autoclass:: AgentList
     :members:
+    :inherited-members:

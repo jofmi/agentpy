@@ -1,11 +1,12 @@
 import pytest
+import random
 import agentpy as ap
 
 from agentpy.tools import AgentpyError
 
 
 def test_run():
-    """ Test time limits """
+    """ Test time limits. """
 
     # Parameter step limit
     model = ap.Model()
@@ -22,6 +23,18 @@ def test_run():
     model.t = 999
     model.run()
     assert model.t == 1000
+
+
+def test_run_seed():
+    """ Test random seed setting. """
+    random.seed(1)
+    n = random.getrandbits(10)
+    model = ap.Model({'seed': 1})
+    model.run(steps=0, display=False)
+    assert random.getrandbits(10) == n
+    model = ap.Model()
+    model.run(seed=1, steps=0, display=False)
+    assert random.getrandbits(10) == n
 
 
 def test_stop():

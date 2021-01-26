@@ -5,7 +5,14 @@
 Installation
 ============
 
-Requirements
+To install the latest release of agentpy,
+run the following command on your console:
+
+.. code-block:: console
+
+	$ pip install agentpy
+
+Dependencies
 ------------
 
 Agentpy supports Python 3.6, 3.7, 3.8, and 3.9.
@@ -18,22 +25,13 @@ The installation includes the following packages:
 - `IPython <https://ipython.org/>`_ and `ipywidgets <https://ipywidgets.readthedocs.io/>`_, for interactive computing
 - `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
 
-These optional packages can further be useful in combination with agentpy:
+These optional packages can further be useful in combination with agentpy,
+and are required in some of the tutorials:
 
 - `jupyter <https://jupyter.org/>`_, for interactive computing
 - `seaborn <https://seaborn.pydata.org/>`_, for statistical data visualization
 
-Stable release
---------------
-
-To install the latest stable release of agentpy,
-run the following command on your console:
-
-.. code-block:: console
-
-	$ pip install agentpy
-
-From source
+Development
 -----------
 
 The most recent version of agentpy can be cloned from Github:
@@ -46,6 +44,12 @@ Once you have a copy of the source, you can install it with:
 
 .. code-block:: console
 
-    $ python setup.py install
+    $ pip install -e
+
+To include all necessary packages for development, you can use:
+
+.. code-block:: console
+
+    $ pip install -e .['dev']
 
 .. _Github repository: https://github.com/JoelForamitti/agentpy

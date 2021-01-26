@@ -6,7 +6,6 @@ repr = """Agent-based model {
 'agents': AgentList [1 agent]
 'envs': EnvList [1 environment]
 'p': AttrDict {0 entries}
-'id': 0
 't': 0
 'run_id': None
 'scenario': None
@@ -33,6 +32,7 @@ def test_basics():
     assert agent is model.get_obj(2)
     with pytest.raises(ValueError):
         assert model.get_obj(3)
+
 
 def test_record():
     """ Record a dynamic variable """

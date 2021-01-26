@@ -43,28 +43,6 @@ or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy>`
   :width: 700
   :alt: Screenshot of Jupyter Lab with two interactive tutorials from the model library
 
-.. rubric:: Main features
-
-*Aim 1:* Intelligent syntax for complex models
-
-- Custom agent, environment, and network types
-- Easy selection and manipulation of agent groups
-- Support of multiple environments for interaction
-
-*Aim 2:* Advanced tools for scientific applications
-
-- :ref:`Experiments<overview_experiments>` with repeated iterations and parallel processing
-- Parameter sampling and scenario comparison
-- Output data that can be saved, loaded, and re-arranged
-- Sensitivity analysis and (animated) visualizations
-
-*Aim 3:* Compatibility with established Python libraries
-
-- Interactive computing with Jupyter/IPython
-- Data analysis with pandas and SALib
-- Network analysis with networkx
-- Visualization with seaborn
-
 .. only:: html
 
     .. rubric:: Table of contents
@@ -74,10 +52,13 @@ or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy>`
 
    installation
    overview
-   comparison
+   guide
    model_library
    reference
+   comparison
    changelog
+   contributing
+   about
 
 .. only:: html
 
