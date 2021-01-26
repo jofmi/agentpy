@@ -52,12 +52,12 @@ or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy>`
 
    installation
    overview
-   comparison
    guide
    model_library
    reference
+   comparison
    changelog
-   contribute
+   contributing
    about
 
 .. only:: html

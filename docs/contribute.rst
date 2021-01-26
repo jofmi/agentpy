@@ -1,6 +1,0 @@
-.. currentmodule:: agentpy
-
-==========
-Contribute
-==========
-
