@@ -53,9 +53,11 @@ def test_random():
     """ Test random shuffle and selection. """
     model = ap.Model()
     model.add_agents(2)
-    generator = random.Random(1)  # Custom generator with seperate seed
     assert len(model.agents) == len(model.agents.shuffle())
     assert len(model.agents.random()) == 1
+    model = ap.Model()
+    model.add_agents(2)
+    generator = random.Random(1)  # Custom generator with seperate seed
     assert len(model.agents.random(generator=generator)) == 1
     assert model.agents.random(generator=generator).id[0] == 1
 
