@@ -146,10 +146,12 @@ class Model(ApEnv):
         """ Stops :meth:`Model.run` during an active simulation. """
         self._stop = True
 
-    def _setup_run(self, steps=None):
+    def _setup_run(self, steps=None, seed=None):
         """ Prepare round 0 of a simulation. """
 
-        if 'seed' in self.p:  # TODO NEW
+        if seed:  # TODO NEW WRITE TESTS
+            random.seed(seed)
+        elif 'seed' in self.p:
             random.seed(self.p['seed'])
         if steps is None:
             self._steps = self.p['steps'] if 'steps' in self.p else 1000
@@ -169,11 +171,10 @@ class Model(ApEnv):
         if self.t >= self._steps:
             self._stop = True
 
-    def run(self, steps=None, display=True):
+    def run(self, steps=None, seed=None, display=True):
         """ Executes the simulation of the model.
 
         The simulation proceeds as follows.
-        If there is a parameter 'seed', it is used for `random.seed`.
         It starts by calling :func:`Model.setup` and :func:`Model.update`.
         After that, ``Model.t`` is increased by 1 and
         :func:`Model.step` and :func:`Model.update` are called.
@@ -181,12 +182,16 @@ class Model(ApEnv):
         or steps is reached. After the last step, :func:`Model.end` is called.
 
         Arguments:
-            display(bool, optional):
-                Whether to display simulation progress (default True).
-            steps(int, optional):
+            steps (int, optional):
                 Maximum number of steps for the simulation to run.
                 If none is given, the parameter 'Model.p.steps' will be used.
                 If there is no such parameter, 'steps' will be set to 1000.
+            seed (int, optional):
+                Seed to set for :obj:`random` at the beginning of the simulation.
+                If none is given, the parameter 'Model.p.seed' will be used.
+                If there is no such parameter, no custom seed will be set.
+            display (bool, optional):
+                Whether to display simulation progress (default True).
 
         Returns:
             DataDict: Recorded model data,
@@ -194,7 +199,7 @@ class Model(ApEnv):
         """
 
         dt0 = datetime.now()  # Time-Stamp
-        self._setup_run(steps)
+        self._setup_run(steps, seed)
 
         while not self._stop:
             self._make_step()

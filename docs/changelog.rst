@@ -7,10 +7,12 @@ Changelog
 0.0.7.dev0
 ----------
 
-* The parameter :attr:`seed` is now used automatically to set a random seed
-  at the beginning of :func:`Model.run`.
-* :class:`Environment` has a new optional argument :attr:`agents`.
-* :func:`AgentList.random` and :func:`AgentList.shuffle` have a new optional argument :attr:`generator`.
+* A custom seed can now be set for :func:`Model.run`
+  by either passing an argument or defining a parameter :attr:`seed`.
+* :class:`Environment` has a new optional argument :attr:`agents`
+  to add existing agents at the creation of the environment.
+* :func:`AgentList.random` and :func:`AgentList.shuffle`
+  have a new optional argument :attr:`generator` for custom instances of :class:`random.Random`.
 
 0.0.6 (January 2021)
 --------------------
