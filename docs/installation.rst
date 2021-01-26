@@ -31,8 +31,8 @@ and are required in some of the tutorials:
 - `jupyter <https://jupyter.org/>`_, for interactive computing
 - `seaborn <https://seaborn.pydata.org/>`_, for statistical data visualization
 
-For development
----------------
+Development
+-----------
 
 The most recent version of agentpy can be cloned from Github:
 

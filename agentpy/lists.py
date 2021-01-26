@@ -125,7 +125,7 @@ class ObjList(list):
         Arguments:
             n (int, optional): Number of agents (default 1).
             generator (random.Random, optional): Random number generator.
-                 If none is passed, the hidden instance of :module:`random`
+                If none is passed, the hidden instance of :obj:`random`
                 is used.
         """
         if generator:
@@ -144,7 +144,7 @@ class ObjList(list):
 
         Arguments:
             generator (random.Random, optional): Random number generator.
-                If none is passed, the hidden instance of :module:`random`
+                If none is passed, the hidden instance of :obj:`random`
                 is used.
         """
         if generator:
