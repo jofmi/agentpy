@@ -38,7 +38,7 @@ def test_sample_saltelli():
         'bounds': [[1., 2.],
                    [3., 4.]]
     }
-    param_values = saltelli.sample(problem, 1)
+    param_values = saltelli.sample(problem, 1, calc_second_order=False)
 
     for s1, s2 in zip(sample, param_values):
         assert s1['a'] == int(round(s2[0]))
