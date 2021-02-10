@@ -81,9 +81,10 @@ def _is_int(param_tuples):
     return is_int
 
 
-def sample_saltelli(parameter_ranges, n, calc_second_order=True, digits=None):
+def sample_saltelli(parameter_ranges, n, calc_second_order=False, digits=None):
     """ Creates a sample of different parameter combinations,
-    using :func:`SALib.sample.saltelli.sample`.
+    using :func:`SALib.sample.saltelli.sample`. This sample can later be used
+    to calculate Sobol sensitivity indices with :func:`sensitivity_sobol`.
 
     Arguments:
         parameter_ranges (dict): Dictionary of parameters.
@@ -94,7 +95,8 @@ def sample_saltelli(parameter_ranges, n, calc_second_order=True, digits=None):
         n (int): The number of samples to generate,
             see :func:`SALib.sample.saltelli.sample`.
         calc_second_order (bool, optional):
-            Calculate second-order sensitivities (default True).
+            Create sample that can be used by :func:`sensitivity_sobol`
+            to calculate second-order sensitivities (default False).
         digits (int, optional):
             Number of digits to round the output values to (default None).
 

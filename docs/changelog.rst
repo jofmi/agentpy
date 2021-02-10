@@ -7,6 +7,10 @@ Changelog
 0.0.7.dev0
 ----------
 
+* :func:`sensitivity_sobol` now has an argument :attr:`calc_second_order`.
+  If True, the function will add second-order indices to the output.
+  The default value of :attr:`calc_second_order` is False, and has also been
+  changed to False in :func:`sample_saltelli` for consistency.
 * A custom seed can now be set for :func:`Model.run`
   by either passing an argument or defining a parameter :attr:`seed`.
 * :class:`Environment` has a new optional argument :attr:`agents`

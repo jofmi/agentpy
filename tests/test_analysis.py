@@ -61,15 +61,24 @@ class MyModel(ap.Model):
 
 
 def test_sobol():
+    si = 0.6593259637723373
+
     param_ranges = {'x': (0., 1.)}
     sample = ap.sample_saltelli(param_ranges, n=10)
     results = ap.Experiment(MyModel, sample).run()
     ap.sensitivity_sobol(results, param_ranges, measures='x')
-    assert results.sensitivity['S1'][0] == 0.6607875959282447
+    assert results.sensitivity['S1'][0] == si
 
     # Test if a non-varied parameter causes errors
     param_ranges = {'x': (0., 1.), 'y': 1}
     sample = ap.sample_saltelli(param_ranges, n=10)
     results = ap.Experiment(MyModel, sample).run()
     ap.sensitivity_sobol(results, param_ranges)
-    assert results.sensitivity['S1'][0] == 0.6607875959282447
+    assert results.sensitivity['S1'][0] == si
+
+    # Test calc_second_order
+    param_ranges = {'x': (0., 1.), 'y': 1}
+    sample = ap.sample_saltelli(param_ranges, n=10, calc_second_order=True)
+    results = ap.Experiment(MyModel, sample).run()
+    ap.sensitivity_sobol(results, param_ranges, calc_second_order=True)
+    assert results.sensitivity[('S2', 'x')][0].__repr__() == 'nan'
