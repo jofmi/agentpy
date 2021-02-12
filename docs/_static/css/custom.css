@@ -1,0 +1,8 @@
+/* .wy-nav-content {
+    max-width: 1200px !important;
+} */
+
+/* For alignment of jshtml animations */
+.anim-state label {
+ display:unset !important
+}
