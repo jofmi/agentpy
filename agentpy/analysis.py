@@ -13,6 +13,12 @@ from SALib.analyze import sobol
 from .tools import make_list, param_tuples_to_salib
 
 
+def _sobol_set_df_index(df, p_keys, measure):
+    df['parameter'] = p_keys
+    df['measure'] = measure
+    df.set_index(['measure', 'parameter'], inplace=True)
+
+
 def sensitivity_sobol(output, param_ranges, measures=None,
                       calc_second_order=False, **kwargs):
     """ Calculates Sobol Sensitivity Indices and adds them to the output,
@@ -52,23 +58,19 @@ def sensitivity_sobol(output, param_ranges, measures=None,
         si = sobol.analyze(param_ranges_salib, y, calc_second_order, **kwargs)
 
         # Make dataframes out of S1 and ST sensitivities
-        for dfs in dfs_list[0:2]:
-            s = {k: v for k, v in si.items() if k in ['S1', 'ST']}
+        keyss = [['S1', 'ST'], ['S1_conf', 'ST_conf']]
+        for keys, dfs in zip(keyss, dfs_list[0:2]):
+            s = {k[0:2]: v for k, v in si.items() if k in keys}
             df = pd.DataFrame(s)
+            _sobol_set_df_index(df, p_keys, measure)
             dfs.append(df)
 
         # Make dataframes out S2 sensitivities
         if calc_second_order:
-            for dfs in dfs_list[2:4]:
-                df = pd.DataFrame(si['S2'])
+            for key, dfs in zip(['S2', 'S2_conf'], dfs_list[2:4]):
+                df = pd.DataFrame(si[key])
+                _sobol_set_df_index(df, p_keys, measure)
                 dfs.append(df)
-
-    # Set indexes
-    for dfs in dfs_list:
-        for df in dfs:
-            df['parameter'] = p_keys
-            df['measure'] = measure
-            df.set_index(['measure', 'parameter'], inplace=True)
 
     # Combine dataframes for each measure
     output['sensitivity'] = pd.concat(dfs_list[0])
