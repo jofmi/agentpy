@@ -3,7 +3,7 @@ Agentpy Lists Module
 Content: Lists for objects, environments, and agents
 """
 
-import random as rd
+import numpy as np
 
 
 class AttrList(list):
@@ -29,7 +29,7 @@ class AttrList(list):
     def __call__(self, *args, **kwargs):
         return AttrList(
             [func_obj(*args, **kwargs) for func_obj in self],
-            attr=self.attr)
+            attr=self.attr)  # TODO Add return values to attr name?
 
     def __eq__(self, other):
         return [obj == other for obj in self]
@@ -89,6 +89,10 @@ class AttrList(list):
 class ObjList(list):
     """ List of agentpy objects (models, environments, agents). """
 
+    def __init__(self, *args, model=None):
+        super().__init__(*args)
+        self.model = model
+
     def __repr__(self):
         s = 's' if len(self) > 1 else ''
         return f"ObjList [{len(self)} object{s}]"
@@ -110,6 +114,15 @@ class ObjList(list):
     def __call__(self, selection):
         return self.select(selection)
 
+    def _default_generator(self):
+        """ Try to find default number generator. """
+        if self.model:
+            return self.model.random
+        elif len(self) > 0 and self[0].model:
+            return self[0].model.random
+        else:
+            return np.random
+
     def select(self, selection):
         """ Returns a new :class:`AgentList` based on `selection`.
 
@@ -117,40 +130,46 @@ class ObjList(list):
             selection (list of bool): List with same length as the agent list.
                 Positions that return True will be selected.
         """
-        return AgentList([a for a, s in zip(self, selection) if s])
+        return AgentList([a for a, s in zip(self, selection) if s],
+                         model=self.model)
 
     def random(self, n=1, generator=None):
-        """ Returns a new :class:`AgentList` with a random subset of agents.
+        """ Creates a random subset of agents, using :func:`generator.sample`.
+        Returns a new :class:`AgentList` with the selected agents.
 
         Arguments:
             n (int, optional): Number of agents (default 1).
             generator (random.Random, optional): Random number generator.
-                If none is passed, the hidden instance of :obj:`random`
-                is used.
+                If none is passed, :obj:`Model.random` is used.
+                If list has no model, :obj:`np.random` is used.
         """
-        if generator:
-            return AgentList(generator.sample(self, n))
-        else:
-            return AgentList(rd.sample(self, n))
+        if not generator:
+            generator = self._default_generator()
+        return AgentList(generator.sample(self, n), model=self.model)
 
     def sort(self, var_key, reverse=False):
-        """ Sorts the list based on the `var_key` of its agents
-         and returns itself. """
+        """ Sorts the list using :func:`list.sort`, and returns self.
+
+        Arguments:
+            var_key (str): Attribute of the lists' objects, based on which
+                the list will be sorted from lowest value to highest.
+            reverse (bool, optional): Reverse sorting (default False).
+        """
         super().sort(key=lambda x: x[var_key], reverse=reverse)
         return self
 
     def shuffle(self, generator=None):
-        """ Shuffles the list randomly and returns itself.
+        """ Shuffles the list randomly, using :func:`generator.shuffle`.
+        Returns self.
 
         Arguments:
             generator (random.Random, optional): Random number generator.
-                If none is passed, the hidden instance of :obj:`random`
-                is used.
+                If none is passed, :obj:`Model.random` is used.
+                If list has no model, :obj:`np.random` is used.
         """
-        if generator:
-            generator.shuffle(self)
-        else:
-            rd.shuffle(self)
+        if not generator:
+            generator = self._default_generator()
+        generator.shuffle(self)
         return self
 
 
