@@ -18,7 +18,7 @@ Dependencies
 Agentpy supports Python 3.6, 3.7, 3.8, and 3.9.
 The installation includes the following packages:
 
-- `numpy <https://numpy.org>`_, for scientific computing
+- `numpy <https://numpy.org>`_ and `scipy <https://docs.scipy.org/>`_, for scientific computing
 - `matplotlib <https://matplotlib.org/>`_, for visualization
 - `pandas <https://pandas.pydata.org>`_, for output dataframes
 - `networkx <https://networkx.org/documentation/>`_, for network analysis
@@ -46,7 +46,7 @@ Once you have a copy of the source, you can install it with:
 
     $ pip install -e
 
-To include all necessary packages for development, you can use:
+To include all necessary packages for development & testing, you can use:
 
 .. code-block:: console
 
