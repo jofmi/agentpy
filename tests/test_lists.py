@@ -78,9 +78,9 @@ def test_random():
     assert agents.random()[0].id == 2
 
     # Agentlist with no model defined
-    np.random.seed(1)
+    # (no seed control without model, test can only check if no errors)
     agents1 = ap.AgentList([1, 2, 3])
-    assert agents1.random()[0] == 2
+    agents1.random()
 
 
 def test_sort():
