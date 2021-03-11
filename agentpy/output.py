@@ -357,7 +357,7 @@ class DataDict(AttrDict):
             if isinstance(output, pd.DataFrame):
                 output.to_csv(f'{path}/{key}.csv')
 
-            if isinstance(output, DataDict):
+            elif isinstance(output, DataDict):
                 for k, o in output.items():
 
                     if isinstance(o, pd.DataFrame):

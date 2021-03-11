@@ -18,7 +18,7 @@ class ApObj:
         self._id = model._new_id()  # Assign id to new object
         self._model._obj_dict[self.id] = self  # Add object to object dict
 
-    def __repr__(self, short=True):
+    def __repr__(self):
         return f"{self.type} (Obj {self.id})"
 
     def __getattr__(self, key):
@@ -164,7 +164,7 @@ class Agent(ApObj):
         p (AttrDict): Model parameters.
         envs (EnvList): Environments of the agent.
         log (dict): Recorded variables of the agent.
-        id (int): Unique identifier of the agent.
+        id (int): Unique identifier of the agent instance.
     """
 
     def __init__(self, model, **kwargs):
@@ -223,7 +223,7 @@ class Agent(ApObj):
                 in :attr:`Agent.envs` is used.
         """
 
-        env = self._find_env(env, 'grid')
+        env = self._find_env(env, ['grid', 'space'])
         return env._agent_dict[self]
 
     def move_by(self, path, env=None):
@@ -238,8 +238,8 @@ class Agent(ApObj):
                 If none is given, the first environment of that topology
                 in :attr:`Agent.envs` is used.
         """
-        # TODO Add border jumping feature
-        env = self._find_env(env, 'grid')
+        # TODO Add border jumping feature (toroidal)
+        env = self._find_env(env, ['grid', 'space'])
         old_pos = self.position(env)
         position = [p + c for p, c in zip(old_pos, path)]
         env.move_agent(self, position)
@@ -256,10 +256,10 @@ class Agent(ApObj):
                 in :attr:`Agent.envs` is used.
         """
 
-        env = self._find_env(env, 'grid')
+        env = self._find_env(env, ['grid', 'space'])
         env.move_agent(self, position)
 
-    def neighbors(self, env=None, distance=1, diagonal=True):
+    def neighbors(self, env=None, distance=1, **kwargs):
         """ Returns the agents' neighbor's from an environment,
         by calling the environments :func:`neighbors` function.
 
@@ -271,14 +271,13 @@ class Agent(ApObj):
                 in :attr:`Agent.envs` is used.
             distance(int, optional):
                 Distance from agent in which to look for neighbors.
-            diagonal(bool, optional):
-                Whether to include diagonal neighbors (only for :class:`Grid`).
+            **kwargs: Forwarded to the environments :func:`neighbors` function.
 
         Returns:
             AgentList: Neighbors of the agent.
         """
-        env = self._find_env(env, ('grid', 'network'))
-        return env.neighbors(self, distance=distance, diagonal=diagonal)
+        env = self._find_env(env, ('grid', 'space', 'network'))
+        return env.neighbors(self, distance=distance, **kwargs)
 
     def enter(self, env):
         """ Adds agent to passed environment.
@@ -308,12 +307,10 @@ class Agent(ApObj):
 class ApEnv(ApObj):
     """ Agentpy base-class for environments. """
 
-    def __init__(self, model, agents=None):
+    def __init__(self, model):
         super().__init__(model)
-        self._agents = AgentList()
+        self._agents = AgentList(model=model)
         self._topology = None
-        if agents:
-            self.add_agents(agents)
 
     @property
     def topology(self):
@@ -352,14 +349,14 @@ class ApEnv(ApObj):
         # Case 1 - Create new agents
         if isinstance(agents, int):
             agents = AgentList([agent_class(self.model, **kwargs)
-                                for _ in range(agents)])
+                                for _ in range(agents)], model=self.model)
             if is_env:  # Add agents to master list
                 self.model._agents.extend(agents)
 
         # Case 2 - Add existing agents
         else:
             if not isinstance(agents, AgentList):
-                agents = AgentList(make_list(agents))
+                agents = AgentList(make_list(agents), model=self.model)
 
         # Add environment to agents
         if is_env:
@@ -382,19 +379,17 @@ class Environment(ApEnv):
 
     Arguments:
         model (Model): The model instance.
-        agents (AgentList, optional): Agents to be added to the environment (default None).
         **kwargs: Will be forwarded to :func:`Environment.setup`.
 
     Attributes:
-        model (Model): The model instance.
-        agents (AgentList): The environments' agents.
-        p (AttrDict): The models' parameters.
-        key (str): The environments' name.
+        model (Model): Model instance.
+        p (AttrDict): Model parameters.
+        id (int): Unique identifier of the environment instance.
         topology (str): Topology of the environment.
         log (dict): The environments' recorded variables.
     """
 
-    def __init__(self, model, agents=None, **kwargs):
-        super().__init__(model, agents)
+    def __init__(self, model, **kwargs):
+        super().__init__(model)
         self._set_var_ignore()
         self.setup(**kwargs)

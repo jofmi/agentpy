@@ -1,8 +1,13 @@
 """
 Agentpy Grid Module
-Content: Classes for spatial grids
+Content: Class for discrete spatial environments
 """
 
+# There is much room for optimization in this module. Contributions welcome! :)
+# TODO __init__: Add argument connect_borders
+# TODO _get_diamond: distance argument, exclude original agent, & limit dmax
+# TODO Method for distance between agents
+# TODO items: reverse argument
 
 import itertools
 import numpy as np
@@ -14,29 +19,28 @@ from .lists import AgentList
 
 
 class Grid(ApEnv):
-    """ Environment that contains agents with a spatial topology.
+    """ Environment that contains agents with a discrete spatial topology.
     Every location consists of an :class:`AgentList` that can hold
     zero, one, or more agents.
     To add new grid environments to a model, use :func:`Model.add_grid`.
+    For a continuous spatial topology, use :class:`Space`.
 
-    This class can be used as a parent class for custom network types.
+    This class can be used as a parent class for custom grid types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
     See :class:`Environment` for general properties of all environments.
 
     Arguments:
-        model(Model): The model instance.
-        shape(int or tuple of int): Size of the grid.
-            If an integer is given, this value is taken as both the
-            height and width for a two-dimensional grid.
-            If a tuple is given, the length of the tuple defines
-            the number of dimensions, and the values in the tuple
-            define the length of each dimension.
+        model (Model): The model instance.
+        shape (tuple of int): Size of the grid.
+            The length of the tuple defines the number of dimensions,
+            and the values in the tuple define the length of each dimension.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
 
     Attributes:
-        grid(list of lists): Matrix of :class:`AgentList`.
-        shape(tuple of int): Length of each grid dimension.
+        grid (list of lists): Matrix of :class:`AgentList`.
+        shape (tuple of int): Length of each grid dimension.
+        dim (int): Number of dimensions.
     """
 
     def __init__(self, model, shape, **kwargs):
@@ -44,8 +48,6 @@ class Grid(ApEnv):
         super().__init__(model)
 
         self._topology = 'grid'
-        if isinstance(shape, int):
-            shape = (shape, shape)
         self._grid = make_matrix(shape, AgentList)
         self._agent_dict = {}
         self._shape = shape
@@ -60,20 +62,27 @@ class Grid(ApEnv):
     def shape(self):
         return self._shape
 
+    @property
+    def dim(self):
+        return len(self._shape)
+
     def add_agents(self, agents=1, agent_class=Agent, positions=None,  # noqa
-                   random=False, **kwargs):
-        """ Adds agents to the grid environment.
+                   random=False, generator=None, **kwargs):
+        """ Adds agents to the grid environment, and returns new agents.
         See :func:`Environment.add_agents` for standard arguments.
         Additional arguments are listed below.
 
         Arguments:
-            positions(list of tuples, optional): The positions of the added
+            positions(list of tuple, optional): The positions of the added
                 agents. List must have the same length as number of agents
                 to be added, and each entry must be a tuple with coordinates.
                 If none is passed, agents will fill up the grid systematically.
             random(bool, optional):
                 If no positions are passed, agents will be placed in random
                 locations instead of systematic filling (default False).
+            generator (numpy.random.Generator, optional):
+                Random number generator that is used if 'random' is True.
+                If none is passed, :obj:`Model.random` is used.
         """
 
         # Standard adding
@@ -91,15 +100,18 @@ class Grid(ApEnv):
             # Fill agent positions
             positions = []
             if random:
-                positions.extend(rd.sample(available_positions, n_agents))
+                generator = generator if generator else self.model.random
+                positions.extend(generator.choice(available_positions,
+                                                  n_agents, replace=False))
             else:
                 positions.extend(available_positions[:n_agents])
-                # for agent in new_agents:
-                #     self._positions[agent] = [0] * self.dim
 
         for agent, pos in zip(new_agents, positions):
+            pos = tuple(pos)  # Ensure that position is tuple
             self._agent_dict[agent] = pos  # Add position to agent_dict
-            self._get_agents_from_pos(pos).append(agent)  # Add agent to position
+            self._get_agents_from_pos(pos).append(agent)  # Add agent to pos
+
+        return new_agents
 
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
@@ -121,7 +133,8 @@ class Grid(ApEnv):
         and returns grid with return values. """
         return self._apply(self.grid, func, *args, **kwargs)
 
-    def _get_attr(self, agent_list, attr_key, sum_values, fill_empty):
+    @staticmethod
+    def _get_attr(agent_list, attr_key, sum_values, fill_empty):
         if len(agent_list) == 0:
             return fill_empty
         if sum_values:
@@ -144,7 +157,7 @@ class Grid(ApEnv):
         return self.apply(self._get_attr, attr_key, sum_values, empty)
 
     def position(self, agent):
-        """ Returns position of a passed agent.
+        """ Returns tuple with position of a passed agent.
 
         Arguments:
             agent(int or Agent): Id or instance of the agent.
@@ -203,10 +216,11 @@ class Grid(ApEnv):
             return self.agents
         if not isinstance(area, abc.Iterable):
             raise ValueError(f"area '{area}' is not iterable.")
-        if isinstance(area[0], int):
-            return AgentList(self._get_agents_from_pos(area))  # Soft copy
+        if isinstance(area[0], int):  # Soft copy
+            return AgentList(self._get_agents_from_pos(area), model=self.model)
         else:
-            return AgentList(self._get_agents_from_area(area, self._grid))
+            return AgentList(
+                self._get_agents_from_area(area, self._grid), model=self.model)
 
     def move_agent(self, agent, position):
         """ Moves agent to new position.
@@ -229,7 +243,6 @@ class Grid(ApEnv):
 
     def _get_diamond(self, pos, grid, dist=1):
         """ Return agents in diamond-shaped area around pos."""
-        # TODO Include distance argument, exclude original agent, & limit dmax
         subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
         if len(pos) == 1:
             return [y for x in subgrid for y in x]  # flatten list
@@ -261,4 +274,4 @@ class Grid(ApEnv):
         else:  # Do not include diagonal neighbors
             agents = self._get_diamond(self._agent_dict[agent], self._grid)
         agents.remove(agent)  # Remove original agent
-        return AgentList(agents)
+        return AgentList(agents, model=self.model)

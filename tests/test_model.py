@@ -1,5 +1,5 @@
 import pytest
-import random
+import numpy as np
 import agentpy as ap
 
 from agentpy.tools import AgentpyError
@@ -27,14 +27,13 @@ def test_run():
 
 def test_run_seed():
     """ Test random seed setting. """
-    random.seed(1)
-    n = random.getrandbits(10)
+    n = np.random.default_rng(1).integers(10)
     model = ap.Model({'seed': 1})
     model.run(steps=0, display=False)
-    assert random.getrandbits(10) == n
+    assert model.random.integers(10) == n
     model = ap.Model()
     model.run(seed=1, steps=0, display=False)
-    assert random.getrandbits(10) == n
+    assert model.random.integers(10) == n
 
 
 def test_stop():

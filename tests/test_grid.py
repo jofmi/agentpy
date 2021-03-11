@@ -6,8 +6,10 @@ import numpy as np
 def test_general():
 
     model = ap.Model()
-    model.add_grid((2, 2))
-    assert model.env.shape == (2, 2)
+    grid = model.add_grid((2, 2))
+    assert grid is model.env
+    assert grid.shape == (2, 2)
+    assert grid.dim == 2
 
     # 5th agent must be at first position again
     model.env.add_agents(5)

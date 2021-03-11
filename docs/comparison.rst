@@ -45,8 +45,8 @@ Finally, the following table provides a comparison of the main features of each 
                             | of agent and environment groups
 | Time management           | Custom activation order has to be  | Multiple scheduler classes for
                             | defined in the Model.step method   | different activation orders
-| Supported topologies      | Spatial grid, networkx graph       | Spatial grid, network grid,
-                            |                                    | continuous space
+| Supported topologies      | Spatial grid, continuous space,    | Spatial grid, continuous space,
+                            | network                            | network
 | Data recording            | Recording methods for variables    | DataCollector class that can
                             | (of agents, environments, and      | collect variables of agents
                             | model) and evaluation measures     | and model

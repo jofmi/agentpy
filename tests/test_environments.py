@@ -7,7 +7,8 @@ def make_model():
     """ Create three agents (ID 1-3) in an environment (ID 4). """
     model = ap.Model()
     agents = model.add_agents(3)
-    model.add_env(color='green', agents=agents)
+    env = model.add_env(color='green')
+    env.add_agents(agents)
     return model
 
 

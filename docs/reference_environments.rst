@@ -21,9 +21,16 @@ Networks
      :members:
      :inherited-members:
 
-Spatial grids
--------------
+Discrete spaces
+---------------
 
 .. autoclass:: Grid
+    :members:
+    :inherited-members:
+
+Continuous spaces
+-----------------
+
+.. autoclass:: Space
     :members:
     :inherited-members:

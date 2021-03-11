@@ -27,7 +27,7 @@ class Network(ApEnv):
         **kwargs: Will be forwarded to :func:`Network.setup`.
 
     Attributes:
-        graph(networkx.Graph): The environments' graph.
+        graph (networkx.Graph): The environments' graph.
     """
 
     def __init__(self, model, graph=None, agents=None, **kwargs):
@@ -64,6 +64,7 @@ class Network(ApEnv):
         new_agents = super().add_agents(agents, agent_class, **kwargs)
         for agent in new_agents:
             self.graph.add_node(agent)  # Add agents to graph as new nodes
+        return new_agents
 
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
@@ -74,4 +75,5 @@ class Network(ApEnv):
     def neighbors(self, agent, **kwargs):
         """ Returns an :class:`AgentList` of agents
         that are connected to the passed agent. """
-        return AgentList([n for n in self.graph.neighbors(agent)])
+        return AgentList(
+            [n for n in self.graph.neighbors(agent)], model=self.model)

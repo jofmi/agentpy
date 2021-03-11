@@ -4,19 +4,51 @@
 Changelog
 =========
 
-0.0.7.dev0
-----------
+0.0.7 (March 2021)
+------------------
 
-* :func:`sensitivity_sobol` now has an argument :attr:`calc_second_order`.
+Continuous space environments
+.............................
+
+A new environment type :class:`Space` and method :func:`Model.add_space`
+for agent-based models with continuous space topologies has been added.
+There is a new demonstration model :doc:`agentpy_flocking` in the model library,
+which shows how to simulate the flocking behavior of animals
+and demonstrates the use of the continuous space environment.
+
+Random generators
+.................
+
+:class:`Model` has a new property :obj:`Model.random`, which returns the
+models' random number generator of type :func:`numpy.random.Generator`.
+A custom seed can be set for :func:`Model.run` and :func:`animate`
+by either passing an argument or defining a parameter :attr:`seed`.
+All methods with stochastic elements like :func:`AgentList.shuffle`
+or :func:`AgentList.random` now take an optional argument `generator`,
+with the model's main generator being used if none is passed.
+The function :func:`AgentList.random` now uses :func:`numpy.random.Generator.choice`
+and has three new arguments 'replace', 'weights', and 'shuffle'.
+More information with examples can be found in the API reference
+and the new user guide :doc:`guide_random`.
+
+API changes
+...........
+
+* The function :func:`sensitivity_sobol` now has an argument :attr:`calc_second_order` (default False).
   If True, the function will add second-order indices to the output.
-  The default value of :attr:`calc_second_order` is False, and has also been
-  changed to False in :func:`sample_saltelli` for consistency.
-* A custom seed can now be set for :func:`Model.run`
-  by either passing an argument or defining a parameter :attr:`seed`.
-* :class:`Environment` has a new optional argument :attr:`agents`
-  to add existing agents at the creation of the environment.
-* :func:`AgentList.random` and :func:`AgentList.shuffle`
-  have a new optional argument :attr:`generator` for custom instances of :class:`random.Random`.
+* The default value of :attr:`calc_second_order` in :func:`sample_saltelli`
+  has also been changed to False for consistency.
+* For consistency with :class:`Space`,
+  :class:`Grid` no longer takes an integer as argument for 'shape'.
+  A tuple with the lengths of each spatial dimension has to be passed.
+* The argument 'agents' has been removed from :class:`Environment`.
+  Agents have to be added through :func:`Environment.add_agents`.
+
+Fixes
+.....
+
+* The step limit in :func:`animate` is now the same as in :func:`Model.run`.
+* A false error message in :func:`DataDict.save` has been removed.
 
 0.0.6 (January 2021)
 --------------------

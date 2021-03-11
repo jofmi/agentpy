@@ -9,7 +9,7 @@ Source: https://github.com/JoelForamitti/agentpy
 
 __all__ = [
     '__version__',
-    'Model', 'Environment', 'Network', 'Grid',
+    'Model', 'Environment', 'Network', 'Grid', 'Space',
     'Agent', 'AgentList', 'EnvList', 'ObjList', 'AttrList',
     'Experiment',
     'DataDict', 'load',
@@ -31,6 +31,7 @@ from .lists import AttrList, ObjList, AgentList, EnvList
 from .objects import Agent, Environment
 from .network import Network
 from .grid import Grid
+from .space import Space
 from .model import Model
 from .experiment import Experiment
 from .output import DataDict, load

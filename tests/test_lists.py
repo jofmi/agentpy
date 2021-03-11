@@ -1,6 +1,6 @@
 import pytest
 import agentpy as ap
-import random
+import numpy as np
 
 
 def test_repr():
@@ -55,12 +55,32 @@ def test_random():
     model.add_agents(2)
     assert len(model.agents) == len(model.agents.shuffle())
     assert len(model.agents.random()) == 1
+
+    # Custom generator with seperate seed
     model = ap.Model()
     model.add_agents(5)
-    generator = random.Random(1)  # Custom generator with seperate seed
+    generator = np.random.default_rng(1)
     assert len(model.agents.random(generator=generator)) == 1
-    assert model.agents.random(generator=generator).id[0] == 5
-    assert list(model.agents.shuffle(generator=generator).id) == [4, 2, 5, 3, 1]
+    assert model.agents.random(generator=generator).id[0] == 3
+    assert list(model.agents.shuffle(generator=generator).id) == [5, 1, 3, 2, 4]
+
+    # Test with single agent
+    model = ap.Model()
+    agents = model.add_agents(1)
+    assert model.agents.random()[0] is agents[0]
+    assert model.agents.shuffle()[0] is agents [0]
+
+    # Agentlist with no model defined directly
+    model = ap.Model()
+    agents = model.add_agents(3)
+    agents = ap.AgentList(agents)
+    model.run(steps=0, seed=1, display=False)
+    assert agents.random()[0].id == 2
+
+    # Agentlist with no model defined
+    np.random.seed(1)
+    agents1 = ap.AgentList([1, 2, 3])
+    assert agents1.random()[0] == 2
 
 
 def test_sort():

@@ -14,6 +14,7 @@ that can be downloaded and experimented with.
 
    agentpy_wealth_transfer
    agentpy_virus_spread
+   agentpy_flocking
    agentpy_segregation
    agentpy_forest_fire
    agentpy_button_network

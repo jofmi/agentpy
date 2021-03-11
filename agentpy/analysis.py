@@ -94,7 +94,7 @@ def sensitivity_sobol(output, param_ranges, measures=None,
     return output
 
 
-def animate(model, fig, axs, plot, steps=None,
+def animate(model, fig, axs, plot, steps=None, seed=None,
             skip=0, fargs=(), **kwargs):
     """ Returns an animation of the model simulation,
     using :func:`matplotlib.animation.FuncAnimation`.
@@ -106,9 +106,13 @@ def animate(model, fig, axs, plot, steps=None,
         plot (function): Function that takes `(model, ax, *fargs)`
             and creates the desired plots on each axis at each time-step.
         steps(int, optional):
-                Maximum number of steps for the simulation to run.
-                If none is given, the parameter 'Model.p.steps' will be used.
-                If there is no such parameter, 'steps' will be set to 1000.
+            Maximum number of steps for the simulation to run.
+            If none is given, the parameter 'Model.p.steps' will be used.
+            If there is no such parameter, 'steps' will be set to 1000.
+        seed (int, optional):
+            Seed to set for :obj:`Model.random` at the beginning of the simulation.
+            If none is given, the parameter 'Model.p.seed' will be used.
+            If there is no such parameter, as random seed will be set.
         skip (int, optional): Number of rounds to skip before the
             animation starts (default 0).
         fargs (tuple, optional): Forwarded fo the `plot` function.
@@ -130,7 +134,7 @@ def animate(model, fig, axs, plot, steps=None,
             HTML(animation.to_jshtml())
     """
 
-    model._setup_run(steps)
+    model._setup_run(steps, seed)
     model._create_output()
     pre_steps = 0
 
@@ -158,7 +162,11 @@ def animate(model, fig, axs, plot, steps=None,
         plot(m, axs, *fargs)  # Perform plot
 
     ani = matplotlib.animation.FuncAnimation(
-        fig, update, frames=frames, fargs=(model, axs, *fargs), **kwargs)  # noqa
+        fig, update,
+        frames=frames,
+        fargs=(model, axs, *fargs),
+        save_count=model._steps,
+        **kwargs)  # noqa
 
     plt.close()  # Don't display static plot
     return ani

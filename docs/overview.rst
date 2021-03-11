@@ -17,7 +17,7 @@ Creating models
 The basic framework for agent-based models consists of three levels:
 
 1. :class:`Model`, which contains agents, environments, parameters, & procedures
-2. :class:`Environment`, :class:`Grid`, and :class:`Network`, which contain agents
+2. :class:`Environment`, :class:`Grid`, :class:`Space`, and :class:`Network`, which contain agents
 3. :class:`Agent`, the basic building blocks of the model
 
 All of these classes are designed to be customized through the creation of
@@ -119,11 +119,13 @@ There are three different types of environments:
 
 - :class:`Environment`, which simply contain agents without any topology.
 - :class:`Network`, in which agents can be connected via a networkx graph.
-- :class:`Grid`, in which agents occupy a position on a x-dimensional space.
+- :class:`Grid`, in which agents occupy a position on a discrete x-dimensional space.
+- :class:`Space`, in which agents occupy a position on a continuous x-dimensional space.
 
 Applied examples of networks can be found in the demonstration models
-:doc:`agentpy_virus_spread` and :doc:`agentpy_button_network`,
-while a spatial grid is used in :doc:`agentpy_forest_fire`.
+:doc:`agentpy_virus_spread` and :doc:`agentpy_button_network`;
+spatial grids are demonstrated in :doc:`agentpy_forest_fire` and :doc:`agentpy_segregation`;
+and continuous spaces in :doc:`agentpy_flocking`.
 
 Recording data
 ##############

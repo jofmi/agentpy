@@ -15,8 +15,8 @@ class AttrList(list):
     See :class:`AgentList` for examples.
     """
 
-    def __init__(self, *args, attr=None):
-        super().__init__(*args)
+    def __init__(self, iterable=[], attr=None):
+        super().__init__(iterable)
         self.attr = attr
 
     def __repr__(self):
@@ -89,9 +89,9 @@ class AttrList(list):
 class ObjList(list):
     """ List of agentpy objects (models, environments, agents). """
 
-    def __init__(self, *args, model=None):
-        super().__init__(*args)
-        self.model = model
+    def __init__(self, iterable=[], model=None):
+        super().__init__(iterable)
+        super().__setattr__('model', model)
 
     def __repr__(self):
         s = 's' if len(self) > 1 else ''
@@ -118,10 +118,10 @@ class ObjList(list):
         """ Try to find default number generator. """
         if self.model:
             return self.model.random
-        elif len(self) > 0 and self[0].model:
+        elif len(self) > 0 and hasattr(self[0], 'model'):
             return self[0].model.random
         else:
-            return np.random
+            return np.random.default_rng()
 
     def select(self, selection):
         """ Returns a new :class:`AgentList` based on `selection`.
@@ -133,19 +133,40 @@ class ObjList(list):
         return AgentList([a for a, s in zip(self, selection) if s],
                          model=self.model)
 
-    def random(self, n=1, generator=None):
-        """ Creates a random subset of agents, using :func:`generator.sample`.
+    def random(self, n=1, replace=False, weights=None, shuffle=True,
+               generator=None):
+        """ Creates a random sample of agents,
+        using :func:`numpy.random.Generator.choice`.
+        Argument descriptions are adapted from :obj:`numpy.random`.
         Returns a new :class:`AgentList` with the selected agents.
 
         Arguments:
             n (int, optional): Number of agents (default 1).
-            generator (random.Random, optional): Random number generator.
+            replace (bool, optional):
+                Whether the sample is with or without replacement.
+                Default is False, meaning that every agent can
+                only be selected once.
+            weights (1-D array_like, optional):
+                The probabilities associated with each agent.
+                If not given the sample assumes a uniform distribution
+                over all agents.
+            shuffle (bool, optional):
+                Whether the sample is shuffled
+                when sampling without replacement.
+                Default is True, False provides a speedup.
+            generator (numpy.random.Generator, optional):
+                Random number generator.
                 If none is passed, :obj:`Model.random` is used.
                 If list has no model, :obj:`np.random` is used.
         """
         if not generator:
             generator = self._default_generator()
-        return AgentList(generator.sample(self, n), model=self.model)
+        # Choice is not applied to list directly because it would convert it to
+        # a numpy array, which takes much more time than the current solution.
+        indexes = generator.choice(len(self), size=n, replace=replace,
+                                   p=weights, shuffle=shuffle)
+        selection = AgentList([self[i] for i in indexes], model=self.model)
+        return selection
 
     def sort(self, var_key, reverse=False):
         """ Sorts the list using :func:`list.sort`, and returns self.
@@ -163,7 +184,8 @@ class ObjList(list):
         Returns self.
 
         Arguments:
-            generator (random.Random, optional): Random number generator.
+            generator (numpy.random.Generator, optional):
+                Random number generator.
                 If none is passed, :obj:`Model.random` is used.
                 If list has no model, :obj:`np.random` is used.
         """

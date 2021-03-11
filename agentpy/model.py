@@ -3,7 +3,7 @@ Agentpy Model Module
 Content: Main class for agent-based models
 """
 
-import random
+import numpy as np
 import pandas as pd
 from datetime import datetime
 
@@ -11,6 +11,7 @@ from .output import DataDict
 from .objects import ApEnv, Agent, Environment
 from .network import Network
 from .grid import Grid
+from .space import Space
 from .tools import AttrDict, AgentpyError, make_list
 from .lists import ObjList
 
@@ -62,6 +63,7 @@ class Model(ApEnv):
                            'time_stamp': str(datetime.now())}
 
         # Private variables
+        self._random = np.random.default_rng()
         self._steps = None
         self._parameters = AttrDict(parameters)
         self._stop = False
@@ -81,18 +83,24 @@ class Model(ApEnv):
 
     @property
     def objects(self):
-        """The models agents and environments (list of objects)."""
+        """ Returns a list of all model objects (agents and environments). """
         return ObjList(self.agents + self.envs)
 
+    @property
+    def random(self):
+        """ Returns the models random number generator
+        of type :class:`numpy.random.Generator`. """
+        return self._random
+
     def get_obj(self, obj_id):
-        """ Return model object with obj_id (int). """
+        """ Returns model object with passed object id (int). """
         try:
             return self._obj_dict[obj_id]
         except KeyError:
             raise ValueError(f"Model has no object with obj_id '{obj_id}'.")
 
     def _new_id(self):
-        # Generate new object id
+        """ Returns a new unique object id (int). """
         self._id_counter += 1
         return self._id_counter
 
@@ -113,6 +121,13 @@ class Model(ApEnv):
         """ Creates a new environment with a spatial grid.
         Arguments are forwarded to :class:`Grid`. """
         new_env = Grid(self.model, shape=shape, **kwargs)
+        self.envs.append(new_env)
+        return new_env
+
+    def add_space(self, shape, **kwargs):
+        """ Creates a new environment with a continuous space.
+        Arguments are forwarded to :class:`Space`. """
+        new_env = Space(self.model, shape=shape, **kwargs)
         self.envs.append(new_env)
         return new_env
 
@@ -147,19 +162,29 @@ class Model(ApEnv):
         self._stop = True
 
     def _setup_run(self, steps=None, seed=None):
-        """ Prepare round 0 of a simulation. """
+        """ Prepare round 0 of a simulation.
+        See Model.run() for more informatin. """
 
-        if seed:  # TODO NEW WRITE TESTS
-            random.seed(seed)
-        elif 'seed' in self.p:
-            random.seed(self.p['seed'])
+        # Prepare random generator
+        if not seed and 'seed' in self.p:
+            seed = self.p['seed']  # Take seed from parameters
+        if seed:
+            self._random = np.random.default_rng(seed=seed)
+
+        # Prepare steps
         if steps is None:
             self._steps = self.p['steps'] if 'steps' in self.p else 1000
         else:
             self._steps = steps
+
+        # Initiate simulation
         self._stop = False
+
+        # Execute setup and first update
         self.setup(**self._setup_kwargs)
         self.update()
+
+        # Stop simulation if t too high
         if self.t >= self._steps:
             self._stop = True
 
@@ -187,9 +212,9 @@ class Model(ApEnv):
                 If none is given, the parameter 'Model.p.steps' will be used.
                 If there is no such parameter, 'steps' will be set to 1000.
             seed (int, optional):
-                Seed to set for :obj:`random` at the beginning of the simulation.
+                Seed to set for :obj:`Model.random` at the beginning of the simulation.
                 If none is given, the parameter 'Model.p.seed' will be used.
-                If there is no such parameter, no custom seed will be set.
+                If there is no such parameter, as random seed will be set.
             display (bool, optional):
                 Whether to display simulation progress (default True).
 
