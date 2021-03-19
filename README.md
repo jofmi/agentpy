@@ -12,7 +12,7 @@ and data analysis within a single environment, and is optimized for interactive 
 with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). If
 you have questions or ideas for improvements, please visit the 
 [discussion forum](https://github.com/JoelForamitti/agentpy/discussions)
-or subscribe to the [agentpy mailing list](https://groups.google.com/g/agentpy).
+or subscribe to the [agentpy mailing list](https://groups.google.com/g/agentpy/about).
 
 **Installation:** `pip install agentpy`
 

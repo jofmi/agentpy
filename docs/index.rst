@@ -26,7 +26,7 @@ and data analysis within a single environment, and is optimized for interactive 
 with `IPython <http://ipython.org/>`_ and `Jupyter <https://jupyter.org/>`_.
 If you have questions or ideas for improvements, please visit the
 `discussion forum <https://github.com/JoelForamitti/agentpy/discussions>`_
-or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy>`_.
+or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy/about>`_.
 
 .. rubric:: Quick orientation
 
