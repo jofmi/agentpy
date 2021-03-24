@@ -134,12 +134,12 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
             HTML(animation.to_jshtml())
     """
 
-    model._setup_run(steps, seed)
-    model._create_output()
+    model.sim_setup(steps, seed)
+    model.create_output()
     pre_steps = 0
 
     for _ in range(skip):
-        model._make_step()
+        model.sim_step()
 
     def frames():
         nonlocal model, pre_steps
@@ -148,8 +148,8 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
                 if pre_steps < 2:  # Frames iterates twice before starting plot
                     pre_steps += 1
                 else:
-                    model._make_step()
-                    model._create_output()
+                    model.sim_step()
+                    model.create_output()
                 yield model.t
         else:  # Yield current if model stops before the animation starts
             yield model.t
