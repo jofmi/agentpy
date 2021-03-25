@@ -6,7 +6,7 @@ Content: Lists for objects, environments, and agents
 import numpy as np
 
 
-class AttrList(list):
+class AttrList:
     """ List of attributes from an :class:`AgentList`.
 
     Calls are forwarded to each entry and return a list of return values.
@@ -15,23 +15,39 @@ class AttrList(list):
     See :class:`AgentList` for examples.
     """
 
-    def __init__(self, iterable=[], attr=None):
-        super().__init__(iterable)
+    def __init__(self, source, attr=None):
+        self.source = source
+        self._iter_source = None
         self.attr = attr
 
     def __repr__(self):
         if self.attr is None:
-            return f"AttrList: {list.__repr__(self)}"
+            return f"AttrList: {list(self)}"
         else:
-            return f"AttrList of attribute '{self.attr}': " \
-                   f"{list.__repr__(self)}"
+            return f"AttrList of '{self.attr}': {list(self)}"
+        #if self.attr is None:
+        #    return f"AttrList: {list.__repr__(self)}"
+        #else:
+        #    return f"AttrList of attribute '{self.attr}': " \
+        #           f"{list.__repr__(self)}"
+
+    def __iter__(self):
+        """ Iterate through source list based on attribute. """
+        if self.attr:
+            a = self.attr
+            return iter([getattr(o,a) for o in self.source])
+            #for el in self.source:
+            #    yield getattr(el, a)
+        else:
+            return iter(self.source)
+            #for el in self.source:
+            #    yield el  # return iter(self.source)
 
     def __call__(self, *args, **kwargs):
-        return AttrList(
-            [func_obj(*args, **kwargs) for func_obj in self],
-            attr=self.attr)  # TODO Add return values to attr name?
+        return [func_obj(*args, **kwargs) for func_obj in self]
 
     def __eq__(self, other):
+        # TODO doesn't work with second attrlist
         return [obj == other for obj in self]
 
     def __ne__(self, other):
@@ -93,6 +109,11 @@ class ObjList(list):
         super().__init__(iterable)
         super().__setattr__('model', model)
 
+    @property
+    def ndim(self):
+        # Necessary for numpy.random.Generator.shuffle() to work
+        return 1
+
     def __repr__(self):
         s = 's' if len(self) > 1 else ''
         return f"ObjList [{len(self)} object{s}]"
@@ -109,7 +130,8 @@ class ObjList(list):
 
     def __getattr__(self, name):
         """ Return callable list of attributes """
-        return AttrList([getattr(obj, name) for obj in self], attr=name)
+        return AttrList(self, attr=name)
+        # return AttrList([getattr(obj, name) for obj in self], attr=name)
 
     def __call__(self, selection):
         return self.select(selection)
