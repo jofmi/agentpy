@@ -221,7 +221,6 @@ class Model(ApEnv):
                 0            1
                 1            3
                 2            6
-
         """
         self._measure_log[name] = [value]
 
@@ -264,8 +263,8 @@ class Model(ApEnv):
 
     def run_setup(self, steps=None, seed=None):
         """ Sets up time-step 0 of the simulation.
-        Prepares steps and random generator,
-        and then calls self.setup() and self.update(). """
+        Prepares steps and a random number generator,
+        and then calls :func:`Model.setup` and :func:`Model.update`. """
 
         # Prepare random generator
         if not seed and 'seed' in self.p:
@@ -291,7 +290,8 @@ class Model(ApEnv):
             self._stop = True
 
     def run_step(self):
-        """ Proceed simulation by one step. """
+        """ Proceeds the simulation by one step, incrementing `Model.t` by 1
+        and then calling :func:`Model.step` and :func:`Model.update`."""
         self.t += 1
         self.step()
         self.update()
@@ -305,56 +305,12 @@ class Model(ApEnv):
                       scenario=self.scenario,
                       **self._setup_kwargs)
 
-    # Main simulation method for direct use --------------------------------- #
-
-    def run(self, steps=None, seed=None, display=True):
-        """ Executes the simulation of the model.
-
-        The simulation proceeds as follows.
-        It starts by calling :func:`Model.setup` and :func:`Model.update`.
-        After that, :attr:`Model.t` is increased by 1 and
-        :func:`Model.step` and :func:`Model.update` are called.
-        This step is repeated until the method :func:`Model.stop` is called
-        or steps is reached. After the last step, :func:`Model.end` is called.
-
-        Arguments:
-            steps (int, optional):
-                Maximum number of steps for the simulation to run.
-                If none is given, the parameter 'Model.p.steps' will be used.
-                If there is no such parameter, 'steps' will be set to 1000.
-            seed (int, optional):
-                Seed to set for :obj:`Model.random`
-                at the beginning of the simulation.
-                If none is given, the parameter 'Model.p.seed' will be used.
-                If there is no such parameter, as random seed will be set.
-            display (bool, optional):
-                Whether to display simulation progress (default True).
-
-        Returns:
-            DataDict: Recorded model data,
-            which can also be found in :attr:`Model.output`.
-        """
-
-        dt0 = datetime.now()  # Time-Stamp
-        self.run_setup(steps, seed)
-        while not self._stop:
-            self.run_step()
-            if display:
-                print(f"\rCompleted: {self.t} steps", end='')
-        self.end()
-        self.create_output()
-        self.output.log['run_time'] = ct = str(datetime.now() - dt0)
-        self.output.log['steps'] = self.t
-
-        if display:
-            print(f"\nRun time: {ct}\nSimulation finished")
-
-        return self.output
-
     # Data management ------------------------------------------------------- #
 
     def create_output(self):
-        """ Generates an 'output' dictionary out of object logs. """
+        """ Generates a :class:`DataDict` with dataframes of all recorded
+        variables and measures, which will be stored in :obj:`Model.output`.
+        """
 
         def output_from_obj_list(self, obj_list, columns):
             # Aggregate logs per object type
@@ -430,3 +386,48 @@ class Model(ApEnv):
         # 3.3 - Remove variable dict if empty (i.e. nothing has been added)
         elif not self.output['variables']:
             del self.output['variables']
+
+    # Main simulation method for direct use --------------------------------- #
+
+    def run(self, steps=None, seed=None, display=True):
+        """ Executes the simulation of the model.
+
+        It starts by calling :func:`Model.run_setup` and then calls
+        :func:`Model.run_step` until the method :func:`Model.stop` is called
+        or `steps` is reached. After that, :func:`Model.end` and
+        :func:`Model.create_output` are called.
+
+        Arguments:
+            steps (int, optional):
+                Maximum number of steps for the simulation to run.
+                If none is given, the parameter 'Model.p.steps' will be used.
+                If there is no such parameter, 'steps' will be set to 1000.
+            seed (int, optional):
+                Seed to set for :obj:`Model.random`
+                at the beginning of the simulation.
+                If none is given, the parameter 'Model.p.seed' will be used.
+                If there is no such parameter, as random seed will be set.
+            display (bool, optional):
+                Whether to display simulation progress (default True).
+
+        Returns:
+            DataDict: Recorded model data,
+            which can also be found in :attr:`Model.output`.
+        """
+
+        dt0 = datetime.now()  # Time-Stamp
+        self.run_setup(steps, seed)
+        while not self._stop:
+            self.run_step()
+            if display:
+                print(f"\rCompleted: {self.t} steps", end='')
+        self.end()
+        self.create_output()
+        self.output.log['run_time'] = ct = str(datetime.now() - dt0)
+        self.output.log['steps'] = self.t
+
+        if display:
+            print(f"\nRun time: {ct}\nSimulation finished")
+
+        return self.output
+
