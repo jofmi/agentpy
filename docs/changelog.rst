@@ -4,6 +4,35 @@
 Changelog
 =========
 
+0.0.8.dev0
+----------
+
+Improved lists
+..............
+
+Agent lists have a new method :func:`AgentList.call` that can be used to call
+a method for each agent in the list and has two optional arguments:
+`check_alive`, which prevents the call of agents that are deleted during the call loop;
+and `iter_kwargs`, which can be used to pass method arguments that are different for
+each agent.
+
+The structure of :class:`AttrList` has been changed to an iterable over its
+source list. This improves performance and makes it possible to change
+agent attributes by setting new values in the attribute list (see
+:class:`AttrList` for an example). Otherwise, the class behaves as before.
+
+The feature to call `AgentList.select` through `AgentList.__call__`
+(i.e. by invoking the agent list as a function) has been removed,
+following Python's philosophy that explicit is better than implicit.
+
+Removing agents
+...............
+
+- Model objects have a new attribute :obj:`alive` that indicates whether they
+have been removed from the model.
+- :func:`Model.remove_agents` now removes agents not just from the model,
+but also from all environments.
+
 0.0.7 (March 2021)
 ------------------
 
