@@ -112,11 +112,12 @@ class Model(ApEnv):
         consider using `AgentList.call` with the argument `check_alive=True`
         to avoid calling agents after they have been deleted. """
         for agent in list(make_list(agents)):  # Soft copy as list is changed
-            self._agents.remove(agent)
-            for env in agent.envs:
-                env._agents.remove(agent)
-        agent._envs = EnvList()
-        agent._alive = False
+            if agent.alive:
+                self._agents.remove(agent)
+                for env in agent.envs:
+                    env._agents.remove(agent)
+                agent._envs = EnvList()
+                agent._alive = False
 
     def add_env(self, env_class=Environment, **kwargs):
         """ Creates a new environment. """
