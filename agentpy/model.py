@@ -53,7 +53,7 @@ class Model(ApEnv):
 
         self._id_counter = -1
         self._obj_dict = {}  # Objects mapped by their id
-        super().__init__(self)  # Model will be have id 0
+        super().__init__(self)  # Model will assign itself id 0
 
         self.t = 0
         self.run_id = run_id
@@ -190,7 +190,7 @@ class Model(ApEnv):
         """
         self._measure_log[name] = [value]
 
-    # Main simulation functions
+    # Placeholder methods for custom simulation methods --------------------- #
 
     def setup(self, **kwargs):
         """ Defines the model's actions before the first simulation step.
@@ -212,13 +212,25 @@ class Model(ApEnv):
         Can be overwritten and used for final calculations and measures."""
         pass
 
+    # Simulation routines (in line with ipysimulate) ------------------------ #
+
+    def set_parameters(self, parameters):
+        """ Adds or updates passed parameters. """
+        self._parameters.update(parameters)
+
     def stop(self):
         """ Stops :meth:`Model.run` during an active simulation. """
         self._stop = True
 
-    def _setup_run(self, steps=None, seed=None):
-        """ Prepare round 0 of a simulation.
-        See Model.run() for more informatin. """
+    @property
+    def is_running(self):
+        """ Indicates whether the model is currently running (bool). """
+        return not self._stop
+
+    def run_setup(self, steps=None, seed=None):
+        """ Sets up time-step 0 of the simulation.
+        Prepares steps and random generator,
+        and then calls self.setup() and self.update(). """
 
         # Prepare random generator
         if not seed and 'seed' in self.p:
@@ -243,13 +255,22 @@ class Model(ApEnv):
         if self.t >= self._steps:
             self._stop = True
 
-    def _make_step(self):
+    def run_step(self):
         """ Proceed simulation by one step. """
         self.t += 1
         self.step()
         self.update()
         if self.t >= self._steps:
             self._stop = True
+
+    def reset(self):
+        """ Reset model to initial conditions and call setup. """
+        self.__init__(parameters=self.p,
+                      run_id=self.run_id,
+                      scenario=self.scenario,
+                      **self._setup_kwargs)
+
+    # Main simulation method for direct use --------------------------------- #
 
     def run(self, steps=None, seed=None, display=True):
         """ Executes the simulation of the model.
@@ -267,7 +288,8 @@ class Model(ApEnv):
                 If none is given, the parameter 'Model.p.steps' will be used.
                 If there is no such parameter, 'steps' will be set to 1000.
             seed (int, optional):
-                Seed to set for :obj:`Model.random` at the beginning of the simulation.
+                Seed to set for :obj:`Model.random`
+                at the beginning of the simulation.
                 If none is given, the parameter 'Model.p.seed' will be used.
                 If there is no such parameter, as random seed will be set.
             display (bool, optional):
@@ -279,15 +301,13 @@ class Model(ApEnv):
         """
 
         dt0 = datetime.now()  # Time-Stamp
-        self._setup_run(steps, seed)
-
+        self.run_setup(steps, seed)
         while not self._stop:
-            self._make_step()
+            self.run_step()
             if display:
                 print(f"\rCompleted: {self.t} steps", end='')
-
         self.end()
-        self._create_output()
+        self.create_output()
         self.output.log['run_time'] = ct = str(datetime.now() - dt0)
         self.output.log['steps'] = self.t
 
@@ -296,7 +316,9 @@ class Model(ApEnv):
 
         return self.output
 
-    def _create_output(self):
+    # Data management ------------------------------------------------------- #
+
+    def create_output(self):
         """ Generates an 'output' dictionary out of object logs. """
 
         def output_from_obj_list(self, obj_list, columns):
