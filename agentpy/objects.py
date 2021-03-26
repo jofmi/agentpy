@@ -175,7 +175,6 @@ class Agent(ApObj):
 
     def __init__(self, model, **kwargs):
         super().__init__(model)
-        self._set_var_ignore()
         self.setup(**kwargs)
 
     def delete(self):
@@ -399,5 +398,4 @@ class Environment(ApEnv):
 
     def __init__(self, model, **kwargs):
         super().__init__(model)
-        self._set_var_ignore()
         self.setup(**kwargs)
