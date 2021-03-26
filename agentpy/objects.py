@@ -187,7 +187,7 @@ class Agent(ApObj):
         """
         self.model.remove_agents(self)
 
-    def _find_envs(self, env=None, topologies=None, new=False):
+    def _find_env(self, env=None, topologies=None, new=False):
         """ Return obj of id or first object with topology. """
         # TODO Select based on method existance instead of topology
         if topologies:
@@ -247,7 +247,6 @@ class Agent(ApObj):
                 If none is given, the first environment of that topology
                 in :attr:`Agent.envs` is used.
         """
-        # TODO Add border jumping feature (toroidal)
         env = self._find_env(env, ['grid', 'space'])
         old_pos = self.position(env)
         position = [p + c for p, c in zip(old_pos, path)]
@@ -301,7 +300,8 @@ class Agent(ApObj):
         agents = AgentList()
         for env in envs:
             agents.extend(env.neighbors(self, distance=distance, **kwargs))
-        return agents
+
+        return AgentList(dict.fromkeys(agents))  # Remove duplicates
 
     def enter(self, env):
         """ Adds agent to passed environment.
@@ -343,6 +343,9 @@ class ApEnv(ApObj):
     @property
     def agents(self):
         return self._agents
+
+    def neighbors(self, *args, **kwargs):
+        return AgentList()  # Default environment has no neighbors
 
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
