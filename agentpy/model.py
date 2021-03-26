@@ -183,11 +183,45 @@ class Model(ApEnv):
     # Recording ------------------------------------------------------------- #
 
     def measure(self, name, value):
-        """ Records an evaluation measure.
+        """ Store a new evaluation measure.
+
+        Evaluation measures are meant to be 'summary statistics' or 'reporters'
+        of the whole simulation, and only one value can be stored per run.
+        In comparison, variables that are recorded with :func:`Model.record`
+        can be recorded multiple times for each time-step and object.
 
         Arguments:
             name (str): Name of the measure.
             value (int or float): Measured value.
+
+        Examples:
+
+            Store a measure `x` with a value `42`::
+
+                model.measure('x', 42)
+
+            Define a custom model that stores an evaluation measure `sum_id`
+            with the sum of all agent ids at the end of the simulation::
+
+                class MyModel(ap.Model):
+                    def setup(self):
+                        agents = self.add_agents(self.p.agents)
+                    def end(self):
+                        self.measure('sum_id', sum(self.agents.id))
+
+            Running an experiment over different numbers of agents for this
+            model yields the following datadict of measures::
+
+                >>> sample = ap.sample({'agents': (1, 3)}, 3)
+                >>> exp = ap.Experiment(MyModel, sample)
+                >>> results = exp.run()
+                >>> print(results.measures)
+                        sum_id
+                run_id
+                0            1
+                1            3
+                2            6
+
         """
         self._measure_log[name] = [value]
 
