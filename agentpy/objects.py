@@ -187,7 +187,7 @@ class Agent(ApObj):
         """
         self.model.remove_agents(self)
 
-    def _find_env(self, env=None, topologies=None, new=False):
+    def _find_envs(self, env=None, topologies=None, new=False):
         """ Return obj of id or first object with topology. """
         # TODO Select based on method existance instead of topology
         if topologies:
@@ -269,24 +269,39 @@ class Agent(ApObj):
         env.move_agent(self, position)
 
     def neighbors(self, env=None, distance=1, **kwargs):
-        """ Returns the agents' neighbor's from an environment,
-        by calling the environments :func:`neighbors` function.
+        """ Returns the agents' neighbors from its environments.
 
         Arguments:
-            env(int or Environment, optional):
-                Instance or id of environment that should be used.
-                Must have topology 'grid' or 'network'.
-                If none is given, the first environment of that topology
-                in :attr:`Agent.envs` is used.
+            env(int or Environment or list, optional):
+                Instance or id of environment that should be used,
+                or a list with multiple instances and/or ids.
+                If none are given, all of the agents environments are used.
             distance(int, optional):
                 Distance from agent in which to look for neighbors.
             **kwargs: Forwarded to the environments :func:`neighbors` function.
 
         Returns:
-            AgentList: Neighbors of the agent.
+            AgentList: Neighbors of the agent. Agents without environments
+            and environments without a topology like :class:`Environment`
+            will return an empty list.
         """
-        env = self._find_env(env, ('grid', 'space', 'network'))
-        return env.neighbors(self, distance=distance, **kwargs)
+        if env:
+            if isinstance(env, (list, tuple)):
+                envs = [self._find_env(en) for en in env]
+            else:
+                return self._find_env(env).neighbors(
+                    self, distance=distance, **kwargs)
+        elif len(self.envs) == 0:
+            return AgentList()
+        elif len(self.envs) == 1:
+            return self.envs[0].neighbors(self, distance=distance, **kwargs)
+        else:
+            envs = self.envs
+
+        agents = AgentList()
+        for env in envs:
+            agents.extend(env.neighbors(self, distance=distance, **kwargs))
+        return agents
 
     def enter(self, env):
         """ Adds agent to passed environment.
