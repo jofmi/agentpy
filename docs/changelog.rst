@@ -25,12 +25,18 @@ The feature to call `AgentList.select` through `AgentList.__call__`
 (i.e. by invoking the agent list as a function) has been removed,
 following Python's philosophy that explicit is better than implicit.
 
-Removing agents
-...............
+Agent-Environment interaction
+.............................
 
-- Model objects have a new attribute :obj:`alive` that indicates whether they
+The method :func:`Agent.neighbors` can now take multiple environments
+as an argument. If no environments are given, it will select all of the
+agents environments. For environments without a topology like :class:`Environment`
+and agents without any environments, an empty list will be returned.
+
+Removing agents has been improved.
+Model objects have a new attribute :obj:`alive` that indicates whether they
 have been removed from the model.
-- :func:`Model.remove_agents` now removes agents not just from the model,
+And :func:`Model.remove_agents` now removes agents not just from the model,
 but also from all environments.
 
 0.0.7 (March 2021)
