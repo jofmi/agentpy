@@ -6,32 +6,57 @@ Content: Lists for objects, environments, and agents
 import numpy as np
 
 
-class AttrList(list):
-    """ List of attributes from an :class:`AgentList`.
+class AttrList:
+    """ Iterator of attributes from an :class:`AgentList`.
 
     Calls are forwarded to each entry and return a list of return values.
     Boolean operators are applied to each entry and return a list of bools.
     Arithmetic operators are applied to each entry and return a new list.
+    Item assignments are forwarded to the object in the original list.
     See :class:`AgentList` for examples.
     """
 
-    def __init__(self, iterable=[], attr=None):
-        super().__init__(iterable)
+    def __init__(self, source, attr=None):
+        self.source = source
+        self._iter_source = None
         self.attr = attr
 
     def __repr__(self):
         if self.attr is None:
-            return f"AttrList: {list.__repr__(self)}"
+            return f"AttrList: {list(self)}"
         else:
-            return f"AttrList of attribute '{self.attr}': " \
-                   f"{list.__repr__(self)}"
+            return f"AttrList of '{self.attr}': {list(self)}"
+        #if self.attr is None:
+        #    return f"AttrList: {list.__repr__(self)}"
+        #else:
+        #    return f"AttrList of attribute '{self.attr}': " \
+        #           f"{list.__repr__(self)}"
+
+    def __iter__(self):
+        """ Iterate through source list based on attribute. """
+        if self.attr:
+            a = self.attr
+            return iter([getattr(o, a) for o in self.source])
+            #for el in self.source:
+            #    yield getattr(el, a)
+        else:
+            return iter(self.source)
+            #for el in self.source:
+            #    yield el  # return iter(self.source)
+
+    def __getitem__(self, key):
+        """ Get item from source list. """
+        return getattr(self.source[key], self.attr)
+
+    def __setitem__(self, key, value):
+        """ Set item to source list. """
+        setattr(self.source[key], self.attr, value)
 
     def __call__(self, *args, **kwargs):
-        return AttrList(
-            [func_obj(*args, **kwargs) for func_obj in self],
-            attr=self.attr)  # TODO Add return values to attr name?
+        return [func_obj(*args, **kwargs) for func_obj in self]
 
     def __eq__(self, other):
+        # TODO doesn't work with second attrlist
         return [obj == other for obj in self]
 
     def __ne__(self, other):
@@ -93,6 +118,11 @@ class ObjList(list):
         super().__init__(iterable)
         super().__setattr__('model', model)
 
+    @property
+    def ndim(self):
+        # Necessary for numpy.random.Generator.shuffle() to work
+        return 1
+
     def __repr__(self):
         s = 's' if len(self) > 1 else ''
         return f"ObjList [{len(self)} object{s}]"
@@ -109,10 +139,38 @@ class ObjList(list):
 
     def __getattr__(self, name):
         """ Return callable list of attributes """
-        return AttrList([getattr(obj, name) for obj in self], attr=name)
+        return AttrList(self, attr=name)
 
-    def __call__(self, selection):
-        return self.select(selection)
+    def call(self, method, check_alive=False, iter_kwargs=None, **kwargs):
+        """ Call a method for every agent in the list.
+
+        Arguments:
+            method (str): Name of the method.
+            check_alive (bool, optional):
+                Skip agents that have been deleted (default False).
+            iter_kwargs (dict of iterables):
+                Keyword arguments that are different for every method call.
+                Dictionary entries should be iterables with the same length
+                as the AgentList, or the remaining agents will not be called.
+            **kwargs:
+                Keyword arguments that are the same for every method call.
+        """
+        if check_alive and iter_kwargs is None:
+            return [getattr(obj, method)(**kwargs) for obj in self
+                    if obj.alive]
+        elif check_alive and iter_kwargs is not None:
+            return [getattr(obj, method)(**kwargs,
+                                         **{k: v for k, v
+                                            in zip(iter_kwargs, kwargv)})
+                    for obj, *kwargv in zip(objs, *iter_kwargs.values())
+                    if obj.alive]
+        elif not check_alive and iter_kwargs is not None:
+            return [getattr(obj, method)(**kwargs,
+                                         **{k: v for k, v
+                                            in zip(iter_kwargs, kwargv)})
+                    for obj, *kwargv in zip(objs, *iter_kwargs.values())]
+        else:
+            return [getattr(obj, method)(*args, **kwargs) for obj in self]
 
     def _default_generator(self):
         """ Try to find default number generator. """
@@ -218,14 +276,14 @@ class AgentList(ObjList):
 
             >>> agents.x = 1
             >>> agents.x
-            AttrList of attribute 'x': [1, 1, 1]
+            AttrList of 'x': [1, 1, 1]
 
         One can also set different variables for each agent
         by passing another :class:`AttrList`::
 
             >>> agents.y = ap.AttrList([1, 2, 3])
             >>> agents.y
-            AttrList of attribute 'y': [1, 2, 3]
+            AttrList of 'y': [1, 2, 3]
 
         Arithmetic operators can be used in a similar way.
         If an :class:`AttrList` is passed, different values are used for
@@ -233,11 +291,17 @@ class AgentList(ObjList):
 
             >>> agents.x = agents.x + agents.y
             >>> agents.x
-            AttrList of attribute 'x': [2, 3, 4]
+            AttrList of 'x': [2, 3, 4]
 
             >>> agents.x *= 2
             >>> agents.x
-            AttrList of attribute 'x': [4, 6, 8]
+            AttrList of 'x': [4, 6, 8]
+
+        Attributes of specific agents can be changed through setting items::
+
+            >>> agents.x[2] = 10
+            >>> agents.x
+            AttrList of 'x': [4, 6, 10]
 
         Boolean operators can be used to select a subset of agents::
 
