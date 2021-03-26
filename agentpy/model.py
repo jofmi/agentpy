@@ -37,6 +37,7 @@ class Model(ApEnv):
         t (int): Current time-step of the model.
         log (dict): The models' recorded variables.
         measures (dict): The models' recorded measures.
+        var_keys (list): Names of the model's variables.
         output (DataDict):
             Output data that is generated at the end of a simulation.
 

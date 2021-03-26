@@ -26,12 +26,10 @@ class ApObj:
 
     @property
     def type(self):
-        """Class name of the object (str)."""
         return type(self).__name__
 
     @property
     def var_keys(self):
-        """The object's variables (list of str)."""
         return [k for k in self.__dict__.keys()
                 if k[0] != '_'
                 and k not in self._var_ignore]
@@ -154,7 +152,9 @@ class Agent(ApObj):
         envs (EnvList): Environments of the agent.
         log (dict): Recorded variables of the agent.
         id (int): Unique identifier of the agent instance.
+        type (str): Class name of the agent.
         alive (bool): Whether the agent is still part of the model.
+        var_keys (list): Names of the agent's variables.
         model (Model): Reference to the model instance.
         p (AttrDict): Reference to the parameters.
     """
@@ -395,6 +395,8 @@ class Environment(ApEnv):
         model (Model): Model instance.
         p (AttrDict): Model parameters.
         id (int): Unique identifier of the environment instance.
+        type (str): Class name of the environment.
+        var_keys (list): Names of the environment's variables.
         topology (str): Topology of the environment.
         log (dict): The environments' recorded variables.
     """
