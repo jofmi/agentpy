@@ -35,13 +35,21 @@ class AttrList:
         """ Iterate through source list based on attribute. """
         if self.attr:
             a = self.attr
-            return iter([getattr(o,a) for o in self.source])
+            return iter([getattr(o, a) for o in self.source])
             #for el in self.source:
             #    yield getattr(el, a)
         else:
             return iter(self.source)
             #for el in self.source:
             #    yield el  # return iter(self.source)
+
+    def __getitem__(self, key):
+        """ Get item from source list. """
+        return getattr(self.source[key], self.attr)
+
+    def __setitem__(self, key, value):
+        """ Set item to source list. """
+        setattr(self.source[key], self.attr, value)
 
     def __call__(self, *args, **kwargs):
         return [func_obj(*args, **kwargs) for func_obj in self]
@@ -131,10 +139,37 @@ class ObjList(list):
     def __getattr__(self, name):
         """ Return callable list of attributes """
         return AttrList(self, attr=name)
-        # return AttrList([getattr(obj, name) for obj in self], attr=name)
 
-    def __call__(self, selection):
-        return self.select(selection)
+    def call(self, method, check_alive=False, iter_kwargs=None, **kwargs):
+        """ Call a method for every agent in the list.
+
+        Arguments:
+            method (str): Name of the method.
+            check_alive (bool, optional):
+                Skip agents that have been deleted (default False).
+            iter_kwargs (dict of iterables):
+                Keyword arguments that are different for every method call.
+                Dictionary entries should be iterables with the same length
+                as the AgentList, or the remaining agents will not be called.
+            **kwargs:
+                Keyword arguments that are the same for every method call.
+        """
+        if check_alive and iter_kwargs is None:
+            return [getattr(obj, method)(**kwargs) for obj in self
+                    if obj.alive]
+        elif check_alive and iter_kwargs is not None:
+            return [getattr(obj, method)(**kwargs,
+                                         **{k: v for k, v
+                                            in zip(iter_kwargs, kwargv)})
+                    for obj, *kwargv in zip(objs, *iter_kwargs.values())
+                    if obj.alive]
+        elif not check_alive and iter_kwargs is not None:
+            return [getattr(obj, method)(**kwargs,
+                                         **{k: v for k, v
+                                            in zip(iter_kwargs, kwargv)})
+                    for obj, *kwargv in zip(objs, *iter_kwargs.values())]
+        else:
+            return [getattr(obj, method)(*args, **kwargs) for obj in self]
 
     def _default_generator(self):
         """ Try to find default number generator. """
