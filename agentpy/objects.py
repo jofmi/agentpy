@@ -13,7 +13,6 @@ class ApObj:
     def __init__(self, model):
         self._log = {}
         self._model = model
-        self._envs = EnvList()
         self._var_ignore = []
         self._alive = True
         self._id = model._new_id()  # Assign id to new object
@@ -52,15 +51,6 @@ class ApObj:
     @property
     def model(self):
         return self._model
-
-    @property
-    def env(self):
-        """ The objects first environment. """
-        return self._envs[0] if self._envs else None
-
-    @property
-    def envs(self):
-        return self._envs
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -161,19 +151,22 @@ class Agent(ApObj):
         **kwargs: Will be forwarded to :func:`Agent.setup`.
 
     Attributes:
-        model (Model): Model instance.
-        p (AttrDict): Model parameters.
         envs (EnvList): Environments of the agent.
         log (dict): Recorded variables of the agent.
         id (int): Unique identifier of the agent instance.
+        alive (bool): Whether the agent is still part of the model.
+        model (Model): Reference to the model instance.
+        p (AttrDict): Reference to the parameters.
     """
 
     def __init__(self, model, **kwargs):
         super().__init__(model)
+        self._envs = EnvList()
         self.setup(**kwargs)
 
     def delete(self):
         """ Remove agent from all environments and the model.
+
         If used during a loop over an :class:`AgentList`,
         consider using `AgentList.call` with the argument `check_alive=True`
         to avoid calling agents after they have been deleted.
@@ -184,18 +177,28 @@ class Agent(ApObj):
 
     @property
     def alive(self):
-        """Wether the object is still part of the model."""
         return self._alive
 
-    def _find_env(self, env=None, topologies=None, new=False):
-        """ Return obj of id or first object with topology. """
-        # TODO Select based on method existance instead of topology
-        if topologies:
-            return self._find_env_top(env=env, topologies=topologies)
+    @property
+    def env(self):
+        if len(self._envs) == 1:
+            return self._envs[0]
+        elif len(self._envs) == 0:
+            raise AgentpyError(f"{self} has no environment.")
+        else:
+            raise AgentpyError(f"{self} has more than one environment. Please "
+                               "use `Agent.envs` instead of `Agent.env`.")
+
+    @property
+    def envs(self):
+        return self._envs
+
+    def _find_env(self, env=None, new=False):
         if env is None:
-            if self.envs:
+            if len(self.envs) == 1:
                 return self.envs[0]
-            raise AgentpyError(f"{self} has no environments.")
+            raise AgentpyError(f"{self} has more than one environment."
+                               f"Argument 'env' must be specified.")
         else:
             if isinstance(env, int):
                 env = self.model.get_obj(env)
@@ -203,36 +206,18 @@ class Agent(ApObj):
                 return env
             raise AgentpyError(f"{self} is not part of environment {env}.")
 
-    def _find_env_top(self, env=None, topologies=None):
-        """ Return obj of id or first object with topology"""
-        topologies = make_list(topologies)
-        if env is None:
-            for env in self.envs:
-                if env.topology in topologies:
-                    return env
-            raise AgentpyError(
-                f"Agent {self.id} has no environment "
-                f"with topology '{topologies}'")
-        else:
-            if isinstance(env, int):
-                env = self.model.get_obj(env)
-            if hasattr(env, 'topology') and env.topology in topologies:
-                return env
-            raise AgentpyError(
-                f"{env} does not have topology '{topologies}'")
-
     def position(self, env=None):
-        """ Returns the agents' position from a grid.
+        """ Returns the agents' position from a spatial environment.
 
         Arguments:
             env (int or Environment, optional):
-                Instance or id of environment that should be used.
-                Must have topology 'grid'.
-                If none is given, the first environment of that topology
-                in :attr:`Agent.envs` is used.
+                Instance or id of a spatial environment
+                that the agent is part of.
+                If the agent has only one environment,
+                it is selected by default.
         """
-
-        env = self._find_env(env, ['grid', 'space'])
+        # TODO make position explicit 'position' for custom subclasses
+        env = self._find_env(env)
         return env._agent_dict[self]
 
     def move_by(self, path, env=None):
@@ -242,15 +227,15 @@ class Agent(ApObj):
         Arguments:
             path (list of int): Relative change of position.
             env (int or Environment, optional):
-                Instance or id of environment that should be used.
-                Must have topology 'grid'.
-                If none is given, the first environment of that topology
-                in :attr:`Agent.envs` is used.
+                Instance or id of a spatial environment
+                that the agent is part of.
+                If the agent has only one environment,
+                it is selected by default.
         """
-        env = self._find_env(env, ['grid', 'space'])
+        env = self._find_env(env)
         old_pos = self.position(env)
-        position = [p + c for p, c in zip(old_pos, path)]
-        env.move_agent(self, position)
+        new_pos = [p + c for p, c in zip(old_pos, path)]
+        env.move_agent(self, new_pos)
 
     def move_to(self, position, env=None):
         """ Changes the agents' location in the selected environment.
@@ -258,13 +243,13 @@ class Agent(ApObj):
         Arguments:
             position (list of int): Position to move to.
             env(int or Environment, optional):
-                Instance or id of environment that should be used.
-                Must have topology 'grid'.
-                If none is given, the first environment of that topology
-                in :attr:`Agent.envs` is used.
+                Instance or id of a spatial environment
+                that the agent is part of.
+                If the agent has only one environment,
+                it is selected by default.
         """
 
-        env = self._find_env(env, ['grid', 'space'])
+        env = self._find_env(env)
         env.move_agent(self, position)
 
     def neighbors(self, env=None, distance=1, **kwargs):
@@ -282,7 +267,8 @@ class Agent(ApObj):
         Returns:
             AgentList: Neighbors of the agent. Agents without environments
             and environments without a topology like :class:`Environment`
-            will return an empty list.
+            will return an empty list. If an agent has the same neighbors
+            in multiple environments, duplicates will be removed.
         """
         if env:
             if isinstance(env, (list, tuple)):
@@ -301,16 +287,15 @@ class Agent(ApObj):
         for env in envs:
             agents.extend(env.neighbors(self, distance=distance, **kwargs))
 
-        return AgentList(dict.fromkeys(agents))  # Remove duplicates
+        # TODO Better way to remove duplicates?
+        return AgentList(dict.fromkeys(agents))
 
     def enter(self, env):
-        """ Adds agent to passed environment.
+        """ Adds agent to chosen environment.
 
         Arguments:
-            env(int or Environment, optional):
-                Instance or id of environment that should be used.
-                If none is given, the first environment
-                in :attr:`Agent.envs` is used.
+            env(int or Environment):
+                Instance or id of environment.
         """
         env = self._find_env(env, new=True)
         env.add_agents(self)
@@ -320,9 +305,9 @@ class Agent(ApObj):
 
         Arguments:
             env(int or Environment, optional):
-                Instance or id of environment that should be used.
-                If none is given, the first environment
-                in :attr:`Agent.envs` is used.
+                Instance or id of an environment that the agent is part of.
+                If the agent has only one environment,
+                it is selected by default.
         """
         env = self._find_env(env)
         env.remove_agents(self)
@@ -365,7 +350,7 @@ class ApEnv(ApObj):
                 created (i.e. if an integer number is passed to `agents`).
 
         Returns:
-            AgentList: List of the new agents.
+            AgentList: List of the added agents.
         """
 
         # Check if object is environment or model

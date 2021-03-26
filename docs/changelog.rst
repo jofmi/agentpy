@@ -4,6 +4,9 @@
 Changelog
 =========
 
+Please note that API changes without backward compatibility
+are still possible until the release of v1.0.0.
+
 0.0.8.dev0
 ----------
 
@@ -21,10 +24,6 @@ source list. This improves performance and makes it possible to change
 agent attributes by setting new values to items in the attribute list (see
 :class:`AgentList` for an example). Otherwise, the class behaves as before.
 
-The feature to call `AgentList.select` through `AgentList.__call__`
-(i.e. by invoking the agent list as a function) has been removed,
-following Python's philosophy that explicit is better than implicit.
-
 Agent-Environment interaction
 .............................
 
@@ -32,12 +31,28 @@ The method :func:`Agent.neighbors` can now take multiple environments
 as an argument. If no environments are given, it will select all of the
 agents environments. For environments without a topology like :class:`Environment`
 and agents without any environments, an empty list will be returned.
-
-Removing agents has been improved.
-Agents have a new attribute :obj:`alive` that indicates whether they
+Agents further have a new attribute :obj:`alive` that indicates whether they
 have been removed from the model.
-And :func:`Model.remove_agents` now removes agents not just from the model,
-but also from all environments.
+
+Other changes
+.............
+
+Following Python's philosophy that explicit is better than implicit,
+a few 'magic' features have been removed:
+
+* Calling :func:`AgentList.select` through `AgentList.__call__`
+  (i.e. by invoking the agent list as a function) is no longer possible.
+* :obj:`Agent.env` and :obj:`Model.env` now returns an error if the agent has no or
+  more than one environment.
+* The argument `env` in :func:`AgentList.position`, :func:`AgentList.move_to`,
+  :func:`AgentList.move_by`, and :func:`AgentList.exit` must be given explicitely
+  if the agent has more than one environment.
+
+Fixes
+.....
+
+* :func:`Model.remove_agents` now removes agents not just from the model,
+  but also from all environments.
 
 0.0.7 (March 2021)
 ------------------
@@ -66,8 +81,8 @@ and has three new arguments 'replace', 'weights', and 'shuffle'.
 More information with examples can be found in the API reference
 and the new user guide :doc:`guide_random`.
 
-API changes
-...........
+Other changes
+.............
 
 * The function :func:`sensitivity_sobol` now has an argument :attr:`calc_second_order` (default False).
   If True, the function will add second-order indices to the output.

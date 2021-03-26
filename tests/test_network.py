@@ -11,20 +11,20 @@ def test_add_agents():
     graph.add_node(1)
     model = ap.Model()
     model.add_agents(2)
-    model.add_network(graph=graph, agents=model.agents)
-    model.env.graph.add_edge(model.agents[0],model.agents[1])
+    env = model.add_network(graph=graph, agents=model.agents)
+    env.graph.add_edge(model.agents[0], model.agents[1])
     assert list(model.agents[0].neighbors().id) == [2]
 
     # Add agents as new nodes
     model2 = ap.Model()
     agents = model2.add_agents(2)
-    model2.add_network(agents = agents[0])  # Add at initialization
-    model2.env.add_agents(agents[1])  # Add later
-    model2.env.graph.add_edge(model2.agents[0],model2.agents[1])
+    env2 = model2.add_network(agents = agents[0])  # Add at initialization
+    env2.add_agents(agents[1])  # Add later
+    env2.graph.add_edge(model2.agents[0],model2.agents[1])
 
     # Test if the two graphs are identical
-    assert model.env.graph.nodes.__repr__() == model2.env.graph.nodes.__repr__()
-    assert model.env.graph.edges.__repr__() == model2.env.graph.edges.__repr__()
+    assert env.graph.nodes.__repr__() == env2.graph.nodes.__repr__()
+    assert env.graph.edges.__repr__() == env2.graph.edges.__repr__()
 
     # Test errors
     model3 = ap.Model()

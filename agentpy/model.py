@@ -22,25 +22,28 @@ class Model(ApEnv):
 
     This class can be used as a parent class for custom models.
     Class attributes can be accessed like dictionary items.
-    To define the procedures of a simulation, override the methods
+    To define the simulation procedure, you can override the methods
     :func:`Model.setup`, :func:`Model.step`,
     :func:`Model.update`, and :func:`Model.end`.
-    See :func:`Model.run` for more information on the simulation procedure.
+    The perform the simulation, use :func:`Model.run`.
 
     Attributes:
         name (str): The models' name.
         envs (EnvList): The models' environments.
         agents (AgentList): The models' agents.
+        objects (ObjList): The models' agents and environments.
+        random (numpy.random.Generator): The models random number generator.
         p (AttrDict): The models' parameters.
         t (int): Current time-step of the model.
         log (dict): The models' recorded variables.
-        output (DataDict): Output data after simulation.
+        measures (dict): The models' recorded measures.
+        output (DataDict):
+            Output data that is generated at the end of a simulation.
 
     Arguments:
         parameters (dict, optional): Dictionary of model parameters.
             Recommended types for parameters are int, float, str, list,
             numpy.integer, numpy.floating, and numpy.ndarray.
-            Other types might cause errors.
         run_id (int, optional): Number of current run (default None).
         scenario (str, optional): Current scenario (default None).
         **kwargs: Will be forwarded to :func:`Model.setup`.
@@ -63,6 +66,7 @@ class Model(ApEnv):
                            'time_stamp': str(datetime.now())}
 
         # Private variables
+        self._envs = EnvList()
         self._random = np.random.default_rng()
         self._steps = None
         self._parameters = AttrDict(parameters)
@@ -81,16 +85,35 @@ class Model(ApEnv):
                 rep += f"\n'{k}': {v}"
         return rep + '\n}'
 
+    # Properties ------------------------------------------------------------ #
+
     @property
     def objects(self):
-        """ Returns a list of all model objects (agents and environments). """
         return ObjList(self.agents + self.envs)
 
     @property
+    def env(self):
+        if len(self._envs) == 1:
+            return self._envs[0]
+        elif len(self._envs) == 0:
+            raise AgentpyError(f"{self} has no environment.")
+        else:
+            raise AgentpyError(f"{self} has more than one environment. Please "
+                               "use `Agent.envs` instead of `Agent.env`.")
+
+    @property
+    def envs(self):
+        return self._envs
+
+    @property
     def random(self):
-        """ Returns the models random number generator
-        of type :class:`numpy.random.Generator`. """
         return self._random
+
+    @property
+    def measures(self):
+        return self._measure_log
+
+    # Handling object ids --------------------------------------------------- #
 
     def get_obj(self, obj_id):
         """ Returns model object with passed object id (int). """
@@ -120,35 +143,52 @@ class Model(ApEnv):
                 agent._alive = False
 
     def add_env(self, env_class=Environment, **kwargs):
-        """ Creates a new environment. """
+        """ Adds a new environment to the model.
+
+        Arguments:
+            env_class (type, optional):
+                The environment class that should be used.
+                If none is passed, :class:`Environment` is used.
+            **kwargs: Forwarded to the new environment.
+
+        Returns:
+              Environment: The new environment.
+        """
         new_env = env_class(self.model, **kwargs)
         self.envs.append(new_env)
         return new_env
 
     def add_network(self, graph=None, agents=None, **kwargs):
-        """ Creates a new environment with a network.
-        Arguments are forwarded to :class:`Network`. """
+        """ Adds a new :class:`Network` environment to the model.
+        Arguments are forwarded to the new environment. """
         new_env = Network(self.model, graph=graph, agents=agents, **kwargs)
         self.envs.append(new_env)
         return new_env
 
     def add_grid(self, shape, **kwargs):
-        """ Creates a new environment with a spatial grid.
-        Arguments are forwarded to :class:`Grid`. """
+        """ Adds a new :class:`Grid` environment to the model.
+        Arguments are forwarded to the new environment. """
         new_env = Grid(self.model, shape=shape, **kwargs)
         self.envs.append(new_env)
         return new_env
 
     def add_space(self, shape, **kwargs):
-        """ Creates a new environment with a continuous space.
-        Arguments are forwarded to :class:`Space`. """
+        """ Adds a new :class:`Space` environment to the model.
+        Arguments are forwarded to the new environment. """
         new_env = Space(self.model, shape=shape, **kwargs)
         self.envs.append(new_env)
         return new_env
 
-    def measure(self, measure, value):
-        """ Records an evaluation measure. """
-        self._measure_log[measure] = [value]
+    # Recording ------------------------------------------------------------- #
+
+    def measure(self, name, value):
+        """ Records an evaluation measure.
+
+        Arguments:
+            name (str): Name of the measure.
+            value (int or float): Measured value.
+        """
+        self._measure_log[name] = [value]
 
     # Main simulation functions
 

@@ -8,7 +8,7 @@ def test_general():
 
     model = ap.Model()
     space = model.add_space((2, 2))
-    assert space is model.env
+    assert space is model.envs[0]
     assert space.shape == (2, 2)
     assert space.dim == 2
 

@@ -118,12 +118,13 @@ def test_delete():
 
     model = ap.Model()
     model.add_agents(3)
-    model.add_env().add_agents(model.agents)
+    env = model.add_env()
+    env.add_agents(model.agents)
     model.agents[1].delete()
 
     assert len(model.agents) == 2
     assert list(model.agents.id) == [1, 3]
-    assert list(model.env.agents.id) == [1, 3]
+    assert list(env.agents.id) == [1, 3]
 
 
 def test_create_output():

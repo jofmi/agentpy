@@ -7,17 +7,17 @@ def test_general():
 
     model = ap.Model()
     grid = model.add_grid((2, 2))
-    assert grid is model.env
+    assert grid is model.envs[0]
     assert grid.shape == (2, 2)
     assert grid.dim == 2
 
     # 5th agent must be at first position again
-    model.env.add_agents(5)
-    assert len(model.env.grid[0][0]) == 2
-    assert len(model.env.grid[0][1]) == 1
+    grid.add_agents(5)
+    assert len(grid.grid[0][0]) == 2
+    assert len(grid.grid[0][1]) == 1
 
     # Test only for errors
-    model.env.add_agents(5, random=True)
+    grid.add_agents(5, random=True)
 
 
 def test_remove():
@@ -62,20 +62,20 @@ def test_positions():
 
 def test_attribute():
     model = ap.Model()
-    model.add_grid((2, 2))
-    model.env.add_agents(5)
-    assert model.env.attribute('id') == [[8, 3], [4, 5]]
-    assert model.env.attribute('id', sum_values=False) == [[[2, 6], [3]],
+    grid = model.add_grid((2, 2))
+    grid.add_agents(5)
+    assert grid.attribute('id') == [[8, 3], [4, 5]]
+    assert grid.attribute('id', sum_values=False) == [[[2, 6], [3]],
                                                            [[4], [5]]]
 
 
 def test_apply():
 
     model = ap.Model()
-    model.add_grid((3, 3))
-    model.env.add_agents(1, positions=[(1, 1)])
+    grid = model.add_grid((3, 3))
+    grid.add_agents(1, positions=[(1, 1)])
     # Apply function len to each position, must be 1 where agent is
-    assert model.env.apply(len) == [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+    assert grid.apply(len) == [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
 
 
 def test_movement():

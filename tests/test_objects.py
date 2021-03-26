@@ -15,16 +15,16 @@ repr = """Agent-based model {
 
 def test_basics():
     model = ap.Model()
-    model.add_env()
-    model.env.add_agents()
+    env = model.add_env()
+    env.add_agents()
     agent = model.agents[0]
     agent.x = 1
     agent['y'] = 2
     assert agent['x'] == 1
     assert agent.y == 2
-    assert model.env.__repr__() == "Environment (Obj 1)"
+    assert env.__repr__() == "Environment (Obj 1)"
     assert agent.__repr__() == "Agent (Obj 2)"
-    assert model.env.topology is None
+    assert env.topology is None
     assert model.type == 'Model'
     assert model.__repr__() == repr
     with pytest.raises(AttributeError):

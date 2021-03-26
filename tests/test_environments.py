@@ -9,33 +9,33 @@ def make_model():
     agents = model.add_agents(3)
     env = model.add_env(color='green')
     env.add_agents(agents)
-    return model
+    return model, env
 
 
 def test_add_env():
     """ Add environment to model. """
-    model = make_model()
+    model, env = make_model()
     assert len(model.envs) == 1
-    assert model.env.id == 4  # Environment is added after agents (ID 1-3)
-    assert model.env.color == 'green'  # Attribute passed as kwarg
-    assert type(model.env) == ap.Environment
-    assert model.env == model.envs[0]
-    assert model.agents == model.env.agents
+    assert env.id == 4  # Environment is added after agents (ID 1-3)
+    assert env.color == 'green'  # Attribute passed as kwarg
+    assert type(env) == ap.Environment
+    assert env == model.envs[0]
+    assert model.agents == env.agents
     assert model.agents[0].envs == model.envs
 
 
 def test_remove_agents():
     """ Remove/delete agents from environment/model. """
-    model = make_model()  # Env with three agents
-    assert len(model.env.agents) == 3
-    model.env.remove_agents(model.agents)  # Remove from env
-    assert len(model.env.agents) == 0
+    model, env = make_model()  # Env with three agents
+    assert len(env.agents) == 3
+    env.remove_agents(model.agents)  # Remove from env
+    assert len(env.agents) == 0
     assert len(model.agents) == 3
     model.remove_agents(model.agents)  # Remove from model
     assert len(model.agents) == 0
-    model = make_model()
+    model, env = make_model()
     model.agents.delete()  # Remove from everything
-    assert len(model.env.agents) == 0
+    assert len(env.agents) == 0
     assert len(model.agents) == 0
 
 
