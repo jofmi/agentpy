@@ -69,7 +69,39 @@ def test_neighbors_error():
     model = ap.Model()
     env = model.add_env()
     agent = model.add_agents()[0]
+    assert len(agent.neighbors()) == 0  # Agent has no suitable environment
     with pytest.raises(AgentpyError):
-        agent.neighbors()  # Agent has no suitable environment
-    with pytest.raises(AgentpyError):
-        agent.neighbors(env)  # Chosen environment is not suitable
+        agent.neighbors(env)  # Chosen environment is not part of agent envs
+    env.add_agents(agent)
+    assert len(agent.neighbors()) == 0  # Agent has environment w/o topology
+
+
+def test_neighbors_multi_env():
+    """ Should return neighbors from both environments,
+    but without duplicates."""
+    class MyEnv(ap.Environment):
+        def neighbors(self, *args, **kwargs):
+            return self.agents
+
+    model = ap.Model()
+    agents = model.add_agents(3)
+    for _ in range(2):
+        env = model.add_env(MyEnv)
+        env.add_agents(agents)
+
+    agent = model.agents[0]
+    assert len(agent.neighbors()) == 3
+
+    class MyEnv(ap.Environment):
+        def neighbors(self, *args, **kwargs):
+            return ap.AgentList([self.agents[self.x]])
+
+    model = ap.Model()
+    agents = model.add_agents(3)
+    for i in range(2):
+        env = model.add_env(MyEnv, x=i)
+        env.add_agents(agents)
+
+    agent = model.agents[0]
+    assert len(agent.neighbors()) == 2
+    assert len(agent.neighbors(agent.envs)) == 2
