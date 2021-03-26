@@ -53,8 +53,6 @@ class Model(ApEnv):
         super().__init__(self)  # Model will assign itself id 0
 
         self.t = 0
-        self.name = self.type
-        self.info = self.__doc__
         self.run_id = run_id
         self.scenario = scenario
 
@@ -170,11 +168,11 @@ class Model(ApEnv):
         self._stop = True
 
     @property
-    def active(self):
+    def is_running(self):
         """ Indicates whether the model is currently running (bool). """
         return not self._stop
 
-    def sim_setup(self, steps=None, seed=None):
+    def run_setup(self, steps=None, seed=None):
         """ Sets up time-step 0 of the simulation.
         Prepares steps and random generator,
         and then calls self.setup() and self.update(). """
@@ -202,7 +200,7 @@ class Model(ApEnv):
         if self.t >= self._steps:
             self._stop = True
 
-    def sim_step(self):
+    def run_step(self):
         """ Proceed simulation by one step. """
         self.t += 1
         self.step()
@@ -210,20 +208,12 @@ class Model(ApEnv):
         if self.t >= self._steps:
             self._stop = True
 
-    def sim_steps(self, display=False):
-        """ Proceed simulation until stopping condition is met. """
-        while not self._stop:
-            self.sim_step()
-            if display:
-                print(f"\rCompleted: {self.t} steps", end='')
-
-    def sim_reset(self):
-        """ Reset model to initial conditions. """
+    def reset(self):
+        """ Reset model to initial conditions and call setup. """
         self.__init__(parameters=self.p,
                       run_id=self.run_id,
                       scenario=self.scenario,
                       **self._setup_kwargs)
-        self.sim_setup()
 
     # Main simulation method for direct use --------------------------------- #
 
@@ -256,8 +246,11 @@ class Model(ApEnv):
         """
 
         dt0 = datetime.now()  # Time-Stamp
-        self.sim_setup(steps, seed)
-        self.sim_steps(display)
+        self.run_setup(steps, seed)
+        while not self._stop:
+            self.run_step()
+            if display:
+                print(f"\rCompleted: {self.t} steps", end='')
         self.end()
         self.create_output()
         self.output.log['run_time'] = ct = str(datetime.now() - dt0)
