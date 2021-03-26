@@ -15,6 +15,7 @@ class ApObj:
         self._model = model
         self._envs = EnvList()
         self._var_ignore = []
+        self._alive = True
         self._id = model._new_id()  # Assign id to new object
         self._model._obj_dict[self.id] = self  # Add object to object dict
 
@@ -23,6 +24,11 @@ class ApObj:
 
     def __getattr__(self, key):
         raise AttributeError(f"{self} has no attribute '{key}'.")
+
+    @property
+    def alive(self):
+        """Wether the object is still part of the model."""
+        return self._alive
 
     @property
     def type(self):
