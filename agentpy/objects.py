@@ -179,9 +179,13 @@ class Agent(ApObj):
         self.setup(**kwargs)
 
     def delete(self):
-        """ Remove agent from all environments and the model. """
-        for env in self.envs:
-            env.remove_agents(self)
+        """ Remove agent from all environments and the model.
+        If used during a loop over an :class:`AgentList`,
+        consider using `AgentList.call` with the argument `check_alive=True`
+        to avoid calling agents after they have been deleted.
+        Note that using :func:`Agent.exit` will be faster if only removal
+        from a specific environment is required.
+        """
         self.model.remove_agents(self)
 
     def _find_env(self, env=None, topologies=None, new=False):
@@ -328,11 +332,9 @@ class ApEnv(ApObj):
 
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
-        is_env = True if self != self.model else False
-        for agent in list(make_list(agents)):  # Soft copy
+        for agent in list(make_list(agents)):  # Soft copy as list is changed
             self._agents.remove(agent)
-            if is_env:
-                agent.envs.remove(self)
+            agent.envs.remove(self)
 
     def add_agents(self, agents=1, agent_class=Agent, **kwargs):
         """ Adds agents to the environment.
