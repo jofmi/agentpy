@@ -16,6 +16,26 @@ def test_repr():
     assert l2.__repr__() == "AttrList: [2]"
 
 
+def test_call():
+    class MyAgent(ap.Agent):
+        def method(self):
+            if self.id == 2:
+                self.model.agents[2].delete()
+            self.model.called.append(self.id)
+
+    model = ap.Model()
+    model.called = []
+    model.add_agents(4, MyAgent)
+    model.agents.call('method', check_alive=True)
+    assert model.called == [1, 2, 4]
+
+    model = ap.Model()
+    model.called = []
+    model.add_agents(4, MyAgent)
+    model.agents.method()
+    assert model.called == [1, 2, 3, 4]
+
+
 def test_attr_calls():
     model = ap.Model()
     model.add_agents(2)
@@ -45,8 +65,7 @@ def test_select():
     assert selection4 == [False, False, True]
     assert selection5 == [True, True, False]
     assert selection6 == [False, True, True]
-    assert model.agents(selection1) == model.agents.select(selection1)
-    assert list(model.agents(selection1).id) == [2]
+    assert list(model.agents.select(selection1).id) == [2]
 
 
 def test_random():
