@@ -18,8 +18,8 @@ each agent.
 
 The structure of :class:`AttrList` has been changed to an iterable over its
 source list. This improves performance and makes it possible to change
-agent attributes by setting new values in the attribute list (see
-:class:`AttrList` for an example). Otherwise, the class behaves as before.
+agent attributes by setting new values to items in the attribute list (see
+:class:`AgentList` for an example). Otherwise, the class behaves as before.
 
 The feature to call `AgentList.select` through `AgentList.__call__`
 (i.e. by invoking the agent list as a function) has been removed,

@@ -7,11 +7,12 @@ import numpy as np
 
 
 class AttrList:
-    """ List of attributes from an :class:`AgentList`.
+    """ Iterator of attributes from an :class:`AgentList`.
 
     Calls are forwarded to each entry and return a list of return values.
     Boolean operators are applied to each entry and return a list of bools.
     Arithmetic operators are applied to each entry and return a new list.
+    Item assignments are forwarded to the object in the original list.
     See :class:`AgentList` for examples.
     """
 
@@ -275,14 +276,14 @@ class AgentList(ObjList):
 
             >>> agents.x = 1
             >>> agents.x
-            AttrList of attribute 'x': [1, 1, 1]
+            AttrList of 'x': [1, 1, 1]
 
         One can also set different variables for each agent
         by passing another :class:`AttrList`::
 
             >>> agents.y = ap.AttrList([1, 2, 3])
             >>> agents.y
-            AttrList of attribute 'y': [1, 2, 3]
+            AttrList of 'y': [1, 2, 3]
 
         Arithmetic operators can be used in a similar way.
         If an :class:`AttrList` is passed, different values are used for
@@ -290,11 +291,17 @@ class AgentList(ObjList):
 
             >>> agents.x = agents.x + agents.y
             >>> agents.x
-            AttrList of attribute 'x': [2, 3, 4]
+            AttrList of 'x': [2, 3, 4]
 
             >>> agents.x *= 2
             >>> agents.x
-            AttrList of attribute 'x': [4, 6, 8]
+            AttrList of 'x': [4, 6, 8]
+
+        Attributes of specific agents can be changed through setting items::
+
+            >>> agents.x[2] = 10
+            >>> agents.x
+            AttrList of 'x': [4, 6, 10]
 
         Boolean operators can be used to select a subset of agents::
 
