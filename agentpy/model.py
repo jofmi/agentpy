@@ -13,7 +13,7 @@ from .network import Network
 from .grid import Grid
 from .space import Space
 from .tools import AttrDict, AgentpyError, make_list
-from .lists import ObjList
+from .lists import ObjList, EnvList
 
 
 class Model(ApEnv):
@@ -43,7 +43,7 @@ class Model(ApEnv):
             Other types might cause errors.
         run_id (int, optional): Number of current run (default None).
         scenario (str, optional): Current scenario (default None).
-        **kwargs: Will be forwarded to :func:`Model.setup`
+        **kwargs: Will be forwarded to :func:`Model.setup`.
     """
 
     def __init__(self, parameters=None, run_id=None, scenario=None, **kwargs):
@@ -103,6 +103,20 @@ class Model(ApEnv):
         """ Returns a new unique object id (int). """
         self._id_counter += 1
         return self._id_counter
+
+    # Adding and removing objects ------------------------------------------- #
+
+    def remove_agents(self, agents):
+        """ Removes agents from the model, including all environments.
+        If used during a loop over an :class:`AgentList`,
+        consider using `AgentList.call` with the argument `check_alive=True`
+        to avoid calling agents after they have been deleted. """
+        for agent in list(make_list(agents)):  # Soft copy as list is changed
+            self._agents.remove(agent)
+            for env in agent.envs:
+                env._agents.remove(agent)
+        agent._envs = EnvList()
+        agent._alive = False
 
     def add_env(self, env_class=Environment, **kwargs):
         """ Creates a new environment. """
