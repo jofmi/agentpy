@@ -34,7 +34,7 @@ agents environments. For environments without a topology like :class:`Environmen
 and agents without any environments, an empty list will be returned.
 
 Removing agents has been improved.
-Model objects have a new attribute :obj:`alive` that indicates whether they
+Agents have a new attribute :obj:`alive` that indicates whether they
 have been removed from the model.
 And :func:`Model.remove_agents` now removes agents not just from the model,
 but also from all environments.

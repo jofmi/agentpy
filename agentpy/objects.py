@@ -26,11 +26,6 @@ class ApObj:
         raise AttributeError(f"{self} has no attribute '{key}'.")
 
     @property
-    def alive(self):
-        """Wether the object is still part of the model."""
-        return self._alive
-
-    @property
     def type(self):
         """Class name of the object (str)."""
         return type(self).__name__
@@ -186,6 +181,11 @@ class Agent(ApObj):
         from a specific environment is required.
         """
         self.model.remove_agents(self)
+
+    @property
+    def alive(self):
+        """Wether the object is still part of the model."""
+        return self._alive
 
     def _find_env(self, env=None, topologies=None, new=False):
         """ Return obj of id or first object with topology. """
