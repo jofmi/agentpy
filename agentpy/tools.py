@@ -10,12 +10,18 @@ class AgentpyError(Exception):
     pass
 
 
-def make_matrix(shape, class_):
+def make_none():
+    return None
+
+
+def make_matrix(shape, loc_type=make_none, list_type=list):
     """ Returns a nested list with given shape and class instance. """
-    # H/T Thierry Lathuille https://stackoverflow.com/a/64467230/
+
     if len(shape) == 1:
-        return [class_() for _ in range(shape[0])]
-    return [make_matrix(shape[1:], class_) for _ in range(shape[0])]
+        return list_type([loc_type()
+                          for _ in range(shape[0])])
+    return list_type([make_matrix(shape[1:], loc_type, list_type)
+                      for _ in range(shape[0])])
 
 
 def make_list(element, keep_none=False):

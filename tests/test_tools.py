@@ -13,6 +13,16 @@ def test_make_list():
     assert make_list(None, keep_none=True) == [None]
 
 
+def test_make_matrix():
+
+    class MyList(list):
+        def __repr__(self):
+            return f"mylist {super().__repr__()}"
+
+    m = make_matrix([2, 2], dict, MyList)
+    assert m.__repr__() == "mylist [mylist [{}, {}], mylist [{}, {}]]"
+
+
 def test_attr_dict():
 
     ad = ap.AttrDict({'a': 1})
