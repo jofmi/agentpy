@@ -21,16 +21,39 @@ class AttrList:
         self._iter_source = None
         self.attr = attr
 
-    def __repr__(self):
-        if self.attr is None:
-            return f"AttrList: {list(self)}"
+    def _repr_list(self):
+        rep = "["
+        first = True
+        for el in self:
+            if first:
+                first = False
+            else:
+                rep += ', '
+            if isinstance(el, AttrList):
+                rep += el.__repr__(short=True)
+            else:
+                rep += el.__repr__()
+        return rep + ']'
+
+    # TODO IN DEVELOPMENT
+    def flatten(self, levels=1, sum=False, empty=np.nan):
+        if isinstance(list_[0], AttrList):
+            return [self.flatten(sublist)
+                    for sublist in list_]
         else:
-            return f"AttrList of '{self.attr}': {list(self)}"
-        #if self.attr is None:
-        #    return f"AttrList: {list.__repr__(self)}"
-        #else:
-        #    return f"AttrList of attribute '{self.attr}': " \
-        #           f"{list.__repr__(self)}"
+            return [*self.flatten(sublist)
+                    for sublist in list_]
+        else:
+            return [func(i, *args, **kwargs) for i in grid]
+
+    def __repr__(self, short=False):
+        rep = ""
+        if not short:
+            rep += "AttrList"
+            if self.attr:
+                rep += f"of '{self.attr}'"
+            rep += ": "
+        return rep + self._repr_list()
 
     def __iter__(self):
         """ Iterate through source list based on attribute. """
@@ -342,3 +365,13 @@ class EnvList(ObjList):
             if len(self) > 1:
                 for env in self[1:]:
                     env.add_agents(new_agents)
+
+
+# TODO IN DEVELOPMENT
+class LocList(ObjList):
+    def __repr__(self):
+        return f"LocList {list.__repr__(self)}"
+
+    @property
+    def agents(self):
+        return AgentList([li.agents for li in self])

@@ -1,7 +1,7 @@
 import pytest
 import agentpy as ap
 
-from agentpy.tools import AgentpyError
+from agentpy.tools import *
 
 
 def test_make_list():
@@ -19,8 +19,12 @@ def test_make_matrix():
         def __repr__(self):
             return f"mylist {super().__repr__()}"
 
-    m = make_matrix([2, 2], dict, MyList)
-    assert m.__repr__() == "mylist [mylist [{}, {}], mylist [{}, {}]]"
+    m = make_matrix([2, 2], list_type=MyList)
+    assert m.__repr__() == "mylist [mylist [None, None], mylist [None, None]]"
+
+    m = make_matrix([2, 2], loc_type=ap.Location, list_type=MyList)
+    assert m.__repr__() == "mylist [mylist [Location (0, 0), Location (0, 1)]"\
+                           ", mylist [Location (1, 0), Location (1, 1)]]"
 
 
 def test_attr_dict():

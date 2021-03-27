@@ -53,8 +53,8 @@ def test_positions():
     # Position reference
     a1 = model.agents[0]
     a2 = model.agents[1]
-    assert list(a1.position()) == list(space.position(a1))
-    assert list(a1.position()) == list(space.position(a1.id))
+    assert list(a1.position()) == list(space.get_position(a1))
+    assert list(a1.position()) == list(space.get_position(a1.id))
     assert list(a1.position()) == [0, 0]
     assert list(a2.position()) == [1, 2]
     assert [list(x) for x in space.positions()] == [[0, 0], [1, 2]]

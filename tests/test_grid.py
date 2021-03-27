@@ -27,7 +27,7 @@ def test_remove():
     agent = model.agents[0]
     grid.remove_agents(agent)
     assert grid.attribute('id') == [[np.nan, 3], [np.nan, np.nan]]
-    assert len(grid._agent_dict) == 1
+    assert len(grid._agent_to_loc) == 1
     assert len(grid.agents) == 1
 
 
@@ -101,7 +101,6 @@ def test_neighbors():
     model = ap.Model()
     grid = model.add_grid((5, 5))
     grid.add_agents(25)
-    grid.attribute('id')
     a = model.agents[12]
 
     assert a.neighbors() == grid.neighbors(a.id)

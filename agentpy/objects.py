@@ -207,7 +207,9 @@ class Agent(ApObj):
             raise AgentpyError(f"{self} is not part of environment {env}.")
 
     def position(self, env=None):
-        """ Returns the agents' position from a spatial environment.
+        """ Returns the agents' position
+        from an environment with spatial coordinates
+        like :class:`Grid` or :class:`Space`.
 
         Arguments:
             env (int or Environment, optional):
@@ -216,9 +218,23 @@ class Agent(ApObj):
                 If the agent has only one environment,
                 it is selected by default.
         """
-        # TODO make position explicit 'position' for custom subclasses
         env = self._find_env(env)
-        return env._agent_dict[self]
+        return env.get_position(self)
+
+    def location(self, env=None):
+        """ Returns the agents' location
+        from a location-based environment
+        like :class:`Grid` or :class:`Network`.
+
+        Arguments:
+            env (int or Environment, optional):
+                Instance or id of a spatial environment
+                that the agent is part of.
+                If the agent has only one environment,
+                it is selected by default.
+        """
+        env = self._find_env(env)
+        return env.get_loc_from_agent(self)
 
     def move_by(self, path, env=None):
         """ Changes the agents' location in the selected environment,
@@ -404,3 +420,18 @@ class Environment(ApEnv):
     def __init__(self, model, **kwargs):
         super().__init__(model)
         self.setup(**kwargs)
+
+
+# TODO IN DEVELOPMENT
+class Location:
+    """ A location in an environment. """
+    def __init__(self, pos):
+        self.agents = AgentList()
+        self._pos = tuple(pos)
+
+    @property
+    def pos(self):
+        return self._pos
+
+    def __repr__(self):
+        return f"Location {self.pos}"

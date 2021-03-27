@@ -9,8 +9,8 @@ Source: https://github.com/JoelForamitti/agentpy
 
 __all__ = [
     '__version__',
-    'Model', 'Environment', 'Network', 'Grid', 'Space',
-    'Agent', 'AgentList', 'EnvList', 'ObjList', 'AttrList',
+    'Model', 'Environment', 'Location', 'Network', 'Grid', 'Space',
+    'Agent', 'AgentList', 'EnvList', 'ObjList', 'AttrList', 'LocList',
     'Experiment',
     'DataDict', 'load',
     'sample', 'sample_discrete', 'sample_saltelli',
@@ -27,8 +27,8 @@ except ImportError:
 __version__ = metadata.version('agentpy')
 
 # Objects
-from .lists import AttrList, ObjList, AgentList, EnvList
-from .objects import Agent, Environment
+from .lists import AttrList, ObjList, AgentList, EnvList, LocList
+from .objects import Agent, Environment, Location
 from .network import Network
 from .grid import Grid
 from .space import Space

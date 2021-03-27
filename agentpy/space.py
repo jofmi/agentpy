@@ -135,7 +135,7 @@ class Space(ApEnv):
             del self._agent_dict[agent]
         super().remove_agents(agents)
 
-    def position(self, agent):
+    def get_position(self, agent):
         """ Returns :class:`numpy.array` with position of passed agent.
 
         Arguments:
