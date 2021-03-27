@@ -252,15 +252,6 @@ class Model(ApEnv):
         """ Adds or updates passed parameters. """
         self._parameters.update(parameters)
 
-    def stop(self):
-        """ Stops :meth:`Model.run` during an active simulation. """
-        self._stop = True
-
-    @property
-    def is_running(self):
-        """ Indicates whether the model is currently running (bool). """
-        return not self._stop
-
     def run_setup(self, steps=None, seed=None):
         """ Sets up time-step 0 of the simulation.
         Prepares steps and a random number generator,
@@ -297,6 +288,15 @@ class Model(ApEnv):
         self.update()
         if self.t >= self._steps:
             self._stop = True
+
+    def stop(self):
+        """ Stops :meth:`Model.run` during an active simulation. """
+        self._stop = True
+
+    @property
+    def is_running(self):
+        """ Indicates whether the model is currently running (bool). """
+        return not self._stop
 
     def reset(self):
         """ Reset model to initial conditions and call setup. """
