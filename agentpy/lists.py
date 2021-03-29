@@ -41,10 +41,10 @@ class AttrList:
             return [self.flatten(sublist)
                     for sublist in list_]
         else:
-            return [*self.flatten(sublist)
-                    for sublist in list_]
-        else:
-            return [func(i, *args, **kwargs) for i in grid]
+            return #[*self.flatten(sublist)
+                   # for sublist in list_]
+        #else:
+        #    return [func(i, *args, **kwargs) for i in grid]
 
     def __repr__(self, short=False):
         rep = ""
