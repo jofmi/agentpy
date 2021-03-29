@@ -10,6 +10,21 @@ are still possible until the release of v1.0.0.
 0.0.8.dev0
 ----------
 
+Grid and Network Locations
+..........................
+
+The environments :class:`Grid` and :class:`Network` have changed significantly,
+and now can now represent each grid cell or network node with a :class:`Location`.
+An agents' location can be accessed with the new method :func:`Agent.location`.
+Each location holds a number of agents, and can also have attributes itself.
+
+:obj:`Grid.grid` now returns a :class:`LocList` of the grids locations.
+Location attributes can be accessed like in an Agent List, e.g. to set an
+attribute x for all locations, one can call `my_grid.grid.x = 1`.
+To set an attribute x for all agents in those locations, one would call
+`my_grid.grid.agents.x = 1`.
+
+
 Improved lists
 ..............
 
