@@ -2,6 +2,8 @@ import pytest
 import agentpy as ap
 from SALib.sample import saltelli
 
+# TODO Test Integer Spaces
+
 
 def test_repr():
     v = ap.Values(1, 2)
@@ -80,7 +82,7 @@ def test_sample_saltelli():
     param_values = saltelli.sample(problem, 1, calc_second_order=False)
 
     for s1, s2 in zip(sample, param_values):
-        assert s1['a'] == int(round(s2[0]))
+        assert s1['a'] == int(s2[0])
         assert s1['b'] == s2[1]
         assert s1['c'] == parameters['c'].values[int(s2[2])]
         assert s1['d'] == parameters['d']
@@ -107,7 +109,7 @@ def test_sample_saltelli_second():
     param_values = saltelli.sample(problem, 1, calc_second_order=True)
 
     for s1, s2 in zip(sample, param_values):
-        assert s1['a'] == int(round(s2[0]))
+        assert s1['a'] == int(s2[0])
         assert s1['b'] == s2[1]
         assert s1['c'] == parameters['c'].values[int(s2[2])]
         assert s1['d'] == parameters['d']
