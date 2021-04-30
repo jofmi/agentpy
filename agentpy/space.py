@@ -3,220 +3,180 @@ Agentpy Space Module
 Content: Class for continuous spatial environments
 """
 
-# There is much room for optimization in this module.
-# Contributions are welcome! :)
-
 # TODO Add option of space without shape (infinite)
-# TODO Improve datatype consistency (list, np.array, etc.)
-# TODO Method for distance between agents
-# TODO Create method items() consistent with Grid
+# TODO Custom iterator for neighbors() & select() for performance
 
 import itertools
 import numpy as np
 import random as rd
 import collections.abc as abc
 from scipy import spatial
-from .objects import ApEnv, Agent
+from .objects import Spatial
 from .tools import make_list, make_matrix
-from .lists import AgentList
+from .sequences import AgentList, AgentIter
 
 
-class Space(ApEnv):
+class Space(Spatial):
     """ Environment that contains agents with a continuous spatial topology.
     To add new space environments to a model, use :func:`Model.add_space`.
-    For a discrete spatial topology, use :class:`Grid`.
+    For a discrete spatial topology, see :class:`Grid`.
 
     This class can be used as a parent class for custom space types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
-    See :class:`Environment` for general properties of all environments.
 
     Arguments:
         model (Model): The model instance.
         shape (tuple of float): Size of the space.
             The length of the tuple defines the number of dimensions,
             and the values in the tuple define the length of each dimension.
-        connect_borders (bool, optional):
+        torus (bool, optional):
             Whether to connect borders (default False).
-            If True, space will be toroidal, meaning that agents who, for
-            example, move over the right border, will appear on the left side.
+            If True, the space will be toroidal, meaning that agents who
+            move over a border will re-appear on the opposite side.
+            If False, they will remain at the edge of the border.
         **kwargs: Will be forwarded to :func:`Space.setup`.
 
     Attributes:
-        shape (tuple of float): Length of each spatial dimension.
-        dim (int): Number of dimensions.
+        agents (AgentIter):
+            Iterator over all agents in the space.
+        positions (dict of Agent):
+            Dictionary linking each agent instance to its position.
+        shape (tuple of float):
+            Length of each spatial dimension.
+        ndim (int):
+            Number of dimensions.
+        kdtree (scipy.spatial.cKDTree or None):
+            KDTree of agent positions for neighbor lookup.
+            Will be recalculated if agents have moved.
+            If there are no agents, tree is None.
     """
 
-    def __init__(self, model, shape, connect_borders=False, **kwargs):
+    def __init__(self, model, shape, torus=False, **kwargs):
 
         super().__init__(model)
 
-        self._topology = 'space'
-        self._connect_borders = connect_borders
+        self._torus = torus
         self._cKDTree = None
         self._sorted_agents = None
         self._sorted_agent_points = None
-        self._agent_dict = {}  # agent instance : agent position (np.array)
-        self._shape = tuple(shape)
+
+        self.positions = {}
+        self.shape = tuple(shape)
+        self.ndim = len(self.shape)
+
         self._set_var_ignore()
         self.setup(**kwargs)
 
     @property
-    def shape(self):
-        return self._shape
+    def agents(self):
+        return AgentIter(self.positions.keys())
 
     @property
-    def dim(self):
-        return len(self._shape)
-
-    @property
-    def KDTree(self):
-        """ KDTree of agent positions for neighbor lookup,
-        using :class:`scipy.spatial.KDTree`.
-        Tree is recalculated if agent's have moved or changed.
-        If there are no agents, returns None."""
+    def kdtree(self):
         # Create new KDTree if necessary
         if self._cKDTree is None and len(self.agents) > 0:
             self._sorted_agents = []
             self._sorted_agent_points = []
             for a in self.agents:
                 self._sorted_agents.append(a)
-                self._sorted_agent_points.append(self._agent_dict[a])
-            if self._connect_borders:
+                self._sorted_agent_points.append(self.positions[a])
+            if self._torus:
                 self._cKDTree = spatial.cKDTree(self._sorted_agent_points,
                                                 boxsize=self.shape)
             else:
                 self._cKDTree = spatial.cKDTree(self._sorted_agent_points)
         return self._cKDTree  # Return existing or new KDTree
 
-    def add_agents(self, agents=1, agent_class=Agent, positions=None,  # noqa
-                   random=False, generator=None, **kwargs):
-        """ Adds agents to the space environment, and returns new agents.
-        See :func:`Environment.add_agents` for standard arguments.
-        Additional arguments are listed below.
+    # Add and remove agents ------------------------------------------------- #
+
+    def add_agents(self, agents, positions=None, random=False):
+        """ Adds agents to the space environment.
 
         Arguments:
-            positions (array_like, optional):
-                The positions of the added agents.
-                Array must have the same length as number of agents
-                to be added, and each entry must be an array with coordinates.
-                If none is passed, agents will be placed in the
-                bottom-left corner, i.e.: (0, 0, ...).
+            agents (Sequence of Agent):
+                Instance or iterable of agents to be added.
+            positions (Sequence of positions, optional):
+                The positions of the agents.
+                Must have the same length as 'agents',
+                with each entry being a position (array of float).
+                If none is passed, all positions will be either be zero
+                or random based on the argument 'random'.
             random (bool, optional):
-                If no positions are passed, agents will be placed in random
-                locations instead of starting at the corner (default False).
-            generator (numpy.random.Generator, optional):
-                Random number generator.
-                If none is passed, :obj:`Model.random` is used.
+                Whether to choose random positions (default False).
         """
 
-        # Standard adding
-        new_agents = super().add_agents(agents, agent_class, **kwargs)
-
-        # Extra space features
+        self._cKDTree = None  # Reset KDTree
         if not positions:
-            n_agents = len(new_agents)
+            n_agents = len(agents)
             if random:
-                generator = generator if generator else self.model.random
-                positions = [[generator.random() * d_max
+                positions = [[self.model.random.random() * d_max
                               for d_max in self.shape]
                              for _ in range(n_agents)]
             else:
-                positions = [np.zeros(self.dim) for _ in range(n_agents)]
+                positions = [np.zeros(self.ndim) for _ in range(n_agents)]
 
-        for agent, pos in zip(new_agents, positions):
-            self._agent_dict[agent] = np.array(pos)  # Add pos to agent_dict
+        for agent, pos in zip(agents, positions):
 
-        return new_agents
+            pos = pos if isinstance(pos, np.ndarray) else np.array(pos)
+            self.positions[agent] = pos  # Add pos to agent_dict
+            agent._add_env(self, pos=pos)  # Add env & pos to agent
+            print(agent, pos)
 
     def remove_agents(self, agents):
-        """ Removes agents from the environment. """
+        """ Removes agents from the space. """
+        self._cKDTree = None  # Reset KDTree
         for agent in make_list(agents):
-            del self._agent_dict[agent]
-        super().remove_agents(agents)
+            agent._remove_env(self)  # Remove env from agent
+            del self.positions[agent]  # Remove agent from env
 
-    def position(self, agent):
-        """ Returns :class:`numpy.array` with position of passed agent.
+    # Move and select agents ------------------------------------------------ #
 
-        Arguments:
-            agent(int or Agent): Id or instance of the agent.
-        """
-        if isinstance(agent, int):
-            agent = self.model.get_obj(agent)
-        return self._agent_dict[agent]
-
-    def positions(self, transpose=False):
-        """ Returns list with positions of all agents.
+    def move_agent(self, agent, pos):
+        """ Moves agent to new position.
 
         Arguments:
-            transpose (bool, optional):
-                If False (default), positions will be of style:
-                [[agent1.x, agent1.y, ...], [agent2.x, ...], ...]
-                If True, positions will be of style:
-                [[agent1.x, agent2.x, ...], [agent1.y, ...], ...]
+            agent (Agent): Instance of the agent.
+            pos (array_like): New position of the agent.
         """
-        pos_per_agent = self._agent_dict.values()
-        if not transpose:
-            return pos_per_agent
-        else:
-            return map(list, zip(*pos_per_agent))
 
-    def get_agents(self, center, radius):
-        """ Returns an :class:`AgentList` with agents in selected search area,
-        using :func:`scipy.cKDTree.query_ball_point`.
+        self._cKDTree = None  # Reset KDTree
+        self._border_behavior(pos, self.shape, self._torus)
+        self.positions[agent][...] = pos  # In-place
+
+    def neighbors(self, agent, distance):
+        """ Select agent neighbors within a given distance.
+        Takes into account wether space is toroidal.
+
+        Arguments:
+            agent (Agent): Instance of the agent.
+            distance (float):
+                Radius around the agent in which to search for neighbors.
+
+        Returns:
+            AgentIter: Iterator over the selected neighbors.
+        """
+
+        list_ids = self.kdtree.query_ball_point(
+            self.positions[agent], distance)
+
+        agents = [self._sorted_agents[list_id] for list_id in list_ids]
+        agents.remove(agent)  # Remove original agent
+        return AgentIter(agents)
+
+    def select(self, center, radius):
+        """ Select agents within a given area.
 
         Arguments:
             center (array_like): Coordinates of the center of the search area.
             radius (float): Radius around the center in which to search.
+
+        Returns:
+            AgentIter: Iterator over the selected agents.
         """
-        if self.KDTree:
-            list_ids = self.KDTree.query_ball_point(center, radius)
+        if self.kdtree:
+            list_ids = self.kdtree.query_ball_point(center, radius)
             agents = [self._sorted_agents[list_id] for list_id in list_ids]
-            return AgentList(agents, self.model)
+            return AgentIter(agents)
         else:
-            return AgentList(model=self.model)
-
-    def neighbors(self, agent, distance):
-        """ Returns an :class:`AgentList` with agent neighbors,
-        using :func:`scipy.cKDTree.query_ball_point`.
-
-        Arguments:
-            agent(int or Agent): Id or instance of the agent.
-            distance(float): Radius around the agent in which to
-                search for neighbors.
-        """
-
-        list_ids = self.KDTree.query_ball_point(
-            self._agent_dict[agent], distance)
-        agents = [self._sorted_agents[list_id] for list_id in list_ids]
-        agents.remove(agent)  # Remove original agent
-        return AgentList(agents, self.model)
-
-    def move_agent(self, agent, position):
-        """ Moves agent to new position.
-
-        Arguments:
-            agent(int or Agent): Id or instance of the agent.
-            position(array_like): New position of the agent.
-        """
-
-        if isinstance(agent, int):
-            agent = self.model.get_obj(agent)
-
-        for i in range(len(position)):
-
-            # Border behavior
-            if self._connect_borders:  # Connected
-                while position[i] > self.shape[i]:
-                    position[i] -= self.shape[i]
-                while position[i] < 0:
-                    position[i] += self.shape[i]
-            else:  # Not connected - Stop at border
-                if position[i] > self.shape[i]:
-                    position[i] = self.shape[i]
-                elif position[i] < 0:
-                    position[i] = 0
-
-        # Updating position
-        self._agent_dict[agent] = np.array(position)
-        self._cKDTree = None  # Reset KDTree
+            return AgentIter()

@@ -4,55 +4,90 @@
 Changelog
 =========
 
-Please note that API changes without backward compatibility
-are still possible until the release of v1.0.0.
+0.1.0.dev
+---------
 
-0.0.8.dev0
-----------
+This update contains some major revisions of most classes and methods in the
+package, including new features, better performance, and a more coherent syntax.
+Unfortunately, this causes some API changes without backward compatibility.
+There will hopefully be less major changes from now on,
+and backward compatibility will be ensured after first major release (v1.0.0).
 
-Improved lists
-..............
+Object creation
+...............
 
-Agent lists have a new method :func:`AgentList.call` that can be used to call
-a method for each agent in the list and has two optional arguments:
-`check_alive`, which prevents the call of agents that are deleted during the call loop;
-and `iter_kwargs`, which can be used to pass method arguments that are different for
-each agent.
+The methods :func:`add_agents`, :func:`add_env`, etc. have been depreciated.
+Instead, new objects can now be created directly or through sequences.
+For example::
+
+    class Model(ap.Model):
+        def setup(self):
+            self.special_agent = ap.Agent()  # Create a single agent
+            self.agents = ap.AgentList(self, 10)  # Create a sequence of 10 agents
+            self.grid = ap.Grid(self, (5, 5))  # Create a grid environment
+
+Data structures
+...............
+
+The main advantage of the new way of object creation is increased control
+over data structures in which to hold objects. Some agents can be kept in
+different sequences than others, and different kinds of sequences can be used.
+
+In addition to :class:`AgentList`, there is new sequence type
+:class:`AgentGroup` that provides increased performance
+for the lookup and deletion of agents.
+It also comes with a method `buffer` that allows for deletion of agents
+from the group during an active iteration over the group.
 
 The structure of :class:`AttrList` has been changed to an iterable over its
 source list. This improves performance and makes it possible to change
 agent attributes by setting new values to items in the attribute list (see
 :class:`AgentList` for an example). Otherwise, the class behaves as before.
 
-Agent-Environment interaction
-.............................
+Environments
+............
 
-The method :func:`Agent.neighbors` can now take multiple environments
-as an argument. If no environments are given, it will select all of the
-agents environments. For environments without a topology like :class:`Environment`
-and agents without any environments, an empty list will be returned.
-Agents further have a new attribute :obj:`alive` that indicates whether they
-have been removed from the model.
+The agent class has been split into two types :class:`Agent` and :class:`MultiAgent`,
+and can access their environment(s) through the attributes `pos` and `env`.
+The former should be used for models with zero or one environment, while the latter
+can be part of multiple environments.
 
-Other changes
+All three environment types have been revised.
+:class:`Grid` is now a structured array
+that can hold field attributes per position in addition to agents,
+and can be customized with the arguments `torus`, `track_free`, and `check_border`.
+:class:`Network` can now hold multiple agents per node.
+
+Random number generators
+........................
+
+:class:`Model` now contains two random number generators `random` and `nprandom`
+so that both standard and numpy random operations can be used.
+The parameter `seed` can be used to initialize both.
+:class:`Experiment` now also has an argument `random` to control whether
+to vary seeds over different iterations.
+
+Parameter samples
+.................
+
+Variable parameters can now be defined with the two new classes
+:class:`Range` (for continuous parameter ranges) and :class:`Values` (for pre-defined of discrete parameter values).
+Parameter dictionaries with these classes can be used to create samples,
+but can also be passed to a normal model, which will then use default values.
+
+The sampling methods :func:`sample`, :func:`sample_discrete`, and :func:`sample_saltelli`
+have been depreciated and integrated into the new class :class:`Sample`,
+which comes with additional features to create new kinds of samples.
+
+Data analysis
 .............
 
-Following Python's philosophy that explicit is better than implicit,
-a few 'magic' features have been removed:
+The structure of output data from experiments has been changed.
+Parameters are now stored in the two categories `constants` and `sample`.
+Variables are stored in seperate dataframes based on the object type.
+The dataframes' index is now seperated into `sample_id` and `iteration`.
 
-* Calling :func:`AgentList.select` through `AgentList.__call__`
-  (i.e. by invoking the agent list as a function) is no longer possible.
-* :obj:`Agent.env` and :obj:`Model.env` now returns an error if the agent has no or
-  more than one environment.
-* The argument `env` in :func:`AgentList.position`, :func:`AgentList.move_to`,
-  :func:`AgentList.move_by`, and :func:`AgentList.exit` must be given explicitely
-  if the agent has more than one environment.
-
-Fixes
-.....
-
-* :func:`Model.remove_agents` now removes agents not just from the model,
-  but also from all environments.
+:class:`DataDict` now contains new methods.
 
 0.0.7 (March 2021)
 ------------------
@@ -152,4 +187,4 @@ Fixes
 0.0.4 (November 2020)
 ---------------------
 
-* First major release.
+First documented release.

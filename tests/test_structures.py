@@ -1,44 +1,51 @@
 import pytest
 import agentpy as ap
 import numpy as np
+from agentpy.tools import AgentpyError
 
 
 def test_repr():
     model = ap.Model()
-    model.add_agents()
-    model.add_env()
-    assert model.agents.__repr__() == "AgentList [1 agent]"
-    assert model.envs.__repr__() == "EnvList [1 environment]"
-    assert model.objects.__repr__() == "ObjList [2 objects]"
-    l1 = model.agents.id
-    l2 = l1 + 1
-    assert l1.__repr__() == "AttrList of 'id': [1]"
-    assert l2.__repr__() == "AttrList: [2]"
+    l1 = ap.AgentList(model, 0)
+    l2 = ap.AgentList(model, 1)
+    l3 = ap.AgentList(model, 2)
+    assert l1.__repr__() == "AgentList (0 objects)"
+    assert l2.__repr__() == "AgentList (1 object)"
+    assert l3.__repr__() == "AgentList (2 objects)"
 
 
-def test_call():
+def test_buffer():
     class MyAgent(ap.Agent):
-        def method(self):
+        def method(self, x):
             if self.id == 2:
-                self.model.agents[2].delete()
+                self.model.agents.pop(x)
             self.model.called.append(self.id)
 
+    # Delete later element in list
     model = ap.Model()
     model.called = []
-    model.add_agents(4, MyAgent)
-    model.agents.call('method', check_alive=True)
+    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents.buffer().method(2)
     assert model.called == [1, 2, 4]
 
+    # Delete earlier element in list
     model = ap.Model()
     model.called = []
-    model.add_agents(4, MyAgent)
-    model.agents.method()
+    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents.buffer().method(0)
     assert model.called == [1, 2, 3, 4]
 
-
-def test_attr_calls():
+    # Incorrect result without buffer
     model = ap.Model()
-    model.add_agents(2)
+    model.called = []
+    model.agents = ap.AgentList(model, 4, MyAgent)
+    model.agents.method(0)
+    assert model.called == [1, 2, 4]
+
+
+def test_attr_list():
+    model = ap.Model()
+    model.agents = ap.AgentList(model, 2)
     model.agents.x = 1
     model.agents.f = lambda: 2
     assert list(model.agents.x) == [1, 1]
@@ -48,11 +55,18 @@ def test_attr_calls():
     with pytest.raises(TypeError):
         assert model.agents.x()  # noqa
 
+    model = ap.Model()
+    l3 = ap.AgentList(model, 2)
+    assert l3.id == [1, 2]
+    assert l3.id.__repr__() == "[1, 2]"
+    assert l3.p.update({1:1})  == [None, None]
+    assert l3.p == [{1: 1}, {1: 1}]
+
 
 def test_select():
     """ Select subsets with boolean operators. """
     model = ap.Model()
-    model.add_agents(3)
+    model.agents = ap.AgentList(model, 3)
     selection1 = model.agents.id == 2
     selection2 = model.agents.id != 2
     selection3 = model.agents.id < 2
@@ -71,41 +85,21 @@ def test_select():
 def test_random():
     """ Test random shuffle and selection. """
     model = ap.Model()
-    model.add_agents(2)
+    model.agents = ap.AgentList(model, 2)
     assert len(model.agents) == len(model.agents.shuffle())
     assert len(model.agents.random()) == 1
 
-    # Custom generator with seperate seed
-    model = ap.Model()
-    model.add_agents(5)
-    generator = np.random.default_rng(1)
-    assert len(model.agents.random(generator=generator)) == 1
-    assert model.agents.random(generator=generator).id[0] == 3
-    assert list(model.agents.shuffle(generator=generator).id) == [5, 1, 3, 2, 4]
-
     # Test with single agent
     model = ap.Model()
-    agents = model.add_agents(1)
-    assert model.agents.random()[0] is agents[0]
-    assert model.agents.shuffle()[0] is agents [0]
-
-    # Agentlist with no model defined directly
-    model = ap.Model()
-    agents = model.add_agents(3)
-    agents = ap.AgentList(agents)
-    model.run(steps=0, seed=1, display=False)
-    assert agents.random()[0].id == 2
-
-    # Agentlist with no model defined
-    # (no seed control without model, test can only check if no errors)
-    agents1 = ap.AgentList([1, 2, 3])
-    agents1.random()
+    agents = ap.AgentList(model, 1)
+    assert agents.random()[0] is agents[0]
+    assert agents.shuffle()[0] is agents[0]
 
 
 def test_sort():
     """ Test sorting method. """
     model = ap.Model()
-    model.add_agents(2)
+    model.agents = ap.AgentList(model, 2)
     model.agents[0].x = 1
     model.agents[1].x = 0
     model.agents.sort('x')
@@ -117,20 +111,20 @@ def test_arithmetics():
     """ Test arithmetic operators """
 
     model = ap.Model()
-    model.add_agents(3)
+    model.agents = ap.AgentList(model, 3)
     agents = model.agents
 
     agents.x = 1
     assert agents.x.attr == "x"
     assert list(agents.x) == [1, 1, 1]
 
-    agents.y = ap.AttrList([1, 2, 3])
+    agents.y = ap.AttrIter([1, 2, 3])
     assert list(agents.y) == [1, 2, 3]
 
     agents.x = agents.x + agents.y
     assert list(agents.x) == [2, 3, 4]
 
-    agents.x = agents.x - ap.AttrList([1, 1, 1])
+    agents.x = agents.x - ap.AttrIter([1, 1, 1])
     assert list(agents.x) == [1, 2, 3]
 
     agents.x += 1
@@ -150,3 +144,29 @@ def test_arithmetics():
 
     agents.x /= 2
     assert list(agents.x)[0] == pytest.approx(0.5)
+
+
+def test_remove():
+    model = ap.Model()
+    agents = ap.AgentList(model, 3, ap.Agent)
+    assert list(agents.id) == [1, 2, 3]
+    agents.remove(agents[0])
+    assert list(agents.id) == [2, 3]
+
+    model = ap.Model()
+    agents = ap.AgentGroup(model, 3, ap.Agent)
+    assert list(agents.id) == [1, 2, 3]
+    agents.remove(agents[0])
+    assert list(agents.id) == [3, 2]
+
+    model = ap.Model()
+    agents = ap.AgentGroup(model, 3, ap.Agent)
+    assert list(agents.id) == [1, 2, 3]
+    agents.pop(0)
+    assert list(agents.id) == [3, 2]
+
+    model = ap.Model()
+    agents = ap.AgentSet(model, 3, ap.Agent)
+    assert set(agents.id) == set([1, 2, 3])
+    agents.remove(next(iter(agents)))
+    assert len(agents.id) == 2

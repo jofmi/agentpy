@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import agentpy as ap
+import random
 
 from agentpy.tools import AgentpyError
 
@@ -18,22 +19,23 @@ def test_run():
     model.run()
     assert model.t == 1
 
-    # Maximum time limit
-    del model.p.steps
-    model.t = 999
-    model.run()
-    assert model.t == 1000
-
 
 def test_run_seed():
     """ Test random seed setting. """
-    n = np.random.default_rng(1).integers(10)
+    rd = random.Random(1)
+    npseed = rd.getrandbits(128)
+    nprd = np.random.default_rng(seed=npseed)
+    n1 = rd.randint(0, 100)
+    n2 = nprd.integers(100)
+
     model = ap.Model({'seed': 1})
     model.run(steps=0, display=False)
-    assert model.random.integers(10) == n
+    assert model.random.randint(0, 100) == n1
+    assert model.nprandom.integers(100) == n2
     model = ap.Model()
     model.run(seed=1, steps=0, display=False)
-    assert model.random.integers(10) == n
+    assert model.random.randint(0, 100) == n1
+    assert model.nprandom.integers(100) == n2
 
 
 def test_stop():
@@ -50,30 +52,6 @@ def test_stop():
     assert model.t == 2
 
 
-def test_add_agents():
-    """ Add new agents to model """
-
-    model = ap.Model()
-    model.add_agents(3)
-
-    assert len(model.agents) == 3  # New agents
-    assert list(model.agents.id) == [1, 2, 3]
-
-    model.add_agents(model.agents)  # Existing agents
-    assert list(model.agents.id) == [1, 2, 3] * 2
-
-
-def test_objects_property():
-
-    model = ap.Model()
-    model.add_agents(3)
-    model.add_env()
-
-    assert len(model.objects) == 4
-    assert model.agents[0] in model.objects
-    assert model.envs[0] in model.objects
-
-
 def test_setup():
     """ Test setup() for all object types """
 
@@ -84,7 +62,7 @@ def test_setup():
     class MyAgentType(MySetup, ap.Agent):
         pass
 
-    class MyEnvType(MySetup, ap.Environment):
+    class MySpaceType(MySetup, ap.Space):
         pass
 
     class MyNwType(MySetup, ap.Network):
@@ -94,37 +72,19 @@ def test_setup():
         pass
 
     model = ap.Model()
-    model.add_agents(1, b=1)
-    model.add_agents(1, MyAgentType, a=1)
-    model.E1 = model.add_env(MyEnvType, a=2)
-    model.G1 = model.add_env(MyGridType, shape=(1, 1), a=3)
-    model.N1 = model.add_env(MyNwType, a=4)
+    agents = ap.AgentList(model, 1, b=1)
+    agents.extend(ap.AgentList(model, 1, MyAgentType, a=1))
+    model.S1 = MySpaceType(model, shape=(1, 1), a=2)
+    model.G1 = MyGridType(model, shape=(1, 1), a=3)
+    model.N1 = MyNwType(model, a=4)
 
     # Standard setup implements keywords as attributes
     # Custom setup uses only keyword a and adds 1
-
-    with pytest.raises(TypeError):
-        assert model.add_agents(1, MyAgentType, b=1)
-
-    assert model.agents[0].b == 1
-    assert model.agents[1].a == 2
-    assert model.E1.a == 3
+    assert agents[0].b == 1
+    assert agents[1].a == 2
+    assert model.S1.a == 3
     assert model.G1.a == 4
     assert model.N1.a == 5
-
-
-def test_delete():
-    """ Remove agent from model """
-
-    model = ap.Model()
-    model.add_agents(3)
-    env = model.add_env()
-    env.add_agents(model.agents)
-    model.agents[1].delete()
-
-    assert len(model.agents) == 2
-    assert list(model.agents.id) == [1, 3]
-    assert list(env.agents.id) == [1, 3]
 
 
 def test_create_output():
@@ -134,15 +94,15 @@ def test_create_output():
     model = ap.Model()
     model.record('x', 0)
     model.run(1)
-    assert list(model.output.variables.keys()) == ['x']
+    assert list(model.output.variables.Model.keys()) == ['x']
 
-    model = ap.Model(run_id=1, scenario='test')
-    model.add_agents()
+    model = ap.Model(_run_id=(1, 2))
+    model.agents = ap.AgentList(model, 1)
     model.agents.record('x', 0)
     model.record('x', 0)
     model.run(1)
     assert list(model.output.variables.keys()) == ['Agent', 'Model']
 
     # Run id and scenario should be added to output
-    assert model.output.variables.Model.reset_index()['run_id'][0] == 1
-    assert model.output.variables.Model.reset_index()['scenario'][0] == 'test'
+    assert model.output.variables.Model.reset_index()['sample_id'][0] == 1
+    assert model.output.variables.Model.reset_index()['iteration'][0] == 2

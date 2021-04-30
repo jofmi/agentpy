@@ -4,18 +4,33 @@ Content: Errors, generators, and base classes
 """
 
 from numpy import ndarray
-
+from collections.abc import Sequence
 
 class AgentpyError(Exception):
     pass
 
 
-def make_matrix(shape, class_):
+def make_none(*args, **kwargs):
+    return None
+
+
+class InfoStr(str):
+    """ String that is displayed in user-friendly format. """
+    def __repr__(self):
+        return self
+
+
+def make_matrix(shape, loc_type=make_none, list_type=list, pos=None):
     """ Returns a nested list with given shape and class instance. """
-    # H/T Thierry Lathuille https://stackoverflow.com/a/64467230/
+
+    if pos is None:
+        pos = ()
+
     if len(shape) == 1:
-        return [class_() for _ in range(shape[0])]
-    return [make_matrix(shape[1:], class_) for _ in range(shape[0])]
+        return list_type([loc_type(pos+(i,))
+                          for i in range(shape[0])])
+    return list_type([make_matrix(shape[1:], loc_type, list_type, pos+(i,))
+                      for i in range(shape[0])])
 
 
 def make_list(element, keep_none=False):
@@ -24,9 +39,9 @@ def make_list(element, keep_none=False):
 
     if element is None and not keep_none:
         element = []  # Convert none to empty list
-    if not isinstance(element, (list, tuple, ndarray)):
+    if not isinstance(element, (list, tuple, set, ndarray)):
         element = [element]
-    elif isinstance(element, tuple):
+    elif isinstance(element, (tuple, set)):
         element = list(element)
 
     return element
@@ -80,9 +95,43 @@ class AttrDict(dict):
     def __delattr__(self, item):
         del self[item]
 
-    def __repr__(self):
-        return f"AttrDict {super().__repr__()}"
-
     def _short_repr(self):
         len_ = len(self.keys())
-        return f"AttrDict {{{len_} entr{'y' if len_ == 1 else 'ies'}}}"
+        return f"AttrDict ({len_} entr{'y' if len_ == 1 else 'ies'})"
+
+
+class ListDict(Sequence):
+    """ List with fast deletion & lookup. """
+    # H/T Amber https://stackoverflow.com/a/15993515/14396787
+    def __init__(self, iterable):
+        self.item_to_position = {}
+        self.items = []
+        for item in iterable:
+            self.add(item)
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, item):
+        return self.items[item]
+
+    def add(self, item):
+        if item in self.item_to_position:
+            return
+        self.items.append(item)
+        self.item_to_position[item] = len(self.items)-1
+
+    def replace(self, old_item, new_item):
+        position = self.item_to_position.pop(old_item)
+        self.item_to_position[new_item] = position
+        self.items[position] = new_item
+
+    def remove(self, item):
+        position = self.item_to_position.pop(item)
+        last_item = self.items.pop()
+        if position != len(self.items):
+            self.items[position] = last_item
+            self.item_to_position[last_item] = position

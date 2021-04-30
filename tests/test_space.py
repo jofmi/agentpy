@@ -4,90 +4,91 @@ import numpy as np
 import scipy
 
 
-def test_general():
+def make_space(s, n=0, torus=False):
 
     model = ap.Model()
-    space = model.add_space((2, 2))
-    assert space is model.envs[0]
+    agents = ap.AgentList(model, n)
+    space = ap.Space(model, (s, s), torus=torus)
+    space.add_agents(agents)
+    return model, space, agents
+
+
+def test_general():
+
+    model, space, agents = make_space(2)
     assert space.shape == (2, 2)
-    assert space.dim == 2
+    assert space.ndim == 2
 
 
 def test_KDTree():
 
-    model = ap.Model()
-    space = model.add_space((2, 2))
-    assert space.KDTree is None
-    assert len(space.get_agents((1, 1), 2)) == 0
-    space.add_agents(1)
-    assert isinstance(space.KDTree, scipy.spatial.cKDTree)
-    assert len(space.get_agents((1, 1), 2)) == 1
+    model, space, agents = make_space(2)
+    assert space.kdtree is None
+    assert len(space.select((1, 1), 2)) == 0
+    space.add_agents([ap.Agent(model)])
+    assert isinstance(space.kdtree, scipy.spatial.cKDTree)
+    assert len(space.select((1, 1), 2)) == 1
 
 
 def test_add_agents_random():
-    model = ap.Model()
+    model, space, agents = make_space(2)
     model.run(steps=0, seed=1, display=False)
-    space = model.add_space((2, 2))
-    agent = space.add_agents(1, random=True)[0]
-    assert list(agent.position()) == [1.0236432494005134, 1.9009273926518706]
+    agent = ap.Agent(model)
+    space.add_agents([agent], random=True)
+    assert list(agent.pos) == [1.527549237953228, 0.5101380514788434]
 
 
 def test_remove():
-    model = ap.Model()
-    space = model.add_space((2, 2))
-    space.add_agents(2)
-    agent = model.agents[0]
+    model, space, agents = make_space(2, 2)
+    agent = agents[0]
     space.remove_agents(agent)
-    assert len(space._agent_dict) == 1
+    assert len(space.positions) == 1
     assert len(space.agents) == 1
-    assert space.agents[0].id == 3
+    assert list(space.agents)[0].id == 2
 
 
 def test_positions():
+
     # Disconnected space
-    model = ap.Model()
-    space = model.add_space((2, 2))
-    space.add_agents(1)
-    space.add_agents(1, positions=[(1, 2)])
+    model, space, agents = make_space(2)
+    a1 = ap.Agent(model)
+    a2 = ap.Agent(model)
+    space.add_agents([a1])
+    space.add_agents([a2], positions=[(1, 2)])
 
     # Position reference
-    a1 = model.agents[0]
-    a2 = model.agents[1]
-    assert list(a1.position()) == list(space.position(a1))
-    assert list(a1.position()) == list(space.position(a1.id))
-    assert list(a1.position()) == [0, 0]
-    assert list(a2.position()) == [1, 2]
-    assert [list(x) for x in space.positions()] == [[0, 0], [1, 2]]
-    assert list(space.positions(transpose=True)) == [[0, 1], [0, 2]]
+    assert list(a1.pos) == list(space.positions[a1])
+    assert list(a1.pos) == [0, 0]
+    assert list(a2.pos) == [1, 2]
+    assert [list(x) for x in space.positions.values()] == [[0, 0], [1, 2]]
 
     # Get agents
-    assert len(space.get_agents((1, 1), 0.9)) == 0
-    assert len(space.get_agents((1, 1), 1)) == 1
-    assert len(space.get_agents((1, 1), 1.4)) == 1
-    assert len(space.get_agents((1, 1), 1.42)) == 2
+    assert len(space.select((1, 1), 0.9)) == 0
+    assert len(space.select((1, 1), 1)) == 1
+    assert len(space.select((1, 1), 1.4)) == 1
+    assert len(space.select((1, 1), 1.42)) == 2
 
     # Get neighbors
     assert len(a1.neighbors(distance=2.0)) == 0
     assert len(a1.neighbors(distance=2.5)) == 1
-    assert a1.neighbors(distance=2.5)[0] is a2
+    assert list(a1.neighbors(distance=2.5))[0] is a2
 
     # Movement restricted by border
     a2.move_by((2, -3))
-    assert list(a2.position()) == [2, 0]
+    assert list(a2.pos) == [2, 0]
 
     # Move directly
-    space.move_agent(a2.id, (1, 1))
-    assert list(a2.position()) == [1, 1]
+    space.move_agent(a2, (1, 1))
+    assert list(a2.pos) == [1, 1]
 
-    # Connected space
-    model = ap.Model()
-    space = model.add_space((2, 2), connect_borders=True)
-    space.add_agents(1)
-    space.add_agents(1, positions=[(0, 1.9)])
-    a1 = model.agents[0]
-    a2 = model.agents[1]
-    assert a1.neighbors(distance=0.11)[0] == a2
+    # Connected space (toroidal)
+    model, space, agents = make_space(2, torus=True)
+    a1 = ap.Agent(model)
+    a2 = ap.Agent(model)
+    space.add_agents([a1])
+    space.add_agents([a2], positions=[(0, 1.9)])
+    assert list(a1.neighbors(distance=0.11))[0] == a2
 
     # Movement over border
     a2.move_by((-3, 1.1))
-    assert list(a2.position()) == [1, 1]
+    assert list(a2.pos) == [1, 1]

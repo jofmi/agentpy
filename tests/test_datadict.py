@@ -16,27 +16,27 @@ def test_combine_vars():
     assert results._combine_vars().shape == (1, 1)
 
     model = ap.Model()
-    agents = model.add_agents()
+    agents = ap.AgentList(model, 1)
     agents.record('test', 1)
     results = model.run(1, display=False)
     assert results._combine_vars().shape == (1, 1)
 
     model = ap.Model()
-    agents = model.add_agents()
+    agents = ap.AgentList(model, 1)
     model.record('test', 1)
     agents.record('test', 2)
     results = model.run(1, display=False)
     assert results._combine_vars().shape == (2, 1)
 
     model = ap.Model()
-    agents = model.add_agents()
+    agents = ap.AgentList(model, 1)
     model.record('test', 1)
     agents.record('test', 2)
     results = model.run(1, display=False)
     assert results._combine_vars(obj_types="Model").shape == (1, 1)
 
     model = ap.Model()
-    agents = model.add_agents()
+    agents = ap.AgentList(model, 1)
     model.record('test', 1)
     agents.record('test', 2)
     results = model.run(1, display=False)
@@ -49,7 +49,7 @@ def test_combine_vars():
 
     model = ap.Model({'test': 1})
     results = model.run(1, display=False)
-    assert results._combine_pars(fixed=False) is None
+    assert results._combine_pars(constants=False) is None
 
     results.variables = 1
     with pytest.raises(TypeError):
@@ -59,46 +59,30 @@ def test_combine_vars():
         assert results._combine_pars()
 
 
-def test_arrange_scenarios():
-
-    class MyModel(ap.Model):
-        def step(self):
-            self.record('test', 1)
-            self.measure('test', 1)
-            self.stop()
-
-    exp = ap.Experiment(MyModel, scenarios=['sc1', 'sc2'], record=True)
-    results = exp.run()
-
-    assert results.arrange() is None
-    assert results.arrange(variables='all', scenarios='sc1').shape == (1, 4)
-    assert results.arrange(measures='all', scenarios='sc1').shape == (1, 3)
-
-
 repr = """DataDict {
+'log': Dictionary with 13 keys
 'parameters': 
-    'fixed': Dictionary with 1 key
-    'varied': DataFrame with 1 variable and 10 rows
-'log': Dictionary with 5 keys
-'measures': DataFrame with 1 variable and 10 rows
+    'constants': Dictionary with 1 key
+    'sample': DataFrame with 1 variable and 10 rows
 'variables': 
     'Agent': DataFrame with 1 variable and 10 rows
     'MyModel': DataFrame with 1 variable and 10 rows
+'reporters': DataFrame with 1 variable and 10 rows
 }"""
 
 
 class MyModel(ap.Model):
     def step(self):
-        self.measure('x', self.p.x)
-        self.add_agents()
+        self.report('x', self.p.x)
+        self.agents = ap.AgentList(self, 1)
         self.agents.record('id')
         self.record('id')
         self.stop()
 
 
 def test_repr():
-    param_ranges = {'x': (0., 1.), 'y': 1}
-    sample = ap.sample(param_ranges, n=10)
+    param_ranges = {'x': ap.Range(0., 1.), 'y': 1}
+    sample = ap.Sample(param_ranges, n=10)
     results = ap.Experiment(MyModel, sample, record=True).run()
     assert results.__repr__() == repr
 
@@ -120,7 +104,7 @@ class AgentType2(AgentType1):
         self.record(['x', 'y'])
 
 
-class EnvType3(ap.Environment):
+class EnvType3(ap.Agent):
     def setup(self):
         self.x = 'x3'
         self.z = 'z4'
@@ -129,7 +113,7 @@ class EnvType3(ap.Environment):
         self.record(['x', 'z'])
 
 
-class EnvType4(ap.Environment):
+class EnvType4(ap.Agent):
     def setup(self):
         self.z = 'z4'
 
@@ -140,29 +124,30 @@ class EnvType4(ap.Environment):
 class ModelType0(ap.Model):
 
     def setup(self):
-        self.E31 = self.add_env(env_class=EnvType3)
-        self.E41 = self.add_env(env_class=EnvType4)
-        self.E42 = self.add_env(env_class=EnvType4)
-        self.envs.add_agents(agents=2, agent_class=AgentType1)
-        self.E42.add_agents(agents=2, agent_class=AgentType2)
+        self.E31 = EnvType3(self)
+        self.E41 = EnvType4(self)
+        self.E42 = EnvType4(self)
+        self.agents1 = ap.AgentList(self, 2, AgentType1)
+        self.agents2 = ap.AgentList(self, 2, AgentType2)
+        self.agents = ap.AgentList(self, self.agents1 + self.agents2)
+        self.envs = ap.AgentList(self, [self.E31, self.E41, self.E42])
 
     def step(self):
         self.agents.action()
         self.envs.action()
 
     def end(self):
-        self.measure('m_key', 'm_value')
+        self.report('m_key', 'm_value')
 
 
 def test_testing_model():
 
-    parameters = {'steps': 2, 'px': (1, 2)}
-    sample = ap.sample_discrete(parameters)
+    parameters = {'steps': 2, 'px': ap.Values(1, 2)}
+    sample = ap.Sample(parameters)
     settings = {'iterations': 2,
-                'scenarios': ['test1', 'test2'],
                 'record': True}
 
-    pytest.model_instance = model = ModelType0(sample[0])
+    pytest.model_instance = model = ModelType0(list(sample)[0])
     pytest.model_results = model_results = model.run(display=False)
 
     exp = ap.Experiment(ModelType0, sample, **settings)
@@ -180,10 +165,10 @@ def arrange_things(results):
             results.arrange(variables=['x', 'y']),
             results.arrange(variables='z'),
             results.arrange(parameters='px'),
-            results.arrange(measures='m_key'),
-            results.arrange(variables='all',
-                            parameters='all',
-                            measures='all'))
+            results.arrange(reporters='m_key'),
+            results.arrange(variables=True,
+                            parameters=True,
+                            reporters=True))
 
 
 def test_datadict_arrange_for_single_run():
@@ -200,7 +185,7 @@ def test_datadict_arrange_for_single_run():
     assert z_data.shape == (6, 4)
     assert p_data.shape == (1, 2)
     assert m_data.shape == (1, 2)
-    assert all_data.shape == (15, 10)
+    assert all_data.shape == (15, 8)
 
 
 def test_datadict_arrange_for_multi_run():
@@ -210,26 +195,26 @@ def test_datadict_arrange_for_multi_run():
     x_data, x_data2, xy_data, z_data, p_data, m_data, all_data = data
 
     assert x_data.equals(x_data2)
-    assert x_data.shape == (80, 6)
-    assert xy_data.shape == (80, 7)
-    assert z_data.shape == (48, 6)
-    assert p_data.shape == (4, 2)
-    assert m_data.shape == (8, 3)
-    assert all_data.shape == (120, 11)
+    assert x_data.shape == (40, 6)
+    assert xy_data.shape == (40, 7)
+    assert z_data.shape == (24, 6)
+    assert p_data.shape == (2, 2)
+    assert m_data.shape == (4, 3)
+    assert all_data.shape == (60, 10)
 
 
 def test_datadict_arrange_measures():
 
     results = pytest.exp_results
-    mvp_data = results.arrange(measures='all', parameters='varied')
-    mvp_data_2 = results.arrange_measures()
+    mvp_data = results.arrange(reporters=True, parameters=True)
+    mvp_data_2 = results.arrange_reporters()
     assert mvp_data.equals(mvp_data_2)
 
 
 def test_datadict_arrange_variables():
 
     results = pytest.exp_results
-    mvp_data = results.arrange(variables='all', parameters='varied')
+    mvp_data = results.arrange(variables=True, parameters=True)
     mvp_data_2 = results.arrange_variables()
     assert mvp_data.equals(mvp_data_2)
 
@@ -267,9 +252,9 @@ def test_saved_equals_loaded():
     assert results == loaded
     # Test that equal doesn't hold if parts are changed
     assert results != 1
-    loaded.measures = 1
+    loaded.reporters = 1
     assert results != loaded
-    results.measures = 1
+    results.reporters = 1
     assert results == loaded
     loaded.log = 1
     assert results != loaded

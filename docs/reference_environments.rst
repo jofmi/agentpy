@@ -4,33 +4,40 @@
 Environments
 ============
 
-Default
--------
+Environments are objects in which agents can inhabit a specific position.
+The connection between positions is defined by the environments
+topology. There are currently three types:
 
-.. autoclass:: Environment
-     :members:
-     :inherited-members:
+- :class:`Grid` n-dimensional spatial topology with discrete positions.
+- :class:`Space` n-dimensional spatial topology with continuous positions.
+- :class:`Network` graph topology consisting of vertices and edges.
 
-.. autoclass:: EnvList
-    :members:
+----
 
-Networks
---------
+All three environment classes contain the following methods:
 
-.. autoclass:: Network
-     :members:
-     :inherited-members:
+- :func:`add_agents` adds agents to the environment.
+- :func:`remove_agents` removes agents from the environment.
+- :func:`move_agent` changes an agent's position.
+- :func:`neighbors` returns an agent's neighbors within a given distance.
 
-Discrete spaces
----------------
+There are further two different types of agents:
 
-.. autoclass:: Grid
-    :members:
-    :inherited-members:
+- :class:`Agent` can be part of zero or one environment.
+- :class:`MultiAgent` can be part of multiple environments.
 
-Continuous spaces
------------------
+Both agent classes share the following attributes and methods
+for agent-environment interaction:
 
-.. autoclass:: Space
-    :members:
-    :inherited-members:
+- :obj:`env` returns the agent's environment(s).
+- :obj:`pos` returns the agent's position(s) in their environment(s).
+- :func:`move_to` changes the agent's absolute position.
+- :func:`move_by` changes the agent's relative position.
+- :func:`neighbors` returns the agent's neighbors within a given distance.
+
+.. toctree::
+   :hidden:
+
+   reference_grid
+   reference_space
+   reference_network
