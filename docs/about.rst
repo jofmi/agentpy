@@ -8,19 +8,6 @@ Agentpy has been created by Joël Foramitti and is
 available under the open-source `BSD 3-Clause <https://github.com/JoelForamitti/agentpy/blob/master/LICENSE>`_ license.
 Source files can be found on the `GitHub repository <https://github.com/joelforamitti/agentpy>`_.
 
-This package would not have been possible without the great work and
-support from the Python and open-source community.
-Particular thanks for making their work and knowledge publicly available go
-to the following users:
-
-- Thierry Lathuille https://stackoverflow.com/users/550094/
-- Audrey Feldroy https://github.com/audreyfeldroy/
-
-Special thanks for feedback and support:
-
-- Ivan Savin
-- Jeroen C.J.M van den Bergh
-
 Parts of this package where created with Cookiecutter_
 and the `audreyr/cookiecutter-pypackage`_ project template.
 

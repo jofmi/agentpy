@@ -15,7 +15,7 @@ run the following command on your console:
 Dependencies
 ------------
 
-Agentpy supports Python 3.6, 3.7, 3.8, and 3.9.
+Agentpy supports Python 3.6 and higher.
 The installation includes the following packages:
 
 - `numpy <https://numpy.org>`_ and `scipy <https://docs.scipy.org/>`_, for scientific computing

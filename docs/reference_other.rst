@@ -7,5 +7,3 @@ Other
 .. autoclass:: AttrDict
     :members:
 
-.. autoclass:: AttrList
-    :members:

@@ -4,11 +4,6 @@
 Analysis
 ========
 
-Sensitivity
------------
-
-.. autofunction:: sensitivity_sobol
-
 Animations
 ----------
 
