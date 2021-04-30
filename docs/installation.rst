@@ -20,7 +20,7 @@ The installation includes the following packages:
 
 - `numpy <https://numpy.org>`_ and `scipy <https://docs.scipy.org/>`_, for scientific computing tools
 - `matplotlib <https://matplotlib.org/>`_, for visualization
-- `pandas <https://pandas.pydata.org>`_, for data management
+- `pandas <https://pandas.pydata.org>`_, for data manipulation
 - `networkx <https://networkx.org/documentation/>`_, for network analysis
 - `IPython <https://ipython.org/>`_ and `ipywidgets <https://ipywidgets.readthedocs.io/>`_, for interactive computing
 - `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
