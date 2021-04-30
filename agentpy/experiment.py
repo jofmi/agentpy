@@ -7,9 +7,13 @@ import pandas as pd
 import ipywidgets
 import IPython
 
+from os import sys
+
+from .version import __version__
 from datetime import datetime, timedelta
 from .tools import make_list
-from .output import DataDict
+from .datadict import DataDict
+from .sample import Sample
 
 
 class Experiment:
@@ -19,57 +23,70 @@ class Experiment:
     simulations and :func:`Experiment.interactive` for interactive output.
 
     Arguments:
-        model_class(type): The model class type that the experiment should use.
-        parameters(dict or list of dict, optional):
-            Parameter dictionary or sample (default None).
-        name(str, optional): Name of the experiment (default model.name).
-        scenarios(str or list, optional): Experiment scenarios (default None).
-        iterations(int, optional): Experiment repetitions (default 1).
-        record(bool, optional):
-            Whether to keep the record of dynamic variables (default False).
-            Note that this does not affect evaluation measures.
-        **kwargs: Will be forwarded to the creation of every model instance
-            during the experiment.
+        model (type):
+            The :class:`Model` type to perform the experiment with.
+        sample (dict or list of dict or Sample, optional):
+            Parameter combination(s) to test in the experiment (default None).
+        iterations (int, optional):
+            How often to repeat every parameter combination (default 1).
+        random (bool, optional):
+            Choose random seeds for every new iteration (default False).
+            The seed for the random number generator will be taken from the
+            model's current parameter combination.
+        record (bool, optional):
+            Keep the record of dynamic variables (default False).
+        **kwargs:
+            Will be forwarded to all model instances created by the experiment.
 
     Attributes:
         output(DataDict): Recorded experiment data
     """
 
-    def __init__(self, model_class, parameters=None, name=None, scenarios=None,
-                 iterations=1, record=False, **kwargs):
+    def __init__(self, model_class, sample=None, iterations=1,
+                 random=False, record=False, **kwargs):
 
         self.model = model_class
         self.output = DataDict()
         self.iterations = iterations
         self.record = record
         self._model_kwargs = kwargs
+        self._random = False
+        self.name = model_class.__name__
 
-        if name:
-            self.name = name
+        # TODO Improve
+        if isinstance(sample, Sample):
+            self.sample = list(sample)
+            sample_type = sample._type
         else:
-            self.name = model_class.__name__
-
-        # Transform input into iterable lists if only a single value is given
-        # keep_none assures that make_list(None) returns iterable [None]
-        self.scenarios = make_list(scenarios, keep_none=True)
-        self.parameters = make_list(parameters, keep_none=True)
-        self._parameters_to_output()  # Record parameters
-
-        # Log
-        self.output.log = {'name': self.name,
-                           'model_type': model_class.__name__,
-                           'time_stamp': str(datetime.now()),
-                           'iterations': iterations}
-        if scenarios:
-            self.output.log['scenarios'] = scenarios
+            self.sample = make_list(sample, keep_none=True)
+            sample_type = 'custom'
 
         # Prepare runs
-        self.parameters_per_run = self.parameters * self.iterations
-        self.number_of_runs = len(self.parameters_per_run)
+        self.run_ids = [(sample_id, iteration)
+                        for sample_id in range(len(self.sample))
+                        for iteration in range(iterations)]
+        self.n_runs = len(self.run_ids)
+
+        # Prepare output
+        self.output.log = {
+            'model_type': model_class.__name__,
+            'time_stamp': str(datetime.now()),
+            'agentpy_version': __version__,
+            'python_version': sys.version[:5],
+            'multi_run': True,
+            'scheduled_runs': self.n_runs,
+            'completed': False,
+            'random': random,
+            'record': record,
+            'sample_size': len(sample),
+            'sample_type': sample_type,
+            'iterations': iterations
+        }
+        self._parameters_to_output()
 
     def _parameters_to_output(self):
         """ Document parameters (seperately for fixed & variable). """
-        df = pd.DataFrame(self.parameters)
+        df = pd.DataFrame(self.sample)
         df.index.rename('sample_id', inplace=True)
         fixed_pars = {}
         for col in df.columns:
@@ -77,15 +94,11 @@ class Experiment:
             if len(s.unique()) == 1:
                 fixed_pars[s.name] = df[col][0]
                 df.drop(col, inplace=True, axis=1)
-        if fixed_pars and df.empty:
-            self.output['parameters'] = fixed_pars
-        elif not fixed_pars and not df.empty:
-            self.output['parameters'] = df
-        else:
-            self.output['parameters'] = DataDict({
-                'fixed': fixed_pars,
-                'varied': df
-            })
+        self.output['parameters'] = DataDict()
+        if fixed_pars:
+            self.output['parameters']['constants'] = fixed_pars
+        if not df.empty:
+            self.output['parameters']['sample'] = df
 
     def _add_single_output_to_combined(self, single_output, combined_output):
         """Append results from single run to combined output.
@@ -127,33 +140,33 @@ class Experiment:
             elif key != 'log':  # Other objects are kept as original TODO TESTS
                 self.output[key] = values
 
-    def _single_sim(self, sim_id):
+    def _single_sim(self, run_id):
         """ Perform a single simulation."""
-        sc_id = sim_id % len(self.scenarios)
-        run_id = (sim_id - sc_id) // len(self.scenarios)
         model = self.model(
-            self.parameters_per_run[run_id],
-            run_id=run_id,
-            scenario=self.scenarios[sc_id],
+            self.sample[run_id[0]],
+            _run_id=run_id,
             **self._model_kwargs)
-        results = model.run(display=False)
+        if self._random:
+            # TODO CHANGE
+            seed = self._random.getrandbits(128)
+            results = model.run(display=False, seed=seed)
+        else:
+            results = model.run(display=False)
         if 'variables' in results and self.record is False:
             del results['variables']  # Remove dynamic variables from record
         return results
 
     def run(self, pool=None, display=True):
-        """ Executes a multi-run experiment.
-
+        """ Perform the experiment.
         The simulation will run the model once for each set of parameters
         and will repeat this process for the set number of iterations.
-        Parallel processing is possible if a `pool` is passed.
         Simulation results will be stored in `Experiment.output`.
 
         Arguments:
-            pool(multiprocessing.Pool, optional):
+            pool (multiprocessing.Pool, optional):
                 Pool of active processes for parallel processing.
                 If none is passed, normal processing is used.
-            display(bool, optional):
+            display (bool, optional):
                 Display simulation progress (default True).
 
         Returns:
@@ -175,34 +188,40 @@ class Experiment:
                     results = exp.run(pool)
         """
 
-        sim_ids = list(range(self.number_of_runs * len(self.scenarios)))
-        n_sims = len(sim_ids)
         if display:
-            print(f"Scheduled runs: {n_sims}")
+            n_runs = self.n_runs
+            print(f"Scheduled runs: {n_runs}")
         t0 = datetime.now()  # Time-Stamp Start
         combined_output = {}
 
-        if pool is None:  # Normal processing
-            for sim_id in sim_ids:
+        # Normal processing
+        if pool is None:
+            i = -1
+            for run_id in self.run_ids:
                 self._add_single_output_to_combined(
-                    self._single_sim(sim_id), combined_output)
+                    self._single_sim(run_id), combined_output)
                 if display:
+                    i += 1
                     td = (datetime.now() - t0).total_seconds()
-                    te = timedelta(seconds=int(td / (sim_id + 1)
-                                               * (n_sims - sim_id - 1)))
-                    print(f"\rCompleted: {sim_id + 1}, "
+                    te = timedelta(seconds=int(td / (i + 1)
+                                               * (n_runs - i - 1)))
+                    print(f"\rCompleted: {i + 1}, "
                           f"estimated time remaining: {te}", end='')
             if display:
                 print("")  # Because the last print ended without a line-break
-        else:  # Parallel processing
+
+        # Parallel processing
+        else:
             if display:
+                print(f"Using parallel processing.")
                 print(f"Active processes: {pool._processes}")
-            output_list = pool.map(self._single_sim, sim_ids)
+            output_list = pool.map(self._single_sim, self.run_ids)
             for single_output in output_list:
                 self._add_single_output_to_combined(
                     single_output, combined_output)
 
         self._combine_dataframes(combined_output)
+        self.output.log['completed'] = True
         self.output.log['run_time'] = ct = str(datetime.now() - t0)
 
         if display:
@@ -248,15 +267,17 @@ class Experiment:
         def var_run(**param_updates):
             """ Display plot for updated parameters. """
             IPython.display.clear_output()
-            parameters = dict(self.parameters[0])
+            parameters = dict(self.sample[0])
             parameters.update(param_updates)
             temp_model = self.model(parameters, **self._model_kwargs)
             temp_model.run()
             IPython.display.clear_output()
             plot(temp_model, *args, **kwargs)
 
+        print(self.output.parameters)
+
         # Get variable parameters
-        var_pars = self.output._combine_pars(varied=True, fixed=False)
+        var_pars = self.output._combine_pars(sample=True, constants=False)
 
         # Create widget dict
         widget_dict = {}
