@@ -16,16 +16,16 @@ Creating models
 
 The basic framework for agent-based models consists of three levels:
 
-1. :class:`Model`, which contains agents, environments, parameters, & procedures
-2. :class:`Environment`, :class:`Grid`, :class:`Space`, and :class:`Network`, which contain agents
-3. :class:`Agent`, the basic building blocks of the model
+1. The :class:`Model` itself, which contains agents, environments, parameters, & procedures
+2. The environment types :class:`Grid`, :class:`Space`, and :class:`Network`, which can contain agents
+3. The agent types :class:`Agent` and :class:`MultiAgent`, the basic building blocks of the model
 
 All of these classes are designed to be customized through the creation of
 `sub-classes <https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#inheritance>`_
 with their own variables and methods.
-A custom agent type could be defined as follows::
+A custom agent type can be defined as follows::
 
-    class MyAgentType(ap.Agent):
+    class MyAgent(ap.Agent):
 
         def setup(self):
             # Initialize an attribute with a parameter
@@ -60,7 +60,7 @@ here is how a basic model could look like::
 
         def setup(self):
             """ Called at the start of the simulation """
-            self.add_agents(self.p.agents, MyAgentType)  # Add new agents
+            self.agents = ap.AgentList(self, self.p.agents, MyAgent)  # New agents
 
         def step(self):
             """ Called at every simulation step """
@@ -85,10 +85,9 @@ Using agents
 ############
 
 Agentpy comes with various tools to create, manipulate, and delete agents.
-The method :func:`Model.add_agents` can be used to initialize new agents.
-A list of all agents in a model can be accessed through :attr:`Model.agents`.
-Lists of agents are returned as an :class:`AgentList`,
-which provides special features to access and manipulate the whole group of agents.
+The classes :class:`AgentList` and :class:`AgentGroup`
+can be used to initialize and contain agents.
+These sequences provide special features to access and manipulate the whole group of agents.
 
 For example, when the model defined above calls :func:`self.agents.agent_method`,
 it will call the method :func:`MyAgentType.agent_method` for every agent in the model.
@@ -96,9 +95,9 @@ Similar commands can be used to set and access variables, or select subsets
 of agents with boolean operators.
 The following command, for example, would select all agents with an id above one::
 
-    self.agents.select(self.agents.id > 1)
+    agents.select(agents.id > 1)
 
-Further examples can be found in the :class:`AgentList` reference
+Further examples can be found in the :doc:`reference_sequences` reference
 or the :doc:`agentpy_virus_spread` model.
 
 .. _overview_environments:
@@ -109,15 +108,8 @@ Using environments
 Environments can contain agents just like the main model,
 and are useful if one wants to regard particular topologies for interaction
 or multiple environments that can hold seperate populations of agents.
-Agents can be moved between environments with the methods
-:func:`Agent.enter` and :func:`Agent.exit`.
-
-New environments can be created with :func:`Model.add_env`.
-Similar to agents, the attribute :attr:`envs` returns an :class:`EnvList`
-with special features to deal with groups of environments.
 There are three different types of environments:
 
-- :class:`Environment`, which simply contain agents without any topology.
 - :class:`Network`, in which agents can be connected via a networkx graph.
 - :class:`Grid`, in which agents occupy a position on a discrete x-dimensional space.
 - :class:`Space`, in which agents occupy a position on a continuous x-dimensional space.
@@ -137,10 +129,11 @@ which can be stored for each object (agent, environment, or model) and time-step
 They are useful to look at the dynamics of individual or aggregate objects over time
 and can be recorded by calling the method :meth:`record` for the respective object.
 
-The other type of recordable data are evaluation measures.
-These, in contrast, can be stored only for the model as a whole and only once per run.
-They are useful as summary statistics that can be compared over multiple runs,
-and can be recorded with the method :meth:`Model.measure`.
+The other type of recordable data are reporters,
+which represent summary statistics or evaluation measures.
+In contrast to variables, reporters can be stored only for the model as a whole and only once per run.
+They will be stored in a seperate dataframe for easy comparison over multiple runs,
+and can be documented with the method :meth:`Model.report`.
 
 .. _overview_simulation:
 
@@ -183,18 +176,17 @@ Multi-run experiments
 
 The class :class:`Experiment` can be used to run a model multiple times
 with repeated iterations, varied parameters, and distinct scenarios.
-To prepare a sample of parameters for an experiment, one can use one of the
-sampling functions :func:`sample`, :func:`sample_saltelli`, or :func:`sample_discrete`.
+To prepare a sample of parameters for an experiment, one can use the
+classes :class:`Range`, :class:`Values`, and :class:`Sample` described in :doc:`reference_sample`.
 Here is an example of an experiment with the model defined above::
 
     parameter_ranges = {'my_parameter': 42,
-                        'agents': (10, 20, int),
-                        'steps': (10, 20, int)}
+                        'agents': ap.Range(10, 20, ints=True),
+                        'steps': ap.Range(10, 20, ints=True)}
 
-    sample = ap.sample(parameter_ranges, n=5)
+    sample = ap.Sample(parameter_ranges, n=5)
 
-    exp = ap.Experiment(MyModel, sample, iterations=2,
-                        scenarios=('sc1','sc2'))
+    exp = ap.Experiment(MyModel, sample, iterations=2)
 
     results = exp.run()
 
@@ -218,11 +210,11 @@ The output from the experiment defined above looks as follows::
     DataDict {
     'log': Dictionary with 5 keys
     'parameters':
-        'fixed': Dictionary with 1 key
-        'varied': DataFrame with 2 variables and 25 rows
-    'measures': DataFrame with 1 variable and 50 rows
+        'constants': Dictionary with 1 key
+        'sample': DataFrame with 2 variables and 25 rows
     'variables':
-        'MyAgentType': DataFrame with 1 variable and 10500 rows
+        'MyAgent': DataFrame with 1 variable and 10500 rows
+    'reporters': DataFrame with 1 variable and 50 rows
     }
 
 The output can contain the following categories of data:
@@ -230,7 +222,7 @@ The output can contain the following categories of data:
 - :attr:`log` holds meta-data about the model and simulation performance.
 - :attr:`parameters` holds the parameter values that have been used for the experiment.
 - :attr:`variables` holds dynamic variables, which can be recorded at multiple time-steps.
-- :attr:`measures` holds evaluation measures that are recoreded only once per simulation.
+- :attr:`reporters` holds evaluation measures that are documented only once per simulation.
 
 This data can be stored with :func:`DataDict.save` and :func:`load`.
 :func:`DataDict.arrange` can further be used to generate a specific
@@ -239,7 +231,7 @@ formatted as `long-form data <https://seaborn.pydata.org/tutorial/data_structure
 which makes it compatible to use with statistical packages like `seaborn <https://seaborn.pydata.org/>`_.
 Agentpy further provides the following functions for analysis:
 
-- :func:`sensitivity_sobol` performs a Sobol sensitivity analysis.
+- :func:`DataDict.calc_sobol` performs a Sobol sensitivity analysis.
 - :func:`Experiment.interactive` generates an interactive widget for parameter variation.
 - :func:`animate` generates an animation that can display output over time.
 - :func:`gridplot` visualizes agent positions on a spatial :class:`Grid`.

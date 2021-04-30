@@ -83,6 +83,7 @@ Data analysis
 .............
 
 The structure of output data from experiments has been changed.
+The name of `measures` has been changed to `reporters`.
 Parameters are now stored in the two categories `constants` and `sample`.
 Variables are stored in seperate dataframes based on the object type.
 The dataframes' index is now seperated into `sample_id` and `iteration`.

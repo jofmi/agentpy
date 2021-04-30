@@ -25,8 +25,7 @@ The framework integrates the tasks of model design, numerical experiments,
 and data analysis within a single environment, and is optimized for interactive computing
 with `IPython <http://ipython.org/>`_ and `Jupyter <https://jupyter.org/>`_.
 If you have questions or ideas for improvements, please visit the
-`discussion forum <https://github.com/JoelForamitti/agentpy/discussions>`_
-or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy/about>`_.
+`discussion forum <https://github.com/JoelForamitti/agentpy/discussions>`_.
 
 .. rubric:: Quick orientation
 
@@ -34,6 +33,7 @@ or subscribe to the `agentpy mailing list <https://groups.google.com/g/agentpy/a
 - For a simple demonstration, check out the :doc:`agentpy_wealth_transfer` tutorial in the :doc:`model_library`.
 - For a detailled description of all classes and functions, refer to :doc:`reference`.
 - To learn how agentpy compares with other frameworks, take a look at :doc:`comparison`.
+- If you are interested to contribute to the library, see :doc:`contributing`.
 
 .. rubric:: Example
 
