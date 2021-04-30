@@ -4,7 +4,7 @@ import numpy as np
 from agentpy.tools import AgentpyError
 
 
-def test_repr():
+def test_basics():
     model = ap.Model()
     l1 = ap.AgentList(model, 0)
     l2 = ap.AgentList(model, 1)
@@ -13,8 +13,31 @@ def test_repr():
     assert l2.__repr__() == "AgentList (1 object)"
     assert l3.__repr__() == "AgentList (2 objects)"
 
+    agentlist = ap.AgentList(model, 2)
+    agentgroup = ap.AgentGroup(model, 2)
+    agentiter = ap.AgentIter(agentlist)
+    agentgroupiter = ap.AgentGroupIter(agentlist)
+    attriter = agentiter.id
 
-def test_buffer():
+    assert np.array(agentlist).tolist() == list(agentlist)
+    assert np.array(agentgroup).tolist() == list(agentgroup)
+    assert np.array(agentiter).tolist() == list(agentiter)
+    assert np.array(agentgroupiter).tolist() == list(agentgroupiter)
+    assert np.array(attriter).tolist() == list(attriter)
+
+    with pytest.raises(AgentpyError):
+        _ = agentiter[2]  # No item lookup allowed
+
+    # Seta and get attribute
+    for agents in [agentlist, agentgroup, agentiter]:
+        agents.x = 1
+        agents.y = 1
+        assert list(agents.x) == [1, 1]
+        agents.x += agents.x
+        assert list(agents.x) == [2, 2]
+
+
+def test_agent_group():
     class MyAgent(ap.Agent):
         def method(self, x):
             if self.id == 2:
@@ -42,10 +65,28 @@ def test_buffer():
     model.agents.method(0)
     assert model.called == [1, 2, 4]
 
+    # Combine with buffer - still number 3 that gets deleted
+    model = ap.Model()
+    model.run(seed=2, steps=0, display=False)
+    model.called = []
+    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents.shuffle().buffer().method(2)
+    assert model.called == [2, 4, 1]
+
+    # Combination order doesn't matter
+    model = ap.Model()
+    model.run(seed=2, steps=0, display=False)
+    model.called = []
+    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents.buffer().shuffle().method(2)
+    assert model.called == [2, 4, 1]
+
 
 def test_attr_list():
     model = ap.Model()
     model.agents = ap.AgentList(model, 2)
+    model.agents.id[1] = 5
+    assert model.agents.id[1] == 5
     model.agents.x = 1
     model.agents.f = lambda: 2
     assert list(model.agents.x) == [1, 1]
@@ -59,7 +100,7 @@ def test_attr_list():
     l3 = ap.AgentList(model, 2)
     assert l3.id == [1, 2]
     assert l3.id.__repr__() == "[1, 2]"
-    assert l3.p.update({1:1})  == [None, None]
+    assert l3.p.update({1: 1}) == [None, None]
     assert l3.p == [{1: 1}, {1: 1}]
 
 
@@ -81,19 +122,36 @@ def test_select():
     assert selection6 == [False, True, True]
     assert list(model.agents.select(selection1).id) == [2]
 
+    model = ap.Model()
+    model.agents = ap.AgentGroup(model, 3)
+    selection1 = model.agents.id == 2
+    assert selection1 == [False, True, False]
+    assert list(model.agents.select(selection1).id) == [2]
+
 
 def test_random():
     """ Test random shuffle and selection. """
+    # Agent List
     model = ap.Model()
-    model.agents = ap.AgentList(model, 2)
-    assert len(model.agents) == len(model.agents.shuffle())
-    assert len(model.agents.random()) == 1
+    model.run(steps=0, seed=1, display=False)
+    model.agents = ap.AgentList(model, 10)
+    assert list(model.agents.random())[0].id == 2
+    assert model.agents.shuffle()[0].id == 9
+    assert list(model.agents.random(11, replace=True).id)[0] == 6
+    assert list(model.agents.random(2).id) == [9, 5]
 
     # Test with single agent
     model = ap.Model()
     agents = ap.AgentList(model, 1)
-    assert agents.random()[0] is agents[0]
     assert agents.shuffle()[0] is agents[0]
+    assert list(agents.random())[0] is agents[0]
+
+    # Agent Group
+    model = ap.Model()
+    model.run(steps=0, seed=1, display=False)
+    model.agents = ap.AgentGroup(model, 10)
+    assert list(model.agents.random())[0].id == 2
+    assert list(model.agents.shuffle())[0].id == 9
 
 
 def test_sort():
@@ -103,6 +161,14 @@ def test_sort():
     model.agents[0].x = 1
     model.agents[1].x = 0
     model.agents.sort('x')
+    assert list(model.agents.x) == [0, 1]
+    assert list(model.agents.id) == [2, 1]
+
+    model = ap.Model()
+    model.agents = ap.AgentGroup(model, 2)
+    model.agents[0].x = 1
+    model.agents[1].x = 0
+    model.agents = model.agents.sort('x')  # Not in-place
     assert list(model.agents.x) == [0, 1]
     assert list(model.agents.id) == [2, 1]
 

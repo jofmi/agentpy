@@ -16,7 +16,7 @@ def test_repr():
 
 def test_linspace_product():
     parameters = {
-        'a': ap.Range(1, 2, ints=True),
+        'a': ap.Range(1, 2, int_range=True),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True
@@ -64,7 +64,7 @@ def test_linspace_zip():
 
 def test_sample_saltelli():
     parameters = {
-        'a': ap.Range(1, 2, ints=True),
+        'a': ap.Range(1, 2, int_range=True),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True
@@ -90,7 +90,7 @@ def test_sample_saltelli():
 
 def test_sample_saltelli_second():
     parameters = {
-        'a': ap.Range(1, 2, ints=True),
+        'a': ap.Range(1, 2, int_range=True),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True
