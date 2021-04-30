@@ -1,54 +1,30 @@
 """
 Agentpy Objects Module
-Content: Classes for environments and agents
+Content: Base classes for agents and environment
 """
 
-from .lists import AgentList, EnvList
+from .sequences import AgentList
 from .tools import AgentpyError, make_list
 
 
-class ApObj:
-    """ Agentpy base-class for objects of agent-based models."""
+class Object:
+    """ Base class for all objects of an agent-based models. """
 
     def __init__(self, model):
-        self._log = {}
-        self._model = model
         self._var_ignore = []
-        self._alive = True
-        self._id = model._new_id()  # Assign id to new object
-        self._model._obj_dict[self.id] = self  # Add object to object dict
+
+        self.id = model._new_id()  # Assign id to new object
+        self.type = type(self).__name__
+        self.log = {}
+
+        self.model = model
+        self.p = model.p
 
     def __repr__(self):
         return f"{self.type} (Obj {self.id})"
 
     def __getattr__(self, key):
         raise AttributeError(f"{self} has no attribute '{key}'.")
-
-    @property
-    def type(self):
-        return type(self).__name__
-
-    @property
-    def var_keys(self):
-        return [k for k in self.__dict__.keys()
-                if k[0] != '_'
-                and k not in self._var_ignore]
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def p(self):
-        return self._model._parameters
-
-    @property
-    def log(self):
-        return self._log
-
-    @property
-    def model(self):
-        return self._model
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -60,8 +36,16 @@ class ApObj:
         """Store current attributes to seperate them from custom variables"""
         self._var_ignore = [k for k in self.__dict__.keys() if k[0] != '_']
 
+    @property
+    def var_keys(self):
+        return [k for k in self.__dict__.keys()
+                if k[0] != '_'
+                and k not in self._var_ignore]
+
     def record(self, var_keys, value=None):
-        """ Records an objects variables.
+        """ Records an objects variables at the current time-step.
+        Recorded variables can be accessed via the object's `log` attribute
+        and will be saved to the model's output at the end of a simulation.
 
         Arguments:
             var_keys (str or list of str):
@@ -86,15 +70,28 @@ class ApObj:
                 a.record(a.var_keys)
         """
 
+        # Initial record call connects log to the models dict of logs
+        # and then overrides method with the actual recording function
+        if self.type not in self.model._logs:
+            self.model._logs[self.type] = {}
+        self.model._logs[self.type][self.id] = self.log
+        self.log['t'] = [self.model.t]  # Initiate time dimension
+        self.record = self._record  # noqa
+
+        for var_key in make_list(var_keys):
+
+            v = getattr(self, var_key) if value is None else value
+            self.log[var_key] = [v]
+
+    def _record(self, var_keys, value=None):
+
         for var_key in make_list(var_keys):
 
             # Create empty lists
-            if 't' not in self.log:
-                self.log['t'] = []
             if var_key not in self.log:
                 self.log[var_key] = [None] * len(self.log['t'])
 
-            if self.model.t not in self.log['t']:
+            if self.model.t != self.log['t'][-1]:
 
                 # Create empty slot for new documented time step
                 for v in self.log.values():
@@ -134,304 +131,31 @@ class ApObj:
             setattr(self, k, v)
 
 
-# Level 3 - Agent class
+class Environment(Object):
+    """ Base class for environments (Grid, Space, Network). """
 
-class Agent(ApObj):
-    """ Individual agent of an agent-based model.
+    pass
 
-    This class can be used as a parent class for custom agent types.
-    All agentpy model objects call the method :func:`setup()` after creation,
-    and can access class attributes like dictionary items. To add new agents
-    to a model, use :func:`Model.add_agents` or :func:`Environment.add_agents`.
 
-    Arguments:
-        model (Model): Instance of the current model.
-        **kwargs: Will be forwarded to :func:`Agent.setup`.
+class Spatial(Environment):
+    """ Base class for spatial environments (Grid, Space). """
 
-    Attributes:
-        envs (EnvList): Environments of the agent.
-        log (dict): Recorded variables of the agent.
-        id (int): Unique identifier of the agent instance.
-        type (str): Class name of the agent.
-        alive (bool): Whether the agent is still part of the model.
-        var_keys (list): Names of the agent's variables.
-        model (Model): Reference to the model instance.
-        p (AttrDict): Reference to the parameters.
-    """
+    @staticmethod
+    def _border_behavior(position, shape, torus):
+        # Border behavior
 
-    def __init__(self, model, **kwargs):
-        super().__init__(model)
-        self._envs = EnvList()
-        self.setup(**kwargs)
+        # Connected - Jump to other side
+        if torus:
+            for i in range(len(position)):
+                while position[i] > shape[i]:
+                    position[i] -= shape[i]
+                while position[i] < 0:
+                    position[i] += shape[i]
 
-    def delete(self):
-        """ Remove agent from all environments and the model.
-
-        If used during a loop over an :class:`AgentList`,
-        consider using `AgentList.call` with the argument `check_alive=True`
-        to avoid calling agents after they have been deleted.
-        Note that using :func:`Agent.exit` will be faster if only removal
-        from a specific environment is required.
-        """
-        self.model.remove_agents(self)
-
-    @property
-    def alive(self):
-        return self._alive
-
-    @property
-    def env(self):
-        if len(self._envs) == 1:
-            return self._envs[0]
-        elif len(self._envs) == 0:
-            raise AgentpyError(f"{self} has no environment.")
+        # Not connected - Stop at border
         else:
-            raise AgentpyError(f"{self} has more than one environment. Please "
-                               "use `Agent.envs` instead of `Agent.env`.")
-
-    @property
-    def envs(self):
-        return self._envs
-
-    def _find_env(self, env=None, new=False):
-        if env is None:
-            if len(self.envs) == 1:
-                return self.envs[0]
-            raise AgentpyError(f"{self} has more than one environment."
-                               f"Argument 'env' must be specified.")
-        else:
-            if isinstance(env, int):
-                env = self.model.get_obj(env)
-            if new or env in self.envs:
-                return env
-            raise AgentpyError(f"{self} is not part of environment {env}.")
-
-    def position(self, env=None):
-        """ Returns the agents' position
-        from an environment with spatial coordinates
-        like :class:`Grid` or :class:`Space`.
-
-        Arguments:
-            env (int or Environment, optional):
-                Instance or id of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
-        """
-        env = self._find_env(env)
-        return env.get_position(self)
-
-    def location(self, env=None):
-        """ Returns the agents' location
-        from a location-based environment
-        like :class:`Grid` or :class:`Network`.
-
-        Arguments:
-            env (int or Environment, optional):
-                Instance or id of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
-        """
-        env = self._find_env(env)
-        return env.get_loc_from_agent(self)
-
-    def move_by(self, path, env=None):
-        """ Changes the agents' location in the selected environment,
-        relative to the current position.
-
-        Arguments:
-            path (list of int): Relative change of position.
-            env (int or Environment, optional):
-                Instance or id of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
-        """
-        env = self._find_env(env)
-        old_pos = self.position(env)
-        new_pos = [p + c for p, c in zip(old_pos, path)]
-        env.move_agent(self, new_pos)
-
-    def move_to(self, position, env=None):
-        """ Changes the agents' location in the selected environment.
-
-        Arguments:
-            position (list of int): Position to move to.
-            env(int or Environment, optional):
-                Instance or id of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
-        """
-
-        env = self._find_env(env)
-        env.move_agent(self, position)
-
-    def neighbors(self, env=None, distance=1, **kwargs):
-        """ Returns the agents' neighbors from its environments.
-
-        Arguments:
-            env(int or Environment or list, optional):
-                Instance or id of environment that should be used,
-                or a list with multiple instances and/or ids.
-                If none are given, all of the agents environments are used.
-            distance(int, optional):
-                Distance from agent in which to look for neighbors.
-            **kwargs: Forwarded to the environments :func:`neighbors` function.
-
-        Returns:
-            AgentList: Neighbors of the agent. Agents without environments
-            and environments without a topology like :class:`Environment`
-            will return an empty list. If an agent has the same neighbors
-            in multiple environments, duplicates will be removed.
-        """
-        if env:
-            if isinstance(env, (list, tuple)):
-                envs = [self._find_env(en) for en in env]
-            else:
-                return self._find_env(env).neighbors(
-                    self, distance=distance, **kwargs)
-        elif len(self.envs) == 0:
-            return AgentList()
-        elif len(self.envs) == 1:
-            return self.envs[0].neighbors(self, distance=distance, **kwargs)
-        else:
-            envs = self.envs
-
-        agents = AgentList()
-        for env in envs:
-            agents.extend(env.neighbors(self, distance=distance, **kwargs))
-
-        # TODO Better way to remove duplicates?
-        return AgentList(dict.fromkeys(agents))
-
-    def enter(self, env):
-        """ Adds agent to chosen environment.
-
-        Arguments:
-            env(int or Environment):
-                Instance or id of environment.
-        """
-        env = self._find_env(env, new=True)
-        env.add_agents(self)
-
-    def exit(self, env=None):
-        """ Removes agent from chosen environment.
-
-        Arguments:
-            env(int or Environment, optional):
-                Instance or id of an environment that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
-        """
-        env = self._find_env(env)
-        env.remove_agents(self)
-
-
-class ApEnv(ApObj):
-    """ Agentpy base-class for environments. """
-
-    def __init__(self, model):
-        super().__init__(model)
-        self._agents = AgentList(model=model)
-        self._topology = None
-
-    @property
-    def topology(self):
-        return self._topology
-
-    @property
-    def agents(self):
-        return self._agents
-
-    def neighbors(self, *args, **kwargs):
-        return AgentList()  # Default environment has no neighbors
-
-    def remove_agents(self, agents):
-        """ Removes agents from the environment. """
-        for agent in list(make_list(agents)):  # Soft copy as list is changed
-            self._agents.remove(agent)
-            agent.envs.remove(self)
-
-    def add_agents(self, agents=1, agent_class=Agent, **kwargs):
-        """ Adds agents to the environment.
-
-        Arguments:
-            agents(int or AgentList, optional): Either number of new agents
-                to be created or list of existing agents (default 1).
-            agent_class(type, optional): Type of new agents to be created
-                if int is passed for agents (default :class:`Agent`).
-            **kwargs: Forwarded to :func:`Agent.setup` if new agents are
-                created (i.e. if an integer number is passed to `agents`).
-
-        Returns:
-            AgentList: List of the added agents.
-        """
-
-        # Check if object is environment or model
-        is_env = True if self != self.model else False
-
-        # Case 1 - Create new agents
-        if isinstance(agents, int):
-            agents = AgentList([agent_class(self.model, **kwargs)
-                                for _ in range(agents)], model=self.model)
-            if is_env:  # Add agents to master list
-                self.model._agents.extend(agents)
-
-        # Case 2 - Add existing agents
-        else:
-            if not isinstance(agents, AgentList):
-                agents = AgentList(make_list(agents), model=self.model)
-
-        # Add environment to agents
-        if is_env:
-            for agent in agents:
-                agent.envs.append(self)
-
-        # Add agents to environment
-        self._agents.extend(agents)
-
-        return agents
-
-
-class Environment(ApEnv):
-    """ Standard environment for agents (no topology).
-
-    This class can be used as a parent class for custom environment types.
-    All agentpy model objects call the method :func:`setup()` after creation,
-    and can access class attributes like dictionary items. To add new
-    environments to a model, use :func:`Model.add_env`.
-
-    Arguments:
-        model (Model): The model instance.
-        **kwargs: Will be forwarded to :func:`Environment.setup`.
-
-    Attributes:
-        model (Model): Model instance.
-        p (AttrDict): Model parameters.
-        id (int): Unique identifier of the environment instance.
-        type (str): Class name of the environment.
-        var_keys (list): Names of the environment's variables.
-        topology (str): Topology of the environment.
-        log (dict): The environments' recorded variables.
-    """
-
-    def __init__(self, model, **kwargs):
-        super().__init__(model)
-        self.setup(**kwargs)
-
-
-# TODO IN DEVELOPMENT
-class Location:
-    """ A location in an environment. """
-    def __init__(self, pos):
-        self.agents = AgentList()
-        self._pos = tuple(pos)
-
-    @property
-    def pos(self):
-        return self._pos
-
-    def __repr__(self):
-        return f"Location {self.pos}"
+            for i in range(len(position)):
+                if position[i] > shape[i]:
+                    position[i] = shape[i]
+                elif position[i] < 0:
+                    position[i] = 0
