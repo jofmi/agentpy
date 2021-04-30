@@ -22,10 +22,6 @@ def test_make_matrix():
     m = make_matrix([2, 2], list_type=MyList)
     assert m.__repr__() == "mylist [mylist [None, None], mylist [None, None]]"
 
-    m = make_matrix([2, 2], loc_type=ap.Location, list_type=MyList)
-    assert m.__repr__() == "mylist [mylist [Location (0, 0), Location (0, 1)]"\
-                           ", mylist [Location (1, 0), Location (1, 1)]]"
-
 
 def test_attr_dict():
 
@@ -36,5 +32,4 @@ def test_attr_dict():
     assert ad.b == 2
     assert ad.a == ad['a']
     assert ad.b == ad['b']
-    assert ad.__repr__() == "AttrDict {'a': 1, 'b': 2}"
-    assert ad._short_repr() == "AttrDict {2 entries}"
+    assert ad._short_repr() == "AttrDict (2 entries)"

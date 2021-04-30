@@ -10,39 +10,67 @@ def test_add_agents():
     graph.add_node(0)
     graph.add_node(1)
     model = ap.Model()
-    model.add_agents(2)
-    env = model.add_network(graph=graph, agents=model.agents)
-    env.graph.add_edge(model.agents[0], model.agents[1])
-    assert list(model.agents[0].neighbors().id) == [2]
+
+    env = ap.Network(model, graph=graph)
+    agents = ap.AgentList(model, 2)
+    env.add_agents(agents, positions=env.nodes)
+    env.graph.add_edge(*agents.pos)
+
+    # Test structure
+    assert env.nodes == env.graph.nodes()
+    assert list(env.graph.edges) == [tuple(agents.pos)]
+    assert list(agents[0].neighbors().id) == [3]
 
     # Add agents as new nodes
     model2 = ap.Model()
-    agents = model2.add_agents(2)
-    env2 = model2.add_network(agents = agents[0])  # Add at initialization
-    env2.add_agents(agents[1])  # Add later
-    env2.graph.add_edge(model2.agents[0],model2.agents[1])
+    agents2 = ap.AgentList(model2, 2)
+    env2 = ap.Network(model2)
+    env2.add_agents(agents2)
+    env2.graph.add_edge(*agents2.pos)
 
     # Test if the two graphs are identical
     assert env.graph.nodes.__repr__() == env2.graph.nodes.__repr__()
     assert env.graph.edges.__repr__() == env2.graph.edges.__repr__()
 
-    # Test errors
-    model3 = ap.Model()
-    graph = nx.Graph()
-    model3.add_agents()
-    with pytest.raises(ValueError):
-        assert model3.add_network(graph=graph, agents=model3.agents)
-    with pytest.raises(TypeError):
-        assert model3.add_network(graph=1)
+
+def test_move_agent():
+
+    # Move agent one node to another
+    model = ap.Model()
+    graph = ap.Network(model)
+    n1 = graph.add_node()
+    n2 = graph.add_node()
+    a = ap.Agent(model)
+    graph.add_agents([a], positions=[n1])
+
+    assert len(n1) == 1
+    assert len(n2) == 0
+    assert a.pos is n1
+    assert graph.positions[a] is n1
+
+    graph.move_agent(a, n2)
+
+    assert len(n1) == 0
+    assert len(n2) == 1
+    assert a.pos is n2
+    assert graph.positions[a] is n2
 
 
 def test_remove_agents():
 
     model = ap.Model()
-    model.add_agents(2)
-    nw = model.add_network()
-    nw.add_agents(model.agents)
-    agent = model.agents[0]
+    agents = ap.AgentList(model, 2)
+    nw = ap.Network(model)
+    nw.add_agents(agents)
+    agent = agents[0]
+    node = agent.pos
     nw.remove_agents(agent)
-    len(nw.agents) == 1
-    len(nw.graph.nodes) == 1
+    assert len(nw.agents) == 1
+    assert len(nw.nodes) == 2
+    nw.remove_node(node)
+    assert len(nw.agents) == 1
+    assert len(nw.nodes) == 1
+    agent2 = agents[1]
+    nw.remove_node(agent2.pos)
+    assert len(nw.agents) == 0
+    assert len(nw.nodes) == 0
