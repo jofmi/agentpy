@@ -9,32 +9,28 @@ Source: https://github.com/JoelForamitti/agentpy
 
 __all__ = [
     '__version__',
-    'Model', 'Environment', 'Location', 'Network', 'Grid', 'Space',
-    'Agent', 'AgentList', 'EnvList', 'ObjList', 'AttrList', 'LocList',
+    'Model',
+    'Agent', 'AgentList', 'AgentGroup', 'AgentSet',
+    'AgentIter', 'AgentGroupIter', 'AttrIter',
+    'Grid', 'GridIter', 'Space', 'Network', 'AgentNode',
     'Experiment',
     'DataDict', 'load',
-    'sample', 'sample_discrete', 'sample_saltelli',
-    'sensitivity_sobol', 'gridplot', 'animate',
+    'Sample', 'Values', 'Range',
+    'gridplot', 'animate',
     'AttrDict'
 ]
 
-# Version
-try:
-    from importlib import metadata
-except ImportError:
-    # Running on pre-3.8 Python
-    import importlib_metadata as metadata  # noqa
-__version__ = metadata.version('agentpy')
+from .version import __version__
 
-# Objects
-from .lists import AttrList, ObjList, AgentList, EnvList, LocList
-from .objects import Agent, Environment, Location
-from .network import Network
-from .grid import Grid
-from .space import Space
 from .model import Model
+from .agent import Agent, MultiAgent
+from .sequences import AgentList, AgentGroup, AgentSet
+from .sequences import AgentIter, AgentGroupIter, AttrIter
+from .network import Network, AgentNode
+from .grid import Grid, GridIter
+from .space import Space
 from .experiment import Experiment
-from .output import DataDict, load
-from .sampling import sample, sample_discrete, sample_saltelli
-from .analysis import sensitivity_sobol, gridplot, animate
+from .datadict import DataDict, load
+from .sample import Sample, Values, Range
+from .analysis import gridplot, animate
 from .tools import AttrDict
