@@ -3,279 +3,391 @@ Agentpy Grid Module
 Content: Class for discrete spatial environments
 """
 
-# There is much room for optimization in this module. Contributions welcome! :)
-# TODO __init__: Add argument connect_borders
-# TODO _get_diamond: distance argument, exclude original agent, & limit dmax
-# TODO Method for distance between agents
-# TODO items: reverse argument
+# TODO Agent Fields - How to combine with track_empty?
 
 import itertools
 import numpy as np
 import random as rd
 import collections.abc as abc
-from .objects import ApEnv, Agent, Location
-from .tools import make_list, make_matrix
-from .lists import AgentList, ObjList, LocList
+import numpy.lib.recfunctions as rfs
+from .objects import Spatial
+from .tools import make_list, make_matrix, AgentpyError, ListDict
+from .sequences import AgentSet, AgentIter, AgentList
 
 
-class Grid(ApEnv):
-    """ Environment that contains agents with a discrete spatial topology.
-    Every location consists of an :class:`AgentList` that can hold
-    zero, one, or more agents.
-    To add new grid environments to a model, use :func:`Model.add_grid`.
-    For a continuous spatial topology, use :class:`Space`.
+class _IterArea:
+    """ Iteratable object that takes either a numpy matrix or an iterable
+    as an input. If the object is an ndarray, it is flattened and iterated
+    over the contents of each element chained together. Otherwise, it is
+    simply iterated over the object.
 
+    Arguments:
+        area: Area of sets of elements.
+        exclude: Element to exclude. Assumes that element is in area.
+    """
+
+    def __init__(self, area, exclude=None):
+        self.area = area
+        self.exclude = exclude
+
+    def __len__(self):
+        if isinstance(self.area, np.ndarray):
+            len_ = sum([len(s) for s in self.area.flat])
+        else:
+            len_ = len(self.area)
+        if self.exclude:
+            len_ -= 1  # Assumes that exclude is in Area
+        return len_
+
+    def __iter__(self):
+        if self.exclude:
+            if isinstance(self.area, np.ndarray):
+                return itertools.filterfalse(
+                    lambda x: x is self.exclude,
+                    itertools.chain.from_iterable(self.area.flat)
+                )
+            else:
+                return itertools.filterfalse(
+                    lambda x: x is self.exclude, area)
+        else:
+            if isinstance(self.area, np.ndarray):
+                return itertools.chain.from_iterable(self.area.flat)
+            else:
+                return iter(area)
+
+
+class GridIter(AgentIter):
+    """ Iterator over objects in :class:`Grid` that supports slicing.
+
+    Examples:
+
+         Create a model with a 10 by 10 grid
+         with one agent in each position::
+
+            model = ap.Model()
+            agents = ap.AgentList(model, 100)
+            grid = ap.Grid(model, (10, 10))
+            grid.add_agents(agents)
+
+        The following returns an iterator over the agents in all position::
+
+            >>> grid.agents
+            GridIter (100 objects)
+
+        The following returns an iterator over the agents
+        in the top-left quarter of the grid::
+
+            >>> grid.agents[0:5, 0:5]
+            GridIter (25 objects)
+    """
+
+    def __init__(self, iter_, items):
+        super().__init__(iter_)
+        object.__setattr__(self, '_items', items)
+
+    def __getitem__(self, item):
+        sub_area = self._items[item]
+        return GridIter(_IterArea(sub_area), sub_area)
+
+
+class Grid(Spatial):
+    """ Environment that contains agents with a discrete spatial topology,
+    supporting both multiple agents per cell and multiple fields per grid.
     This class can be used as a parent class for custom grid types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
-    See :class:`Environment` for general properties of all environments.
+
+    See Also:
+        For a continuous spatial topology, see :class:`Space`.
 
     Arguments:
         model (Model): The model instance.
         shape (tuple of int): Size of the grid.
             The length of the tuple defines the number of dimensions,
             and the values in the tuple define the length of each dimension.
+        torus (bool, optional):
+            Whether to connect borders (default False).
+            If True, the grid will be toroidal, meaning that agents who
+            move over a border will re-appear on the opposite side.
+            If False, they will remain at the edge of the border.
+        track_empty (bool, optional):
+            Whether to keep track of empty cells (default False).
+            If true, empty cells can be accessed via :obj:`Grid.empty`.
+        check_border (bool, optional):
+            Ensure that agents have to stay within border (default True).
+            Can be set to False for faster performance.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
 
     Attributes:
-        grid (list of lists): Matrix of :class:`AgentList`.
-        shape (tuple of int): Length of each grid dimension.
-        dim (int): Number of dimensions.
+        agents (GridIter):
+            Iterator over all agents in the grid.
+        positions (dict of Agent):
+            Dictionary linking each agent instance to its position.
+        grid (numpy.rec.array):
+            Structured numpy record array with a field 'agents'
+            that holds an :class:`AgentSet` in each position.
+        shape (tuple of int):
+            Length of each dimension.
+        ndim (int):
+            Number of dimensions.
+        all (list):
+            List of all positions in the grid.
+        empty (ListDict):
+            List of unoccupied positions, only available
+            if the Grid was initiated with `track_empty=True`.
     """
 
-    def __init__(self, model, shape, **kwargs):
+    @staticmethod
+    def _agent_field(field_name, shape, model):
+        # Prepare structured array filled with empty agent sets
+        array = np.empty(shape, dtype=[(field_name, object)])
+        it = np.nditer(array, flags=['refs_ok', 'multi_index'])
+        for _ in it:
+            array[it.multi_index] = AgentSet(model)
+        return array
+
+    def __init__(self, model, shape, torus=False,
+                 track_empty=False, check_border=False, **kwargs):
 
         super().__init__(model)
 
-        self._topology = 'grid'
-        self._grid = make_matrix(shape, Location, LocList)
-        self._agent_to_loc = {}
-        self._shape = shape
+        self._track_empty = track_empty
+        self._check_border = check_border
+        self._torus = torus
+
+        self.positions = {}
+        self.grid = np.rec.array(self._agent_field('agents', shape, model))
+        self.shape = tuple(shape)
+        self.ndim = len(self.shape)
+        self.all = list(itertools.product(*[range(x) for x in shape]))
+        self.empty = ListDict(self.all) if track_empty else None
+
         self._set_var_ignore()
         self.setup(**kwargs)
 
     @property
-    def grid(self):
-        return self._grid
+    def agents(self):
+        return GridIter(self.positions.keys(), self.grid.agents)
 
-    @property
-    def shape(self):
-        return self._shape
+    # Add and remove agents ------------------------------------------------- #
 
-    @property
-    def dim(self):
-        return len(self._shape)
+    def _add_agent(self, agent, position, field):
+        position = list(position)  # Position must be mutable object
+        self.grid[field][tuple(position)].add(agent)  # Add agent to grid
+        self.positions[agent] = position  # Add agent to posdict
+        agent._add_env(self, pos=position)  # Add env to agent
 
-    def add_agents(self, agents=1, agent_class=Agent, positions=None,  # noqa
-                   random=False, generator=None, **kwargs):
-        """ Adds agents to the grid environment, and returns new agents.
-        See :func:`Environment.add_agents` for standard arguments.
-        Additional arguments are listed below.
+    def add_agents(self, agents, positions=None, random=False, empty=False):
+        """ Adds agents to the grid environment.
 
         Arguments:
-            positions(list of tuple, optional): The positions of the added
-                agents. List must have the same length as number of agents
-                to be added, and each entry must be a tuple with coordinates.
-                If none is passed, agents will fill up the grid systematically.
-            random(bool, optional):
-                If no positions are passed, agents will be placed in random
-                locations instead of systematic filling (default False).
-            generator (numpy.random.Generator, optional):
-                Random number generator that is used if 'random' is True.
-                If none is passed, :obj:`Model.random` is used.
+            agents (Sequence of Agent):
+                Iterable of agents to be added.
+            positions (Sequence of positions, optional):
+                The positions of the agents.
+                Must have the same length as 'agents',
+                with each entry being a position (list of int).
+                If none is passed, positions will be chosen automatically
+                based on the arguments 'random' and 'empty':
+
+                - random and empty:
+                  Random selection without repetition from `Grid.empty`.
+                - random and not empty:
+                  Random selection with repetition from `Grid.all`.
+                - not random and empty:
+                  Iterative selection from `Grid.empty`.
+                - not random and not empty:
+                  Iterative selection from `Grid.all`.
+
+            random (bool, optional):
+                Whether to choose random positions (default False).
+            empty (bool, optional):
+                Whether to choose only empty cells (default False).
+                Can only be True if Grid was initiated with `track_empty=True`.
         """
 
-        # Standard adding
-        new_agents = super().add_agents(agents, agent_class, **kwargs)
+        field = 'agents'
 
-        # Calculate positions
-        if not positions:
-            n_agents = len(new_agents)
-            available_positions = list(self.positions())
+        if empty and not self._track_empty:
+            raise AgentpyError(
+                "To use 'Grid.add_agents()' with 'empty=True', "
+                "Grid must be iniated with 'track_empty=True'.")
 
-            # Extend positions if necessary
-            while n_agents > len(available_positions):
-                available_positions.extend(available_positions)
-
-            # Fill agent positions
-            positions = []
-            if random:
-                generator = generator if generator else self.model.random
-                positions.extend(generator.choice(available_positions,
-                                                  n_agents, replace=False))
+        # Choose positions
+        if positions:
+            pass
+        elif random:
+            n = len(agents)
+            if empty:
+                positions = self.model.random.sample(self.empty, k=n)
             else:
-                positions.extend(available_positions[:n_agents])
+                positions = self.model.random.choices(self.all, k=n)
+        else:
+            if empty:
+                positions = list(self.empty)  # Soft copy
+            else:
+                positions = itertools.cycle(self.all)
 
-        # Add agents to grid
-        for agent, pos in zip(new_agents, positions):
-            loc = self.get_loc_from_pos(pos)  # Ensure that position is tuple
-            self._agent_to_loc[agent] = loc  # Add location to agent_dict
-            loc.agents.append(agent)  # Add agent to location
-
-        return new_agents
+        if empty:
+            if len(positions) < len(agents):
+                raise AgentpyError("More new agents than free positions.")
+            for agent, position in zip(agents, positions):
+                self._add_agent(agent, position, field)
+                self.empty.remove(position)
+        else:
+            for agent, position in zip(agents, positions):
+                self._add_agent(agent, position, field)
 
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
         for agent in make_list(agents):
-            self._agent_to_loc[agent].agents.remove(agent)
-            del self._agent_to_loc[agent]
-        super().remove_agents(agents)
+            agent._remove_env(self)  # Remove env from agent
+            pos = self.positions[agent]  # Get position
+            self.grid.agents[tuple(pos)].remove(agent)  # Rem. agent from grid
+            del self.positions[agent]  # Remove agent from position dict
+            if self._track_empty:
+                self.empty.add(pos)  # Add position to free spots
 
-    @staticmethod
-    def _apply(grid, func, *args, **kwargs):
-        if not isinstance(grid[0], Location):
-            return [Grid._apply(subgrid, func, *args, **kwargs)
-                    for subgrid in grid]
-        else:
-            return [func(i, *args, **kwargs) for i in grid]
+    # Move and select agents ------------------------------------------------ #
 
-    def apply(self, func, *args, **kwargs):
-        """ Applies a function to all grid positions,
-        and returns grid with return values. """
-        return self._apply(self.grid, func, *args, **kwargs)
-
-    @staticmethod
-    def _get_attr(agent_list, attr_key, sum_values, fill_empty):
-        if len(agent_list) == 0:
-            return fill_empty
-        if sum_values:
-            return sum(getattr(agent_list, attr_key))
-        else:
-            return list(getattr(agent_list, attr_key))
-
-    def attribute(self, attr_key, sum_values=True, empty=np.nan):
-        """ Returns a grid with the value of the attributes of the agents
-        in each position.
-
-        Arguments:
-            attr_key(str): Name of the attribute.
-            sum_values(str, optional): What to return in a position where there
-                are multiple agents. If True (default), the sum of attributes.
-                If False, a list of attributes.
-            empty(optional): What to return for empty positions
-                without agents (default numpy.nan).
-        """
-        return self.apply(self._get_attr, attr_key, sum_values, empty)
-
-    def _get_loc_from_pos(self, grid, pos):
-        """ Recursive function to get location from a position tuple. """
-        if len(pos) == 1:
-            return grid[pos[0]]
-        return self._get_loc_from_pos(grid[pos[0]], pos[1:])
-
-    def get_loc_from_pos(self, pos):
-        """ Return location of given position coordinates. """
-        return self._get_loc_from_pos(self._grid, pos)
-
-    def get_loc_from_agent(self, agent):
-        """ Return location of given agent. """
-        return self._agent_to_loc(agent)
-
-    def get_position(self, agent):
-        """ Returns tuple with position of a passed agent.
-
-        Arguments:
-            agent(int or Agent): Id or instance of the agent.
-        """
-        if isinstance(agent, int):
-            agent = self.model.get_obj(agent)
-        return self._agent_to_loc[agent].pos
-
-    def positions(self, area=None):
-        """Returns iterable of all grid positions in area.
-
-        Arguments:
-            area(list of tuples, optional):
-                Area of positions that should be returned.
-                If none is passed, the whole grid is selected.
-                Style: `[(x_start, x_end), (y_start, y_end), ...]`
-        """
-        # TODO CHANGE TO TUPLES
-        if area is None:
-            return itertools.product(*[range(x) for x in self._shape])
-        else:
-            return itertools.product(*[range(x, y+1) for x, y in area])
-
-    def _get_agents_from_area(self, area, grid):
-        """ Recursive function to get agents in area. """
-        subgrid = grid[area[0][0]:area[0][1] + 1]
-        # Detect last row (must have AgentLists)
-        if isinstance(subgrid[0], AgentList):
-            # Flatten list of AgentLists to list of agents
-            return [y for x in subgrid for y in x]
-        objects = []
-        for row in subgrid:
-            objects.extend(self._get_agents_from_area(area[1:], row))
-        return objects
-
-    def get_agents(self, area=None):
-        """ Returns an :class:`AgentList` with agents
-        in the selected positions or area.
-
-        Arguments:
-            area(tuple of integers or tuples):
-                Area from which agents should be gathered.
-                Can either indicate a single position `[x, y, ...]`
-                or an area `[(x_start, x_end), (y_start, y_end), ...]`.
-        """
-        if area is None:
-            return self.agents
-        if not isinstance(area, abc.Iterable):
-            raise ValueError(f"area '{area}' is not iterable.")
-        if isinstance(area[0], int):  # Soft copy TODO this is weird
-            return AgentList(self.get_loc_from_pos(area).agents, model=self.model)
-        else:
-            return AgentList(
-                self._get_agents_from_area(area, self._grid), model=self.model)
-
-    def move_agent(self, agent, position):
+    def move_agent(self, agent, pos):
         """ Moves agent to new position.
 
         Arguments:
-            agent(int or Agent): Id or instance of the agent.
-            position(list of int): New position of the agent.
+            agent (Agent): Instance of the agent.
+            pos (list of int): New position of the agent.
         """
-        if isinstance(agent, int):
-            agent = self.model.get_obj(agent)
-        self._agent_to_loc[agent].agents.remove(agent)
-        location = self.get_loc_from_pos(position)
-        location.agents.append(agent)
-        self._agent_to_loc[agent] = location  # Document new position
 
-    def items(self, area=None):
-        """ Returns iterator with tuples of style: (position, agents). """
-        # TODO Remove?
-        p_it_1, p_it_2 = itertools.tee(self.positions(area))  # Copy iterator
-        return zip(p_it_1, [self.get_loc_from_pos(pos).agents
-                            for pos in p_it_2])
+        pos_old = self.positions[agent]
+        pos = list(pos)
 
-    def _get_diamond(self, pos, grid, dist=1):
-        """ Return agents in diamond-shaped area around pos."""
-        subgrid = grid[max(0, pos[0] - dist):pos[0] + dist + 1]
-        if len(pos) == 1:
-            return [y for x in subgrid for y in x]  # flatten list
-        objects = []
-        for row, dist in zip(subgrid, [0, 1, 0]):
-            objects.extend(self._get_diamond(pos[1:], row, dist))
-        return objects
+        # Grid options
+        if self._check_border:
+            self._border_behavior(pos, self.shape, self._torus)
+        if self._track_empty:
+            self.empty.replace(tuple(pos), tuple(pos_old))
 
-    def neighbors(self, agent, distance=1, diagonal=True):
-        """ Returns agent neighbors.
+        self.grid.agents[tuple(pos_old)].remove(agent)
+        self.grid.agents[tuple(pos)].add(agent)
+        self.positions[agent][:] = pos  # Change position in-place
+
+    def neighbors(self, agent, distance=1):
+        """ Select agent neighbors within a given distance.
+        Supports toroidal grids.
 
         Arguments:
-            agent(int or Agent): Id or instance of the agent.
-            distance(int, optional): Number of positions to cover in each
-                direction.
+            agent (Agent): Instance of the agent.
+            distance (int, optional):
+                Number of cells to cover in each direction,
+                including diagonally connected cells (default 1).
+
+        Returns:
+            AgentIter: Iterator over the selected neighbors.
         """
-        if isinstance(agent, int):
-            agent = self.model.get_obj(agent)
-        if diagonal:  # Include diagonal neighbors
-            location = self._agent_to_loc[agent]
-            area = [(max(p-distance, 0),
-                     min(p+distance, dmax))
-                    for p, dmax in zip(location.pos, self._shape)]
-            agents = self.get_agents(area)
-        else:  # Do not include diagonal neighbors
-            agents = self._get_diamond(self._agent_to_loc[agent].agents, self._grid)
-        agents.remove(agent)  # Remove original agent
-        return AgentList(agents, model=self.model)
+
+        pos = self.positions[agent]
+
+        # Case 1: Toroidal
+        if self._torus:
+            slices = [(p-distance, p+distance+1) for p in pos]
+            new_slices = []
+            for (x_from, x_to), x_max in zip(slices, shape):
+                if x_to > x_max and x_from < 0:
+                    sl_tupl = [(0, x_max)]
+                elif x_to > x_max:
+                    if x_to - x_max >= x_from:
+                        sl_tupl = [(0, x_max)]
+                    else:
+                        sl_tupl = [(x_from, x_max), (0, x_to - x_max)]
+                elif x_from < 0:
+                    if x_max + x_from <= x_to:
+                        sl_tupl = [(0, x_max)]
+                    else:
+                        sl_tupl = [(x_max + x_from, x_max), (0, x_to)]
+                else:
+                    sl_tupl = [(x_from, x_to)]
+                new_slices.append(sl_tupl)
+            list_of_slices = list(itertools.product(*new_slices))
+            areas = []
+            for slices in list_of_slices:
+                areas.append(self.grid.agents[slices])
+            area_iters = [_IterArea(areas[0], exclude=agent)]
+            area_iters += [_IterArea(area) for area in areas[1:]]
+            return AgentIter(itertools.chain(area_iters))
+
+        # Case 2: Non-toroidal
+        else:
+            slices = tuple([slice(p-distance if p-distance >= 0 else 0,
+                                  p+distance+1) for p in pos])
+            area = self.grid.agents[slices]
+            # Iterate over all agents in area, exclude original agent
+            return AgentIter(_IterArea(area, exclude=agent))
+
+    # Fields and attributes ------------------------------------------------- #
+
+    def apply(self, func, field='agents'):
+        """ Applies a function to each grid position,
+        end returns an `numpy.ndarray` of return values.
+
+        Arguments:
+            func (function): Function that takes cell content as input.
+            field (str, optional): Field to use (default 'agents').
+        """
+        return np.vectorize(func)(self.grid[field])
+
+    def attr_grid(self, attr_key, otypes='f', field='agents'):
+        """ Returns a grid with the value of the attribute of the agent
+        in each position, using :class:`numpy.vectorize`.
+        Positions with no agent will contain `numpy.nan`.
+        Should only be used for grids with zero or one agents per cell.
+        Other kinds of attribute grids can be created with :func:`Grid.apply`.
+
+        Arguments:
+            attr_key (str): Name of the attribute.
+            otypes (str or list of dtypes, optional):
+                Data type of returned grid (default float).
+                For more information, see :class:`numpy.vectorize`.
+            field (str, optional): Field to use (default 'agents').
+        """
+
+        f = np.vectorize(
+            lambda x: getattr(next(iter(x)), attr_key) if x else np.nan,
+            otypes=otypes)
+        return f(self.grid[field])
+
+    def add_field(self, key, values=None):
+        """
+        Add an attribute field to the grid.
+
+        Arguments:
+            key (str):
+                Name of the field.
+            values (optional):
+                Single value or :class:`numpy.ndarray`
+                of values (default None).
+        """
+
+        if not isinstance(values, (np.ndarray, list)):
+            values = np.full(sum(self.shape), fill_value=values)
+        if len(values.shape) > 1:
+            values = values.reshape(-1)
+
+        # Create attribute as a numpy field
+        self.grid = rfs.append_fields(
+            self.grid, key, values, usemask=False, asrecarray=True
+            ).reshape(self.grid.shape)
+
+        # Create attribute as reference to field
+        setattr(self, key, self.grid[key])
+
+    def del_field(self, key):
+        """
+        Delete a attribute field from the grid.
+
+        Arguments:
+            key (str): Name of the field.
+        """
+
+        self.grid = rfs.drop_fields(
+            self.grid, key, usemask=False, asrecarray=True)
+        delattr(self, key)
