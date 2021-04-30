@@ -1,12 +1,30 @@
 """ Agentpy Network Module """
 
+import itertools
 import networkx as nx
-from .objects import ApEnv, Agent
-from .lists import AgentList
+from .objects import Environment
+from .sequences import AgentList, AgentIter
 from .tools import make_list
 
 
-class Network(ApEnv):
+# TODO Add distance argument to neighbors
+# TODO Add multi_agent function
+
+
+class AgentNode(set):
+    """ Node of :class:`Network`. Functions like a set of agents. """
+
+    def __init__(self, label):
+        self.label = label
+
+    def __hash__(self):
+        return id(self)
+
+    def __repr__(self):
+        return f"AgentNode ({self.label})"
+
+
+class Network(Environment):
     """ Agent environment with a graph topology.
     Every node of the network represents an agent in the environment.
     To add new network environments to a model, use :func:`Model.add_network`.
@@ -19,61 +37,133 @@ class Network(ApEnv):
     Arguments:
         model (Model): The model instance.
         graph (networkx.Graph, optional): The environments' graph.
-            Agents of the same number as graph nodes must be passed.
-            If none is passed, an empty graph is created.
-        agents (AgentList, optional): Agents of the network (default None).
-            If a graph is passed, agents are mapped to each node of the graph.
-            Otherwise, new nodes will be created for each agent.
+            Can also be a DiGraph, MultiGraph, or MultiDiGraph.
+            Nodes will be converted to :class:`AgentNode`,
+            and node labels will be kept as `AgentNode.label`.
+            If none is passed, an empty :class:`networkx.Graph` is created.
         **kwargs: Will be forwarded to :func:`Network.setup`.
 
     Attributes:
         graph (networkx.Graph): The environments' graph.
     """
 
-    def __init__(self, model, graph=None, agents=None, **kwargs):
+    def __init__(self, model, graph=None, **kwargs):
 
         super().__init__(model)
+        self._i = -1  # Node label counter
+        self.positions = {}  # Agent Instance : Node reference
 
         if graph is None:
             self.graph = nx.Graph()
-            if agents:
-                self.add_agents(agents)
-        elif isinstance(graph, nx.Graph):
-            self.graph = graph
-            # Map each agent to a node of the graph
-            if agents is None or len(agents) != len(self.graph.nodes):
-                la = len(agents) if agents else 0
-                ln = len(self.graph.nodes)
-                raise ValueError(
-                    f"Number of agents ({la}) in 'agents' doesn't match "
-                    f"number of nodes ({ln}) in graph.")
-            super().add_agents(agents)  # Add agents without new nodes
-            mapping = {i: agent for i, agent in enumerate(agents)}
-            nx.relabel_nodes(self.graph, mapping=mapping, copy=False)
         else:
-            raise TypeError("Argument 'graph' must be of type networkx.Graph")
+            nodes = graph.nodes
+            self._i = len(nodes)
+            mapping = {i: AgentNode(label=i) for i in nodes}
+            self.graph = nx.relabel_nodes(graph, mapping=mapping)
 
-        self._topology = 'network'
         self._set_var_ignore()
         self.setup(**kwargs)
 
-    def add_agents(self, agents, agent_class=Agent, **kwargs):
-        """ Adds agents to the network environment as new nodes.
-        See :func:`Environment.add_agents` for standard arguments.
+    @property
+    def agents(self):
+        return AgentIter(self.positions.keys())
+
+    @property
+    def nodes(self):
+        return self.graph.nodes
+
+    # Add and remove nodes -------------------------------------------------- #
+
+    def add_node(self, label=None):
+        """ Adds a new node to the network.
+
+        Arguments:
+            label (int or string, optional): Unique name of the node,
+                which must be different from all other nodes.
+                If none is passed, an integer number will be chosen.
+
+        Returns:
+            AgentNode: The newly created node.
         """
-        new_agents = super().add_agents(agents, agent_class, **kwargs)
-        for agent in new_agents:
-            self.graph.add_node(agent)  # Add agents to graph as new nodes
-        return new_agents
+        self._i += 1
+        if label is None:
+            label = self._i
+        node = AgentNode(label=label)
+        self.graph.add_node(node)
+        return node
+
+    def remove_node(self, node):
+        """ Removes a node from the network.
+
+        Arguments:
+            node (AgentNode): Node to be removed.
+        """
+        self.remove_agents(node)
+        self.graph.remove_node(node)
+
+    # Add and remove agents ------------------------------------------------- #
+
+    def add_agents(self, agents, positions=None):
+        """ Adds agents to the network environment.
+
+        Arguments:
+            agents (Sequence of Agent):
+                Instance or iterable of agents to be added.
+            positions (Sequence of AgentNode, optional):
+                The positions of the agents.
+                Must have the same length as 'agents',
+                with each entry being an :class:`AgentNode` of the network.
+                If none is passed, new nodes will be created for each agent.
+
+        """
+
+        if positions is None:
+            for agent in agents:
+                node = self.add_node()
+                node.add(agent)
+                self.positions[agent] = node
+                agent._add_env(self, node)
+        else:
+            for agent, node in zip(agents, positions):
+                node.add(agent)
+                self.positions[agent] = node
+                agent._add_env(self, node)
 
     def remove_agents(self, agents):
-        """ Removes agents from the environment. """
+        """ Removes agents from the network. """
         for agent in make_list(agents):
-            self.graph.remove_node(agent)
-        super().remove_agents(agents)
+            agent._remove_env(self)  # Remove env from agent
+            self.positions[agent].remove(agent)
+            del self.positions[agent]
 
-    def neighbors(self, agent, **kwargs):
-        """ Returns an :class:`AgentList` of agents
-        that are connected to the passed agent. """
-        return AgentList(
-            [n for n in self.graph.neighbors(agent)], model=self.model)
+    # Move and select agents ------------------------------------------------ #
+
+    def move_agent(self, agent, pos):
+        """ Moves agent to new position.
+
+        Arguments:
+            agent (Agent): Instance of the agent.
+            pos (AgentNode): New position of the agent.
+        """
+
+        pos.add(agent)
+        self.positions[agent].remove(agent)
+        self.positions[agent] = pos
+        if isinstance(agent.pos, dict):
+            agent.pos[self] = pos
+        else:
+            agent.pos = pos
+
+    def neighbors(self, agent, distance=1):
+        """ Select agents from neighboring nodes.
+        Does not include other agents from the agents' node.
+
+        Arguments:
+            agent (Agent): Instance of the agent.
+
+        Returns:
+            AgentIter: Iterator over the selected neighbors.
+        """
+
+        nodes = self.graph.neighbors(agent.pos)
+        return AgentIter(itertools.chain.from_iterable(nodes))
