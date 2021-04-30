@@ -121,7 +121,6 @@ class Space(Spatial):
             pos = pos if isinstance(pos, np.ndarray) else np.array(pos)
             self.positions[agent] = pos  # Add pos to agent_dict
             agent._add_env(self, pos=pos)  # Add env & pos to agent
-            print(agent, pos)
 
     def remove_agents(self, agents):
         """ Removes agents from the space. """
