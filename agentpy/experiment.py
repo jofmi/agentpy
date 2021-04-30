@@ -6,6 +6,7 @@ Content: Experiment class
 import pandas as pd
 import ipywidgets
 import IPython
+import random as rd
 
 from os import sys
 
@@ -17,14 +18,13 @@ from .sample import Sample
 
 
 class Experiment:
-    """ Experiment for an agent-based model.
-    Allows for multiple iterations, parameter samples, scenario comparison,
-    and parallel processing. See :func:`Experiment.run` for standard
-    simulations and :func:`Experiment.interactive` for interactive output.
+    """ Experiment that can run an agent-based model
+    over for multiple iterations and parameter combinations
+    and generate combined output data.
 
     Arguments:
         model (type):
-            The :class:`Model` type to perform the experiment with.
+            The model class for the experiment to use.
         sample (dict or list of dict or Sample, optional):
             Parameter combination(s) to test in the experiment (default None).
         iterations (int, optional):
@@ -32,7 +32,9 @@ class Experiment:
         random (bool, optional):
             Choose random seeds for every new iteration (default False).
             The seed for the random number generator will be taken from the
-            model's current parameter combination.
+            experiments's current parameter combination.
+            Note that if there is no parameter 'seed',
+            iterations will have random seeds even if this is False.
         record (bool, optional):
             Keep the record of dynamic variables (default False).
         **kwargs:
@@ -50,10 +52,9 @@ class Experiment:
         self.iterations = iterations
         self.record = record
         self._model_kwargs = kwargs
-        self._random = False
         self.name = model_class.__name__
 
-        # TODO Improve
+        # Prepare sample
         if isinstance(sample, Sample):
             self.sample = list(sample)
             sample_type = sample._type
@@ -66,6 +67,19 @@ class Experiment:
                         for sample_id in range(len(self.sample))
                         for iteration in range(iterations)]
         self.n_runs = len(self.run_ids)
+
+        # Prepare seeds
+        if random:
+            rngs = [rd.Random(p['seed'])
+                    if 'seed' in p else rd.Random()
+                    for p in sample]
+            self._random = {
+                (sample_id, iteration): rngs[sample_id].getrandbits(128)
+                for sample_id in range(len(self.sample))
+                for iteration in range(iterations)
+            }
+        else:
+            self._random = None
 
         # Prepare output
         self.output.log = {
@@ -100,7 +114,8 @@ class Experiment:
         if not df.empty:
             self.output['parameters']['sample'] = df
 
-    def _add_single_output_to_combined(self, single_output, combined_output):
+    @staticmethod
+    def _add_single_output_to_combined(single_output, combined_output):
         """Append results from single run to combined output.
         Each key in single_output becomes a key in combined_output.
         DataDicts entries become dicts with lists of values.
@@ -142,14 +157,10 @@ class Experiment:
 
     def _single_sim(self, run_id):
         """ Perform a single simulation."""
-        model = self.model(
-            self.sample[run_id[0]],
-            _run_id=run_id,
-            **self._model_kwargs)
+        parameters = self.sample[run_id[0]]
+        model = self.model(parameters, _run_id=run_id, **self._model_kwargs)
         if self._random:
-            # TODO CHANGE
-            seed = self._random.getrandbits(128)
-            results = model.run(display=False, seed=seed)
+            results = model.run(display=False, seed=self._random[run_id])
         else:
             results = model.run(display=False)
         if 'variables' in results and self.record is False:

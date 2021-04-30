@@ -51,3 +51,43 @@ def test_interactive():
     exp = ap.Experiment(ap.Model, sample)
     exp.interactive(interactive_plot)
     assert True
+
+
+def test_random():
+    parameters = {
+        'steps': 0,
+        'seed': ap.Values(1, 1, 2)
+    }
+
+    class Model(ap.Model):
+        def setup(self):
+            self.report('x', self.model.random.random())
+
+    sample = ap.Sample(parameters)
+    exp = ap.Experiment(Model, sample, iterations=2, random=True)
+    results = exp.run()
+
+    l = list(results.reporters['x'])
+
+    assert l[0] != l[1]
+    assert l[0:2] == l[2:4]
+    assert l[0:2] != l[4:6]
+
+    parameters = {
+        'steps': 0,
+        'seed': ap.Values(1, 1, 2)
+    }
+
+    class Model(ap.Model):
+        def setup(self):
+            self.report('x', self.model.random.random())
+
+    sample = ap.Sample(parameters)
+    exp = ap.Experiment(Model, sample, iterations=2, random=False)
+    results = exp.run()
+
+    l = list(results.reporters['x'])
+
+    assert l[0] == l[1]
+    assert l[0:2] == l[2:4]
+    assert l[0:2] != l[4:6]
