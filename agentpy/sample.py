@@ -25,15 +25,15 @@ class Range:
             Maximum value for this parameter (default 1).
         vdef (int or float, optional):
             Default value. If none is passed, `(vmin+vmax)/2` is used.
-        ints (bool, optional):
+        int_range (bool, optional):
             Round and convert sampled values to integers (default False).
     """
 
-    def __init__(self, vmin=0, vmax=1, vdef=None, ints=False):
+    def __init__(self, vmin=0, vmax=1, vdef=None, int_range=False):
         self.vmin = vmin
         self.vmax = vmax
         self.vdef = vdef if vdef else (vmin+vmax)/2
-        self.ints = ints
+        self.ints = int_range
 
     def __repr__(self):
         return f"Parameter range from {self.vmin} to {self.vmax}"
