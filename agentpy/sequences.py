@@ -8,11 +8,11 @@ Content: Lists for objects, environments, and agents
 import itertools
 import agentpy as ap
 import numpy as np
-from .tools import AgentpyError
-from collections.abc import Sequence as PySequence
+from .tools import AgentpyError, ListDict
+from collections.abc import Sequence
 
 
-class Sequence:
+class AgentSequence:
     """ Base class for agenpty sequences. """
 
     def __repr__(self):
@@ -20,10 +20,10 @@ class Sequence:
         return f"{type(self).__name__} ({len(self)} object{s})"
 
     def __getattr__(self, name):
-        # TODO This breaks numpy conversion because of __array_struct__ lookup
         """ Return callable list of attributes """
-        if name[0] == '_':  # Allows for numpy conversion
-            super().__getattr__(name)  #raise AttributeError('test')
+        if name[0] == '_':  # Private variables are looked up normally
+            # Gives numpy conversion correct error for __array_struct__ lookup
+            super().__getattr__(name)
         else:
             return AttrIter(self, attr=name)
 
@@ -40,7 +40,7 @@ class Sequence:
 
 # Attribute List ------------------------------------------------------------ #
 
-class AttrIter(Sequence, PySequence):
+class AttrIter(AgentSequence, Sequence):
     """ Iterator over an attribute of objects in a sequence.
     Length, items access, and representation work like with a normal list.
     Calls are forwarded to each entry and return a list of return values.
@@ -142,7 +142,28 @@ class AttrIter(Sequence, PySequence):
 
 # Object Containers --------------------------------------------------------- #
 
-class AgentList(Sequence, list):
+def _random(gen, obj_list, n=1, replace=False):
+    """ Creates a random sample of agents.
+
+    Arguments:
+        n (int, optional): Number of agents (default 1).
+        replace (bool, optional):
+            Select with replacement (default False).
+            If True, the same agent can be selected more than once.
+
+    Returns:
+        AgentIter: The selected agents.
+    """
+    if n == 1:
+        selection = [gen.choice(obj_list)]
+    elif replace is False:
+        selection = gen.sample(obj_list, k=n)
+    else:
+        selection = gen.choices(obj_list, k=n)
+    return AgentIter(selection)
+
+
+class AgentList(AgentSequence, list):
     """ List of agentpy objects.
     Attribute calls and assignments are applied to all agents
     and return an :class:`AttrIter` with the attributes of each agent.
@@ -237,35 +258,19 @@ class AgentList(Sequence, list):
         """
         return AgentList(self.model, [a for a, s in zip(self, selection) if s])
 
-    # TODO offer both choices
-    def random(self, n=1, replace=False, weights=None, shuffle=True):
-        """ Creates a random sample of agents,
-        using :func:`numpy.random.Generator.choice`.
-        Argument descriptions are adapted from :obj:`numpy.random`.
-        Returns a new :class:`AgentList` with the selected agents.
+    def random(self, n=1, replace=False):
+        """ Creates a random sample of agents.
 
         Arguments:
             n (int, optional): Number of agents (default 1).
             replace (bool, optional):
-                Whether the sample is with or without replacement.
-                Default is False, meaning that every agent can
-                only be selected once.
-            weights (1-D array_like, optional):
-                The probabilities associated with each agent.
-                If not given the sample assumes a uniform distribution
-                over all agents.
-            shuffle (bool, optional):
-                Whether the sample is shuffled
-                when sampling without replacement.
-                Default is True, False provides a speedup.
-        """
+                Select with replacement (default False).
+                If True, the same agent can be selected more than once.
 
-        # Choice is not applied to list directly because it would convert it to
-        # a numpy array, which takes much more time than the current solution.
-        indices = self.model.nprandom.choice(
-            len(self), size=n, replace=replace, p=weights, shuffle=shuffle)
-        selection = AgentList(self.model, [self[i] for i in indices])
-        return selection
+        Returns:
+            AgentIter: The selected agents.
+        """
+        return _random(self.model.random, self, n, replace)
 
     def sort(self, var_key, reverse=False):
         """ Sorts the list in-place, and returns self.
@@ -284,21 +289,21 @@ class AgentList(Sequence, list):
         return self
 
 
-class AgentGroup(Sequence, PySequence):
+class AgentGroup(AgentSequence, ListDict):
     """ Ordered collection of agentpy objects.
-    This class behaves similar to the :class:`AgentList` in most aspects,
-    but provide extra features and better performance for object removal.
+    This container behaves similar to :class:`AgentList` in most aspects,
+    but comes with additional features for object removal and lookup.
 
-    The following aspects are different:
+    The key differences to :class:`AgentList` are the following:
 
     - Faster removal of objects.
     - Faster lookup if object is part of group.
     - No duplicates are allowed.
     - The order of agents in the group cannot be changed.
     - Removal of agents changes the order of the group.
-    - The method :class:`AgentGroup.buffer` makes it possible to
+    - :func:`AgentGroup.buffer` makes it possible to
       remove objects from the group while iterating over the group.
-    - The method :class:`AgentGroup.shuffle` returns an iterator
+    - :func:`AgentGroup.shuffle` returns an iterator
       instead of shuffling in-place.
 
     Arguments:
@@ -311,8 +316,6 @@ class AgentGroup(Sequence, PySequence):
         **kwargs: Forwarded to the constructor of the new objects.
 
     """
-
-    # TODO Random, select, setattr
 
     def __init__(self, model, objs=(), cls=None, *args, **kwargs):
         if isinstance(objs, int):
@@ -329,52 +332,51 @@ class AgentGroup(Sequence, PySequence):
         for obj in objs:
             self.append(obj)
 
-    def __iter__(self):
-        return iter(self.items)
-
-    def __len__(self):
-        return len(self.items)
-
-    def __getitem__(self, item):
-        return self.items[item]
-
-    def __contains__(self, item):
-        return item in self.item_to_position
-
     def __setattr__(self, name, value):
         if isinstance(value, AttrIter):
             # Apply each value to each agent
-            for obj, v in zip(self.items, value):
+            for obj, v in zip(self, value):
                 setattr(obj, name, v)
         else:
             # Apply single value to all agents
-            for obj in self.items:
+            for obj in self:
                 setattr(obj, name, value)
 
-    def append(self, item):
-        """ Add an object to the group. """
-        if item in self.item_to_position:
-            return
-        self.items.append(item)
-        self.item_to_position[item] = len(self.items)-1
+    def random(self, n=1, replace=False):
+        """ Creates a random sample of agents.
 
-    def replace(self, old_item, new_item):
-        """ Replace an object with another. """
-        position = self.item_to_position.pop(old_item)
-        self.item_to_position[new_item] = position
-        self.items[position] = new_item
+        Arguments:
+            n (int, optional): Number of agents (default 1).
+            replace (bool, optional):
+                Select with replacement (default False).
+                If True, the same agent can be selected more than once.
 
-    def pop(self, index):
-        """ Remove an object from the group by index. """
-        self.remove(self[index])
+        Returns:
+            AgentIter: The selected agents.
+        """
+        return _random(self.model.random, self.items, n, replace)
 
-    def remove(self, item):
-        """ Remove an object from the group by instance. """
-        position = self.item_to_position.pop(item)
-        last_item = self.items.pop()
-        if position != len(self.items):
-            self.items[position] = last_item
-            self.item_to_position[last_item] = position
+    def select(self, selection):
+        """ Returns a new :class:`AgentList` based on `selection`.
+
+        Arguments:
+            selection (list of bool): List with same length as the agent list.
+                Positions that return True will be selected.
+        """
+        return AgentList(
+            self.model, [a for a, s in zip(self.items, selection) if s])
+
+    def sort(self, var_key, reverse=False):
+        """ Returns a new sorted :class:`AgentList`.
+
+        Arguments:
+            var_key (str): Attribute of the lists' objects, based on which
+                the list will be sorted from lowest value to highest.
+            reverse (bool, optional): Reverse sorting (default False).
+        """
+        agentlist = AgentList(self.model, self)
+        agentlist.sort(var_key=var_key, reverse=reverse)
+        return agentlist
 
     def shuffle(self):
         """ Return :class:`AgentIter` over the content of the group
@@ -387,7 +389,7 @@ class AgentGroup(Sequence, PySequence):
         return AgentGroupIter(self.model, self, buffer=True)
 
 
-class AgentSet(Sequence, set):
+class AgentSet(AgentSequence, set):
     """ Unordered collection of agentpy objects.
 
     Arguments:
@@ -408,11 +410,15 @@ class AgentSet(Sequence, set):
         super().__setattr__('ndim', 1)
 
 
-class AgentIter(Sequence):
+class AgentIter(AgentSequence):
     """ Iterator over agentpy objects. """
 
     def __init__(self, source=()):
         object.__setattr__(self, '_source', source)
+
+    def __getitem__(self, item):
+        raise AgentpyError(
+            'AgentIter has to be converted to list for item lookup.')
 
     def __iter__(self):
         return iter(self._source)
@@ -452,9 +458,11 @@ class AgentGroupIter(AgentIter):
 
     def buffer(self):
         object.__setattr__(self, '_buffer', True)
+        return self
 
     def shuffle(self):
         object.__setattr__(self, '_shuffle', True)
+        return self
 
     def _buffered_iter(self):
         """ Iterate over source. """
