@@ -106,6 +106,7 @@ class ListDict(Sequence):
     def __init__(self, iterable):
         self.item_to_position = {}
         self.items = []
+        self.add = self.append
         for item in iterable:
             self.add(item)
 
@@ -118,7 +119,10 @@ class ListDict(Sequence):
     def __getitem__(self, item):
         return self.items[item]
 
-    def add(self, item):
+    def __contains__(self, item):
+        return item in self.item_to_position
+
+    def append(self, item):
         if item in self.item_to_position:
             return
         self.items.append(item)
@@ -135,3 +139,7 @@ class ListDict(Sequence):
         if position != len(self.items):
             self.items[position] = last_item
             self.item_to_position[last_item] = position
+
+    def pop(self, index):
+        """ Remove an object from the group by index. """
+        self.remove(self[index])
