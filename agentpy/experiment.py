@@ -29,14 +29,14 @@ class Experiment:
             Parameter combination(s) to test in the experiment (default None).
         iterations (int, optional):
             How often to repeat every parameter combination (default 1).
+        record (bool, optional):
+            Keep the record of dynamic variables (default False).
         random (bool, optional):
             Choose random seeds for every new iteration (default False).
             The seed for the random number generator will be taken from the
             experiments's current parameter combination.
             Note that if there is no parameter 'seed',
             iterations will have random seeds even if this is False.
-        record (bool, optional):
-            Keep the record of dynamic variables (default False).
         **kwargs:
             Will be forwarded to all model instances created by the experiment.
 
@@ -45,7 +45,7 @@ class Experiment:
     """
 
     def __init__(self, model_class, sample=None, iterations=1,
-                 random=False, record=False, **kwargs):
+                 record=False, random=False, **kwargs):
 
         self.model = model_class
         self.output = DataDict()
@@ -57,15 +57,18 @@ class Experiment:
         # Prepare sample
         if isinstance(sample, Sample):
             self.sample = list(sample)
-            sample_type = sample._type
+            self.sample_log = sample._log
         else:
             self.sample = make_list(sample, keep_none=True)
-            sample_type = 'custom'
+            self.sample_log = None
 
         # Prepare runs
+        combos = len(self.sample)
+        iter_range = range(iterations) if iterations > 1 else [None]
+        sample_range =range(combos) if combos > 1 else [None]
         self.run_ids = [(sample_id, iteration)
-                        for sample_id in range(len(self.sample))
-                        for iteration in range(iterations)]
+                        for sample_id in sample_range
+                        for iteration in iter_range]
         self.n_runs = len(self.run_ids)
 
         # Prepare seeds
@@ -92,8 +95,7 @@ class Experiment:
             'completed': False,
             'random': random,
             'record': record,
-            'sample_size': len(sample),
-            'sample_type': sample_type,
+            'sample_size': len(self.sample),
             'iterations': iterations
         }
         self._parameters_to_output()
@@ -113,6 +115,8 @@ class Experiment:
             self.output['parameters']['constants'] = fixed_pars
         if not df.empty:
             self.output['parameters']['sample'] = df
+        if self.sample_log:
+            self.output['parameters']['sample_log'] = self.sample_log
 
     @staticmethod
     def _add_single_output_to_combined(single_output, combined_output):
@@ -157,7 +161,8 @@ class Experiment:
 
     def _single_sim(self, run_id):
         """ Perform a single simulation."""
-        parameters = self.sample[run_id[0]]
+        sample_id = 0 if run_id[0] is None else run_id[0]
+        parameters = self.sample[sample_id]
         model = self.model(parameters, _run_id=run_id, **self._model_kwargs)
         if self._random:
             results = model.run(display=False, seed=self._random[run_id])
