@@ -8,6 +8,7 @@ Content: Sampling functions
 # TODO Store meta-info for later analysis
 
 import itertools
+import random
 import numpy as np
 
 from SALib.sample import saltelli
@@ -101,13 +102,21 @@ class Sample:
                 - ``calc_second_order`` (bool, optional):
                   Whether to calculate second-order indices (default False).
 
+        seed (int, optional):
+            Random seed to generate random seeds for all parameter combinations
+            in the sample. This will overwrite the parameter 'seed'.
+
         **kwargs: Additional keyword arguments for chosen `method`.
 
     """
-    def __init__(self, parameters, n=None, method='linspace', **kwargs):
 
-        self._type = method
+    def __init__(self, parameters, n=None, method='linspace',
+                 seed=None, **kwargs):
+
+        self._log = {'type': method, 'seed': seed, 'n': n}
         self._sample = getattr(self, f"_{method}")(parameters, n, **kwargs)
+        if seed:
+            self._assign_random_seeds(seed)
 
     def __repr__(self):
         return f"Sample of {len(self)} parameter combinations"
@@ -119,6 +128,11 @@ class Sample:
         return len(self._sample)
 
     # Sampling methods ------------------------------------------------------ #
+
+    def _assign_random_seeds(self, seed):
+        rng = random.Random(seed)
+        for parameters in self._sample:
+            parameters['seed'] = rng.getrandbits(128)
 
     @staticmethod
     def _linspace(parameters, n, product=True):
@@ -149,8 +163,7 @@ class Sample:
 
         return sample
 
-    @staticmethod
-    def _saltelli(params, n, calc_second_order=False):
+    def _saltelli(self, params, n, calc_second_order=False):
 
         # STEP 0 - Find variable parameters and check type
         param_ranges_tuples = {}
@@ -192,6 +205,10 @@ class Sample:
                 parameters[key] = p
 
             ap_sample.append(parameters)
+
+        # STEP 4 - Log
+        self._log['salib_problem'] = param_ranges_salib
+        self._log['calc_second_order'] = calc_second_order
 
         return ap_sample
 
