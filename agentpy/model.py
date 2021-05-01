@@ -189,7 +189,7 @@ class Model(Object):
 
     # Recording ------------------------------------------------------------- #
 
-    def report(self, name, value):
+    def report(self, rep_keys, value=None):
         """ Reports a new simulation result.
         Reporters are meant to be 'summary statistics' or 'evaluation measures'
         of the simulation as a whole, and only one value can be stored per run.
@@ -197,8 +197,12 @@ class Model(Object):
         can be recorded multiple times for each time-step and object.
 
         Arguments:
-            name (str): Name of the reporter.
-            value (int or float): Value to report.
+            rep_keys (str or list of str):
+                Name(s) of the reporter(s) to be documented.
+            value (int or float, optional): Value to be reported.
+                The same value will be used for all `rep_keys`.
+                If none is given, the values of object attributes
+                with the same name as each rep_key will be used.
 
         Examples:
 
@@ -221,35 +225,42 @@ class Model(Object):
                 >>> sample = ap.sample({'agents': (1, 3)}, 3)
                 >>> exp = ap.Experiment(MyModel, sample)
                 >>> results = exp.run()
-                >>> print(results.reporters)
+                >>> results.reporters
                         sum_id
                 run_id
                 0            1
                 1            3
                 2            6
         """
-        self.reporters[name] = value
+        for rep_key in make_list(rep_keys):
+            if value is not None:
+                self.reporters[rep_key] = value
+            else:
+                self.reporters[rep_key] = getattr(self, rep_key)
 
     # Placeholder methods for custom simulation methods --------------------- #
 
     def setup(self):
         """ Defines the model's actions before the first simulation step.
-        Can be overwritten and used to initiate agents and environments."""
+        Can be overwritten to initiate agents and environments."""
         pass
 
     def step(self):
-        """ Defines the model's actions during each simulation step.
-        Can be overwritten and used to set the models' main dynamics."""
-        pass
+        """ Defines the model's actions
+        during each simulation step (excluding `t==0`).
+        Can be overwritten to define the models' main dynamics.
+        If not defined, the simulation will stop after the first step."""
+        self.stop()
 
     def update(self):
-        """ Defines the model's actions after setup and each simulation step.
-        Can be overwritten and used for the recording of dynamic variables. """
+        """ Defines the model's actions
+        after each simulation step (including `t==0`).
+        Can be overwritten for the recording of dynamic variables. """
         pass
 
     def end(self):
         """ Defines the model's actions after the last simulation step.
-        Can be overwritten and used for final calculations and reporters."""
+        Can be overwritten for final calculations and reporting."""
         pass
 
     # Simulation routines (in line with ipysimulate) ------------------------ #
@@ -406,8 +417,9 @@ class Model(Object):
         # 2 - Define additional index columns
         columns = {}
         if self._run_id is not None:
-            columns['sample_id'] = self._run_id[0]
-            if len(self._run_id) > 1:
+            if self._run_id[0] is not None:
+                columns['sample_id'] = self._run_id[0]
+            if len(self._run_id) > 1 and self._run_id[1] is not None:
                 columns['iteration'] = self._run_id[1]
 
         # 3 - Create variable output
@@ -417,7 +429,7 @@ class Model(Object):
 
         # 4 - Create reporters output
         if self.reporters:
-            d = {k:[v] for k, v in self.reporters.items()}
+            d = {k: [v] for k, v in self.reporters.items()}
             for key, value in columns.items():
                 d[key] = value
             df = pd.DataFrame(d)
