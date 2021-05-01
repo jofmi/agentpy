@@ -43,7 +43,7 @@ class Object:
                 and k not in self._var_ignore]
 
     def record(self, var_keys, value=None):
-        """ Records an objects variables at the current time-step.
+        """ Records an object's variables at the current time-step.
         Recorded variables can be accessed via the object's `log` attribute
         and will be saved to the model's output at the end of a simulation.
 
