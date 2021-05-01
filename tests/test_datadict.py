@@ -60,7 +60,7 @@ def test_combine_vars():
 
 
 repr = """DataDict {
-'log': Dictionary with 13 keys
+'log': Dictionary with 12 keys
 'parameters': 
     'constants': Dictionary with 1 key
     'sample': DataFrame with 1 variable and 10 rows
