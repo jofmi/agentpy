@@ -64,6 +64,7 @@ repr = """DataDict {
 'parameters': 
     'constants': Dictionary with 1 key
     'sample': DataFrame with 1 variable and 10 rows
+    'sample_log': Dictionary with 3 keys
 'variables': 
     'Agent': DataFrame with 1 variable and 10 rows
     'MyModel': DataFrame with 1 variable and 10 rows
