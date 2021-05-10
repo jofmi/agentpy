@@ -14,7 +14,7 @@ __all__ = [
     'AgentIter', 'AgentGroupIter', 'AttrIter',
     'Grid', 'GridIter', 'Space', 'Network', 'AgentNode',
     'Experiment',
-    'DataDict', 'load',
+    'DataDict',
     'Sample', 'Values', 'Range',
     'gridplot', 'animate',
     'AttrDict'
@@ -30,7 +30,7 @@ from .network import Network, AgentNode
 from .grid import Grid, GridIter
 from .space import Space
 from .experiment import Experiment
-from .datadict import DataDict, load
+from .datadict import DataDict
 from .sample import Sample, Values, Range
-from .analysis import gridplot, animate
+from .visualization import gridplot, animate
 from .tools import AttrDict
