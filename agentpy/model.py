@@ -113,12 +113,12 @@ class Model(Object):
         self._logs = {}
         self.reporters = {}
         self.output = DataDict()
-        self.output.log = {
+        self.output.info = {
             'model_type': self.type,
             'time_stamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'agentpy_version': __version__,
             'python_version': sys.version[:5],
-            'multi_run': False,
+            'experiment': False,
             'completed': False
         }
 
@@ -359,10 +359,10 @@ class Model(Object):
         self.end()
         self.create_output()
 
-        self.output.log['completed'] = True
-        self.output.log['created_objects'] = self._id_counter
-        self.output.log['completed_steps'] = self.t
-        self.output.log['run_time'] = ct = str(datetime.now() - dt0)
+        self.output.info['completed'] = True
+        self.output.info['created_objects'] = self._id_counter
+        self.output.info['completed_steps'] = self.t
+        self.output.info['run_time'] = ct = str(datetime.now() - dt0)
 
         if display:
             print(f"\nRun time: {ct}\nSimulation finished")
