@@ -60,11 +60,11 @@ def test_combine_vars():
 
 
 repr = """DataDict {
-'log': Dictionary with 12 keys
+'info': Dictionary with 12 keys
 'parameters': 
     'constants': Dictionary with 1 key
     'sample': DataFrame with 1 variable and 10 rows
-    'sample_log': Dictionary with 3 keys
+    'log': Dictionary with 3 keys
 'variables': 
     'Agent': DataFrame with 1 variable and 10 rows
     'MyModel': DataFrame with 1 variable and 10 rows
@@ -226,29 +226,29 @@ def test_automatic_loading():
         shutil.rmtree('ap_output')
 
     results = pytest.model_results
-    results.log['test'] = False
+    results.info['test'] = False
     results.save(exp_name="a")
     results.save(exp_name="b", exp_id=1)
-    results.log['test'] = True
+    results.info['test'] = True
     results.save(exp_name="b", exp_id=3)
-    results.log['test'] = False
+    results.info['test'] = False
     results.save(exp_name="c")
     results.save(exp_name="b", exp_id=2)
 
-    loaded = ap.load()
+    loaded = ap.DataDict.load()
     shutil.rmtree('ap_output')
 
     # Latest experiment is chosen (b),
     # and then highest id is chosen (3)
 
-    assert loaded.log['test'] is True
+    assert loaded.info['test'] is True
 
 
 def test_saved_equals_loaded():
 
     results = pytest.exp_results
     results.save()
-    loaded = ap.load('ModelType0')
+    loaded = ap.DataDict.load('ModelType0')
     shutil.rmtree('ap_output')
     assert results == loaded
     # Test that equal doesn't hold if parts are changed
@@ -257,9 +257,9 @@ def test_saved_equals_loaded():
     assert results != loaded
     results.reporters = 1
     assert results == loaded
-    loaded.log = 1
+    loaded.info = 1
     assert results != loaded
-    del loaded.log
+    del loaded.info
     assert results != loaded
 
 
@@ -281,12 +281,12 @@ def test_save_load():
     dd['wo'] = WeirdObject()
 
     dd.save()
-    dl = ap.load()
+    dl = ap.DataDict.load()
     with pytest.raises(FileNotFoundError):
-        assert ap.load("Doesn't_exist")
+        assert ap.DataDict.load("Doesn't_exist")
     shutil.rmtree('ap_output')
     with pytest.raises(FileNotFoundError):
-        assert ap.load("Doesn't_exist")
+        assert ap.DataDict.load("Doesn't_exist")
 
     assert dd.__repr__().count('\n') == 10
     assert dl.__repr__().count('\n') == 9
@@ -301,7 +301,38 @@ def test_load_unreadable():
     os.makedirs(path)
     f = open(path + "unreadable_entry.xxx", "w+")
     f.close()
-    dl = ap.load()
+    dl = ap.DataDict.load()
     shutil.rmtree('ap_output')
     assert dl.unreadable_entry is None
 
+
+class SobolModel(ap.Model):
+    def step(self):
+        self.report('x', self.p.x)
+        self.stop()
+
+
+def test_calc_sobol():
+    si = 0.6593259637723373
+
+    parameters = {'x': ap.Range(0., 1.)}
+    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    results = ap.Experiment(SobolModel, sample).run(display=False)
+    results.calc_sobol()
+    assert results.sensitivity.sobol['S1'][0] == si
+
+    # Test if a non-varied parameter causes errors
+    parameters = {'x': ap.Range(0., 1.), 'y': 1}
+    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    results = ap.Experiment(SobolModel, sample).run(display=False)
+    results.calc_sobol()
+    assert results.sensitivity.sobol['S1'][0] == si
+
+    # Test calc_second_order
+    parameters = {'x': ap.Range(0., 1.), 'y': 1}
+    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=True)
+    results = ap.Experiment(SobolModel, sample).run(display=False)
+    results.calc_sobol()
+    assert results.sensitivity.sobol[('S2', 'x')][0].__repr__() == 'nan'
+
+    # TODO Test sobol with iteration merging

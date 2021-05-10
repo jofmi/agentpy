@@ -4,6 +4,10 @@ import agentpy as ap
 from agentpy.tools import *
 
 
+def test_InfoStr():
+    assert InfoStr('yay').__repr__() == 'yay'
+
+
 def test_make_list():
 
     make_list = ap.tools.make_list
@@ -33,3 +37,20 @@ def test_attr_dict():
     assert ad.a == ad['a']
     assert ad.b == ad['b']
     assert ad._short_repr() == "AttrDict (2 entries)"
+    assert AttrDict(None) == {}  # Initialize with None
+
+
+def test_ListDict():
+    x = ListDict([1, 2, 3, 4, 5])
+    assert x.append == x.add
+    assert list(x) == [1, 2, 3, 4, 5]
+    x.replace(3, 8)
+    assert list(x) == [1, 2, 8, 4, 5]
+    x.append(9)
+    assert list(x) == [1, 2, 8, 4, 5, 9]
+    x.append(9)
+    assert list(x) == [1, 2, 8, 4, 5, 9]
+    x.remove(2)
+    assert list(x) == [1, 9, 8, 4, 5]
+    x.pop(0)
+    assert list(x) == [5, 9, 8, 4]

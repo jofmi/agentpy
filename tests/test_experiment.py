@@ -36,8 +36,8 @@ def test_parallel_processing():
     exp2 = ap.Experiment(MyModel, [{'steps': 1}] * 3)
     results2 = exp2.run()
 
-    del results.log
-    del results2.log
+    del results.info
+    del results2.info
 
     assert results == results2
 

@@ -69,7 +69,7 @@ def test_sample_saltelli():
         'c': ap.Values(*'xyz'),
         'd': True
     }
-    sample = ap.Sample(parameters, n=2, method='saltelli')
+    sample = ap.Sample(parameters, n=2, method='saltelli', calc_second_order=False)
 
     problem = {
         'num_vars': 3,
