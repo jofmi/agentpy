@@ -57,15 +57,15 @@ class Experiment:
         # Prepare sample
         if isinstance(sample, Sample):
             self.sample = list(sample)
-            self.sample_log = sample._log
+            self._sample_log = sample._log
         else:
             self.sample = make_list(sample, keep_none=True)
-            self.sample_log = None
+            self._sample_log = None
 
         # Prepare runs
         combos = len(self.sample)
         iter_range = range(iterations) if iterations > 1 else [None]
-        sample_range =range(combos) if combos > 1 else [None]
+        sample_range = range(combos) if combos > 1 else [None]
         self.run_ids = [(sample_id, iteration)
                         for sample_id in sample_range
                         for iteration in iter_range]
@@ -85,12 +85,12 @@ class Experiment:
             self._random = None
 
         # Prepare output
-        self.output.log = {
+        self.output.info = {
             'model_type': model_class.__name__,
             'time_stamp': str(datetime.now()),
             'agentpy_version': __version__,
             'python_version': sys.version[:5],
-            'multi_run': True,
+            'experiment': True,
             'scheduled_runs': self.n_runs,
             'completed': False,
             'random': random,
@@ -115,8 +115,8 @@ class Experiment:
             self.output['parameters']['constants'] = fixed_pars
         if not df.empty:
             self.output['parameters']['sample'] = df
-        if self.sample_log:
-            self.output['parameters']['sample_log'] = self.sample_log
+        if self._sample_log:
+            self.output['parameters']['log'] = self._sample_log
 
     @staticmethod
     def _add_single_output_to_combined(single_output, combined_output):
@@ -125,7 +125,7 @@ class Experiment:
         DataDicts entries become dicts with lists of values.
         Other entries become lists of values. """
         for key, value in single_output.items():
-            if key in ['parameters', 'log']:  # Skip parameters & log
+            if key in ['parameters', 'info']:  # Skip parameters & info
                 continue
             if isinstance(value, DataDict):  # Handle subdicts
                 if key not in combined_output:  # New key
@@ -156,7 +156,7 @@ class Experiment:
                         self.output[key][sk] = pd.concat(sv)  # Df are combined
                     else:  # Other objects are kept as original TODO TESTS
                         self.output[key][sk] = sv
-            elif key != 'log':  # Other objects are kept as original TODO TESTS
+            elif key != 'info':  # Other objects are kept as original TODO TESTS
                 self.output[key] = values
 
     def _single_sim(self, run_id):
@@ -237,8 +237,8 @@ class Experiment:
                     single_output, combined_output)
 
         self._combine_dataframes(combined_output)
-        self.output.log['completed'] = True
-        self.output.log['run_time'] = ct = str(datetime.now() - t0)
+        self.output.info['completed'] = True
+        self.output.info['run_time'] = ct = str(datetime.now() - t0)
 
         if display:
             print(f"Experiment finished\nRun time: {ct}")
