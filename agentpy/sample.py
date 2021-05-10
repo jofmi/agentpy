@@ -100,7 +100,7 @@ class Sample:
               Additional keyword arguments:
 
                 - ``calc_second_order`` (bool, optional):
-                  Whether to calculate second-order indices (default False).
+                  Whether to calculate second-order indices (default True).
 
         seed (int, optional):
             Random seed to generate random seeds for all parameter combinations
@@ -163,7 +163,7 @@ class Sample:
 
         return sample
 
-    def _saltelli(self, params, n, calc_second_order=False):
+    def _saltelli(self, params, n, calc_second_order=True):
 
         # STEP 0 - Find variable parameters and check type
         param_ranges_tuples = {}
