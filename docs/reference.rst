@@ -14,6 +14,6 @@ API Reference
    reference_environments
    reference_sample
    reference_experiment
-   reference_output
-   reference_analysis
+   reference_data
+   reference_visualization
    reference_other
