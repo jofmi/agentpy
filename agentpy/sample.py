@@ -12,7 +12,7 @@ import random
 import numpy as np
 
 from SALib.sample import saltelli
-from .tools import param_tuples_to_salib, InfoStr
+from .tools import param_tuples_to_salib, InfoStr, AgentpyError
 
 
 class Range:
@@ -20,24 +20,47 @@ class Range:
     that can be used to create a :class:`Sample`.
 
     Arguments:
-        vmin (int or float, optional):
+        vmin (float, optional):
             Minimum value for this parameter (default 0).
-        vmax (int or float, optional):
+        vmax (float, optional):
             Maximum value for this parameter (default 1).
-        vdef (int or float, optional):
-            Default value. If none is passed, `(vmin+vmax)/2` is used.
-        int_range (bool, optional):
-            Round and convert sampled values to integers (default False).
+        vdef (float, optional):
+            Default value. Default value. If none is passed, `vmin` is used.
     """
 
-    def __init__(self, vmin=0, vmax=1, vdef=None, int_range=False):
+    def __init__(self, vmin=0, vmax=1, vdef=None):
         self.vmin = vmin
         self.vmax = vmax
-        self.vdef = vdef if vdef else (vmin+vmax)/2
-        self.ints = int_range
+        self.vdef = vdef if vdef else vmin
+        self.ints = False
 
     def __repr__(self):
         return f"Parameter range from {self.vmin} to {self.vmax}"
+
+
+class IntRange(Range):
+    """ A range of integer parameter values
+    that can be used to create a :class:`Sample`.
+    Similar to :class:`Range`,
+    but sampled values will be rounded and converted to integer.
+
+    Arguments:
+        vmin (int, optional):
+            Minimum value for this parameter (default 0).
+        vmax (int, optional):
+            Maximum value for this parameter (default 1).
+        vdef (int, optional):
+            Default value. If none is passed, `vmin` is used.
+    """
+
+    def __init__(self, vmin=0, vmax=1, vdef=None):
+        self.vmin = int(round(vmin))
+        self.vmax = int(round(vmax))
+        self.vdef = int(round(vdef)) if vdef else vmin
+        self.ints = True
+
+    def __repr__(self):
+        return f"Integer parameter range from {self.vmin} to {self.vmax}"
 
 
 class Values:
@@ -103,8 +126,9 @@ class Sample:
                   Whether to calculate second-order indices (default True).
 
         seed (int, optional):
-            Random seed to generate random seeds for all parameter combinations
-            in the sample. This will overwrite the parameter 'seed'.
+            Random seed that will be used to generate a different seed
+            for all parameter combinations in the sample (default None).
+            If used, this will overwrite the parameter 'seed'.
 
         **kwargs: Additional keyword arguments for chosen `method`.
 
@@ -140,6 +164,10 @@ class Sample:
         params = {}
         for k, v in parameters.items():
             if isinstance(v, Range):
+                if n is None:
+                    raise AgentpyError(
+                        "Argument 'n' must be defined for Sample "
+                        "if there are parameters of type Range.")
                 if v.ints:
                     p_range = np.linspace(v.vmin, v.vmax+1, n)
                     p_range = [int(pv)-1 if pv == v.vmax+1 else int(pv)
