@@ -3,8 +3,6 @@ Agentpy Lists Module
 Content: Lists for objects, environments, and agents
 """
 
-# TODO Seperate AgentIter & AgentGroupIter
-
 import itertools
 import agentpy as ap
 import numpy as np
@@ -16,8 +14,9 @@ class AgentSequence:
     """ Base class for agenpty sequences. """
 
     def __repr__(self):
-        s = 's' if len(self) != 1 else ''
-        return f"{type(self).__name__} ({len(self)} object{s})"
+        len_ = len(list(self))
+        s = 's' if len_ != 1 else ''
+        return f"{type(self).__name__} ({len_} object{s})"
 
     def __getattr__(self, name):
         """ Return callable list of attributes """
