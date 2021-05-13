@@ -7,9 +7,10 @@ Agents
 Agent-based models can contain multiple agents of different types.
 This module provides two classes :class:`Agent` and :class:`MultiAgent`
 that are meant to be used as a template to create custom agent types.
+Initial variables can by overriding :func:`Agent.setup`.
 
-Single-environment agents
-#########################
+Standard agents
+###############
 
 .. autoclass:: Agent
     :members:

@@ -21,7 +21,7 @@ class MoneyAgent(ap.Agent):
 class MoneyModel(ap.Model):
 
     def setup(self):
-        self.add_agents(
+        self.agents = ap.AgentList(
             self.p.agents, MoneyAgent)
 
     def step(self):
@@ -38,20 +38,20 @@ class MoneyModel(ap.Model):
 
 
 # Perform single run
-parameters = {'agents': 10, 'steps': 10}
+parameters = {
+    'agents': ap.IntRange(10, 500), 
+    'steps': 10
+}
 model = MoneyModel(parameters)
 results = model.run()
 
 # Perform multiple runs
-parameters['agents'] = (10, 500, int)
-sample = ap.sample(parameters, n=49)
-
+sample = ap.Sample(parameters, n=49)
 exp = ap.Experiment(
     MoneyModel,
     sample,
     iterations=5,
     record=True
 )
-
 
 results = exp.run()
