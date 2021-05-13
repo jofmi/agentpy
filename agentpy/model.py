@@ -11,7 +11,7 @@ from os import sys
 from datetime import datetime
 from .version import __version__
 from .datadict import DataDict
-from .objects import Object, Environment
+from .objects import Object
 from .network import Network
 from .sample import Range, Values
 from .grid import Grid
@@ -30,7 +30,7 @@ class Model(Object):
 
     Attributes:
         type (str): The model's class name.
-        info (str): Information about the model's current state.
+        info (InfoStr): Information about the model's current state.
         p (AttrDict): The model's parameters.
         t (int): Current time-step of the model.
         id (int): The model's object id, which will always be zero.
@@ -106,6 +106,7 @@ class Model(Object):
         self._run_id = _run_id
 
         # Random number generators
+        # Can be re-initiated with seed by Model.run()
         self.random = random.Random()
         self.nprandom = np.random.default_rng()
 
@@ -248,9 +249,8 @@ class Model(Object):
     def step(self):
         """ Defines the model's actions
         during each simulation step (excluding `t==0`).
-        Can be overwritten to define the models' main dynamics.
-        If not defined, the simulation will stop after the first step."""
-        self.stop()
+        Can be overwritten to define the models' main dynamics."""
+        pass
 
     def update(self):
         """ Defines the model's actions
@@ -267,9 +267,9 @@ class Model(Object):
 
     def set_parameters(self, parameters):
         """ Adds and/or updates the parameters of the model. """
-        self._parameters.update(parameters)
+        self.p.update(parameters)
 
-    def run_setup(self, steps=None, seed=None):
+    def sim_setup(self, steps=None, seed=None):
         """ Prepares time-step 0 of the simulation.
         Initiates steps and the two random number generators,
         and then calls :func:`Model.setup` and :func:`Model.update`. """
@@ -303,7 +303,7 @@ class Model(Object):
         if self.t >= self._steps:
             self.running = False
 
-    def run_step(self):
+    def sim_step(self):
         """ Proceeds the simulation by one step, incrementing `Model.t` by 1
         and then calling :func:`Model.step` and :func:`Model.update`."""
         self.t += 1
@@ -312,17 +312,18 @@ class Model(Object):
         if self.t >= self._steps:
             self.running = False
 
-    def stop(self):
-        """ Stops :meth:`Model.run` during an active simulation. """
-        self.running = False
-
-    def reset(self):
-        """ Reset model to initial conditions and call setup. """
+    def sim_reset(self):
+        """ Reset model to initial conditions. """
+        # TODO Remove attributes
         self.__init__(parameters=self.p,
                       _run_id=self._run_id,
                       **self._setup_kwargs)
 
     # Main simulation method for direct use --------------------------------- #
+
+    def stop(self):
+        """ Stops :meth:`Model.run` during an active simulation. """
+        self.running = False
 
     def run(self, steps=None, seed=None, display=True):
         """ Executes the simulation of the model.
@@ -351,9 +352,9 @@ class Model(Object):
         """
 
         dt0 = datetime.now()
-        self.run_setup(steps, seed)
+        self.sim_setup(steps, seed)
         while self.running:
-            self.run_step()
+            self.sim_step()
             if display:
                 print(f"\rCompleted: {self.t} steps", end='')
         self.end()
