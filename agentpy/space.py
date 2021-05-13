@@ -11,12 +11,12 @@ import numpy as np
 import random as rd
 import collections.abc as abc
 from scipy import spatial
-from .objects import Spatial
+from .objects import Object
 from .tools import make_list, make_matrix
 from .sequences import AgentList, AgentIter
 
 
-class Space(Spatial):
+class Space(Object):
     """ Environment that contains agents with a continuous spatial topology.
     To add new space environments to a model, use :func:`Model.add_space`.
     For a discrete spatial topology, see :class:`Grid`.
@@ -130,6 +130,26 @@ class Space(Spatial):
             del self.positions[agent]  # Remove agent from env
 
     # Move and select agents ------------------------------------------------ #
+
+    @staticmethod
+    def _border_behavior(position, shape, torus):
+        # Border behavior
+
+        # Connected - Jump to other side
+        if torus:
+            for i in range(len(position)):
+                while position[i] > shape[i]:
+                    position[i] -= shape[i]
+                while position[i] < 0:
+                    position[i] += shape[i]
+
+        # Not connected - Stop at border
+        else:
+            for i in range(len(position)):
+                if position[i] > shape[i]:
+                    position[i] = shape[i]
+                elif position[i] < 0:
+                    position[i] = 0
 
     def move_agent(self, agent, pos):
         """ Moves agent to new position.
