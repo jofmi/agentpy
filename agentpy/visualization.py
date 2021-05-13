@@ -80,11 +80,11 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
             ax.clear()
         plot(m, axs, *fargs)  # Perform plot
 
+    #  TODO save_count=model._steps necessary? Breaks if no steps are defined
     ani = matplotlib.animation.FuncAnimation(
         fig, update,
         frames=frames,
         fargs=(model, axs, *fargs),
-        save_count=model._steps,
         **kwargs)  # noqa
 
     plt.close()  # Don't display static plot
@@ -92,16 +92,21 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
 
 
 def _apply_colors(grid, color_dict, convert):
-    if isinstance(grid[0], (list, np.ndarray)):
-        return [_apply_colors(subgrid, color_dict, convert)
-                for subgrid in grid]
-    else:
-        if color_dict is not None:
-            grid = [i if i is np.nan else color_dict[i] for i in grid]
-        if convert is True:
-            grid = [(0., 0., 0., 0.) if i is np.nan else
-                    matplotlib.colors.to_rgba(i) for i in grid]
-        return grid
+    if color_dict is not None:
+        if None in color_dict:
+            def func(v):
+                return color_dict[None] if np.isnan(v) else color_dict[v]
+        else:
+            def func(v):
+                return color_dict[v]
+        grid = np.vectorize(func)(grid)
+    if convert is True:
+        def func(v):
+            return (0., 0., 0., 0.) if not isinstance(v, str) and np.isnan(v) \
+                else matplotlib.colors.to_rgba(v)
+        grid = np.vectorize(func)(grid)
+        grid = np.moveaxis(grid, 0, 2)
+    return grid
 
 
 def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
@@ -109,16 +114,16 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
     :func:`matplotlib.pyplot.imshow`.
 
     Arguments:
-        grid(list of list): Two-dimensional grid with values.
+        grid (numpy.array): Two-dimensional array with values.
             numpy.nan values will be plotted as empty patches.
-        color_dict(dict, optional): Dictionary that translates
+        color_dict (dict, optional): Dictionary that translates
             each value in `grid` to a color specification.
-        convert(bool, optional): Convert values to rgba vectors,
+            If there is an entry `None`, it will be used for all NaN values.
+        convert (bool, optional): Convert values to rgba vectors,
              using :func:`matplotlib.colors.to_rgba` (default False).
-        ax(matplotlib.pyplot.axis, optional): Axis to be used for plot.
+        ax (matplotlib.pyplot.axis, optional): Axis to be used for plot.
         **kwargs: Forwarded to :func:`matplotlib.pyplot.imshow`.
      """
-
     # TODO Make feature for legend
     if color_dict is not None or convert:
         grid = _apply_colors(grid, color_dict, convert)
