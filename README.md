@@ -9,22 +9,14 @@
 Agentpy is an open-source library for the development and analysis of agent-based models in Python. 
 The framework integrates the tasks of model design, numerical experiments, 
 and data analysis within a single environment, and is optimized for interactive computing 
-with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). If
-you have questions or ideas for improvements, please visit the 
-[discussion forum](https://github.com/JoelForamitti/agentpy/discussions)
-or subscribe to the [agentpy mailing list](https://groups.google.com/g/agentpy/about).
+with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). 
 
 **Installation:** `pip install agentpy`
 
 **Documentation:** https://agentpy.readthedocs.io
 
+**Discussion forum:** https://github.com/JoelForamitti/agentpy/discussions
+
 **Tutorials and examples:** https://agentpy.readthedocs.io/en/latest/model_library.html
 
 **Comparison with other frameworks**: https://agentpy.readthedocs.io/en/latest/comparison.html
-
----
-
-*A screenshot of [Jupyter Lab](https://jupyter.org/) with two interactive tutorials from the 
-[agentpy model library](https://agentpy.readthedocs.io/en/latest/model_library.html):*
-
-![](docs/agentpy_example.png)
