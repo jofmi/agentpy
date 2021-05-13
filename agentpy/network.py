@@ -2,7 +2,7 @@
 
 import itertools
 import networkx as nx
-from .objects import Environment
+from .objects import Object
 from .sequences import AgentList, AgentIter
 from .tools import make_list
 
