@@ -140,9 +140,9 @@ class DataDict(AttrDict):
         if not self.parameters.log['type'] == 'saltelli':
             raise AgentpyError("Sampling method must be 'saltelli'.")
         if self.info['iterations'] == 1:
-            df = self.reporters
+            reporters_df = self.reporters
         else:
-            df = self.reporters.groupby('sample_id').mean()
+            reporters_df = self.reporters.groupby('sample_id').mean()
 
         # STEP 1 - Load salib problem from parameter log
         param_ranges_salib = self.parameters.log['salib_problem']
@@ -150,14 +150,14 @@ class DataDict(AttrDict):
 
         # STEP 2 - Calculate Sobol Sensitivity Indices
         if reporters is None:
-            reporters = df.columns
+            reporters = reporters_df.columns
         if isinstance(reporters, str):
             reporters = [reporters]
         p_keys = self._combine_pars(sample=True, constants=False).keys()
         dfs_list = [[] for _ in range(4 if calc_second_order else 2)]
 
         for reporter in reporters:
-            y = np.array(df[reporter])
+            y = np.array(reporters_df[reporter])
             si = sobol.analyze(param_ranges_salib, y, calc_second_order, **kwargs)
 
             # Make dataframes out of S1 and ST sensitivities
