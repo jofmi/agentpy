@@ -37,7 +37,7 @@ class Object:
         self._var_ignore = [k for k in self.__dict__.keys() if k[0] != '_']
 
     @property
-    def var_keys(self):
+    def vars(self):
         return [k for k in self.__dict__.keys()
                 if k[0] != '_'
                 and k not in self._var_ignore]
@@ -57,31 +57,34 @@ class Object:
 
         Examples:
 
-            Record the existing attributes ``x`` and ``y`` of an object ``a``::
+            Record the existing attributes `x` and `y` of an object `a`::
 
                 a.record(['x', 'y'])
 
-            Record a variable ``z`` with the value ``1`` for an object ``a``::
+            Record a variable `z` with the value `1` for an object `a`::
 
                 a.record('z', 1)
 
             Record all variables of an object::
 
-                a.record(a.var_keys)
+                a.record(a.vars)
         """
 
-        # Initial record call connects log to the models dict of logs
-        # and then overrides method with the actual recording function
+        # Initial record call
+
+        # Connect log to the model's dict of logs
         if self.type not in self.model._logs:
             self.model._logs[self.type] = {}
         self.model._logs[self.type][self.id] = self.log
         self.log['t'] = [self.model.t]  # Initiate time dimension
-        self.record = self._record  # noqa
 
+        # Perform initial recording
         for var_key in make_list(var_keys):
-
             v = getattr(self, var_key) if value is None else value
             self.log[var_key] = [v]
+
+        # Set default recording function from now on
+        self.record = self._record  # noqa
 
     def _record(self, var_keys, value=None):
 
@@ -129,33 +132,3 @@ class Object:
 
         for k, v in kwargs.items():
             setattr(self, k, v)
-
-
-class Environment(Object):
-    """ Base class for environments (Grid, Space, Network). """
-
-    pass
-
-
-class Spatial(Environment):
-    """ Base class for spatial environments (Grid, Space). """
-
-    @staticmethod
-    def _border_behavior(position, shape, torus):
-        # Border behavior
-
-        # Connected - Jump to other side
-        if torus:
-            for i in range(len(position)):
-                while position[i] > shape[i]:
-                    position[i] -= shape[i]
-                while position[i] < 0:
-                    position[i] += shape[i]
-
-        # Not connected - Stop at border
-        else:
-            for i in range(len(position)):
-                if position[i] > shape[i]:
-                    position[i] = shape[i]
-                elif position[i] < 0:
-                    position[i] = 0

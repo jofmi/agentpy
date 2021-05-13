@@ -7,12 +7,10 @@ from .sequences import AgentList, AgentIter
 from .tools import make_list
 
 
-# TODO Add distance argument to neighbors
-# TODO Add multi_agent function
-
-
 class AgentNode(set):
     """ Node of :class:`Network`. Functions like a set of agents. """
+
+    # TODO Connector between AgentNode attributes and the networkx attr dict
 
     def __init__(self, label):
         self.label = label
@@ -24,15 +22,12 @@ class AgentNode(set):
         return f"AgentNode ({self.label})"
 
 
-class Network(Environment):
+class Network(Object):
     """ Agent environment with a graph topology.
     Every node of the network represents an agent in the environment.
-    To add new network environments to a model, use :func:`Model.add_network`.
-
     This class can be used as a parent class for custom network types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
-    See :class:`Environment` for general properties of all environments.
 
     Arguments:
         model (Model): The model instance.
