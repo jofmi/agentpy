@@ -1,8 +1,8 @@
 .. currentmodule:: agentpy
 
-=====================
-Network
-=====================
+==========================
+Graph topologies (Network)
+==========================
 
 .. autoclass:: Network
     :members:

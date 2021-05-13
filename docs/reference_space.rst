@@ -1,8 +1,8 @@
 .. currentmodule:: agentpy
 
-========================
-Space
-========================
+=========================
+Continuous spaces (Space)
+=========================
 
 .. autoclass:: Space
     :members:

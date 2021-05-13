@@ -1,8 +1,8 @@
 .. currentmodule:: agentpy
 
-=====================
-Grid
-=====================
+======================
+Discrete spaces (Grid)
+======================
 
 .. autoclass:: Grid
     :members:
