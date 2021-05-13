@@ -9,8 +9,7 @@ from .tools import AgentpyError, make_list
 
 
 class Agent(Object):
-    """ Template for an individual agent
-    that can be part of zero or one environments.
+    """ Template for an individual agent.
 
     Arguments:
         model (Model): The model instance.
@@ -39,8 +38,8 @@ class Agent(Object):
 
         if self.env is not None:
             raise AgentpyError(
-                f"{self} is already part of an environment."
-                "Use 'agentpy.MultiAgent' for multi-environment agents.")
+                f"{self} is already part of {self.env}. Consider using "
+                "'MultiAgent' for agents with multiple environments.")
         self.env = env
         self.pos = pos
 
@@ -58,153 +57,103 @@ class Agent(Object):
 
         Arguments:
             path: Relative change of position.
-                Type and structure depend on the environment.
-
-        Returns:
-            position: The new position
+                Type depends on the environment.
         """
         new_pos = [p + c for p, c in zip(self.pos, path)]
         self.env.move_agent(self, new_pos)
-        return new_pos
 
     def move_to(self, pos):
         """ Changes the agent's absolute position in its environment.
 
         Arguments:
             pos: Position or node to move to.
-                Type and structure depend on the environment.
+                Type depends on the environment.
         """
         self.env.move_agent(self, pos)
 
-    def neighbors(self, distance=1, **kwargs):
+    def neighbors(self, distance=1):
         """ Returns the agent's neighbors from its environment.
 
         Arguments:
             distance(int, optional):
                 Distance in which to look for neighbors (default 1).
-            **kwargs:
-                Forwarded to the environments :func:`neighbors` function.
+                At the moment, values other than `1` are not supported for
+                environments of type :class:`Network`.
 
         Returns:
             AgentList: Neighbors of the agent.
         """
-        return self.env.neighbors(self, distance=distance, **kwargs)
+        # TODO Remove network notice when fixed
+        return self.env.neighbors(self, distance=distance)
 
 
 class MultiAgent(Agent):
     """ Template for an individual agent
     that can be part of multiple environments.
-    Attributes and methods are inherited from :class:`Agent`,
-    except for the differences described here.
+    Attributes and methods are the same as :class:`Agent`
+    except for ones described here.
 
     Attributes:
-        env (iterator): Iterator over the agent's environments.
-        pos (dict): Dictionary connecting each of the agent's environments
+        env (dict): Dictionary connecting each of the agent's environments
             to the agent's position in that environment.
-
-    To Do:
-        This class is still in development.
+        pos (dict): Equivalent to `env`.
     """
 
-    # Delete env / pos
+    def __init__(self, model, *args, **kwargs):
+        Object.__init__(self, model)
+        self.env = self.pos = {}
+        self.setup(*args, **kwargs)
+
+    # Environment change ---------------------------------------------------- #
 
     def _add_env(self, env, pos=None):
-
-        self.envs[env] = pos
+        self.env[env] = pos
 
     def _remove_env(self, env):
+        del self.env[env]
 
-        del self.envs[env]
+    # Environment access ---------------------------------------------------- #
 
-    def move(self, path, env=None):
-        """ Changes the agents' location in the selected environment,
+    def move_by(self, env, path):
+        """ Changes the agent's location in the selected environment,
         relative to the current position.
 
         Arguments:
-            path:
-                Relative change of position.
-                Type and structure depend on the environment.
-            env (Environment, optional):
-                Instance of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
+            env (Grid or Space):
+                Instance of a spatial environment that the agent is part of.
+            path: Relative change of position.
+                Type depends on the environment.
+
         """
-        if env is None:
-            env = self.env
-            if isinstance(self.env, list):
-                raise AgentpyError(f"{self} has more than one environment."
-                                   "'Agent.move_by' needs an argument 'env'.")
-        old_pos = self.pos  # ition(env)
+        old_pos = self.pos[env]
         new_pos = [p + c for p, c in zip(old_pos, path)]
         env.move_agent(self, new_pos)
 
-    def move_to(self, pos, env=None):
-        """ Changes the agents' location in the selected environment.
+    def move_to(self, env, pos):
+        """ Changes the agent's location in the selected environment.
 
         Arguments:
-            pos:
-                Position to move to.
-                Type and structure depend on the environment.
-            env (int or Environment, optional):
-                Instance or id of a spatial environment
-                that the agent is part of.
-                If the agent has only one environment,
-                it is selected by default.
+            env (Grid or Space or Network):
+                Instance of a spatial environment that the agent is part of.
+            pos: Position to move to.
+                Type depends on the environment.
         """
-
-        if env is None:
-            env = self.env
-            if isinstance(self.env, list):
-                raise AgentpyError(f"{self} has more than one environment."
-                                   "'Agent.move_to' needs an argument 'env'.")
         env.move_agent(self, pos)
 
-    def neighbors(self, env=None, distance=1, **kwargs):
-        """ Returns the agents' neighbors from its environments.
+    def neighbors(self, env, distance=1):
+        """ Returns the agent's neighbors from the selected environment.
 
         Arguments:
-            env(int or Environment or list, optional):
-                Instance or id of environment that should be used,
-                or a list with multiple instances and/or ids.
-                If none are given, all of the agents environments are used.
-            distance(int, optional):
-                Distance from agent in which to look for neighbors.
-            **kwargs: Forwarded to the environments :func:`neighbors` function.
+            env (Grid or Space or Network):
+                Instance of environment that should be used.
+            distance (int, optional):
+                Distance from agent in which to look for neighbors (default 1).
+                At the moment, values other than `1` are not supported for
+                environments of type :class:`Network`.
 
         Returns:
-            AgentList: Neighbors of the agent. Agents without environments
-            and environments without a topology like :class:`Environment`
-            will return an empty list. If an agent has the same neighbors
-            in multiple environments, duplicates will be removed.
+            AgentList: Neighbors of the agent.
         """
-        #if env:
-        #    if isinstance(env, (list, tuple)):
-        #        envs = [self._find_env(en) for en in env]
-        #    else:
-        #        return self._find_env(env).neighbors(
-        #            self, distance=distance, **kwargs)
-        #elif len(self.envs) == 0:
-        #    return AgentList()
-        #elif len(self.envs) == 1:
-        #    return self.envs[0].neighbors(self, distance=distance, **kwargs)
-        #else:
-        #    envs = self.envs
+        # TODO Remove network notice when fixed
+        return env.neighbors(self, distance=distance)
 
-        agents = AgentList()
-
-        if env is None:
-            env = make_list(self.env)
-
-        for e in env:
-            agents.extend(e.neighbors(self, distance=distance, **kwargs))
-
-        return agents
-
-        #agents = AgentList()
-        # TODO
-        #for env in envs:
-        #    agents.extend(env.neighbors(self, distance=distance, **kwargs))
-
-        ## TODO Better way to remove duplicates?
-        #return AgentList(dict.fromkeys(agents))
