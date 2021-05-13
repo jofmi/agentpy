@@ -4,10 +4,10 @@ import numpy as np
 from agentpy.tools import AgentpyError
 
 
-def make_grid(s, n=0):
+def make_grid(s, n=0, track_empty=False, agent_cls=ap.Agent):
     model = ap.Model()
-    agents = ap.AgentList(model, n)
-    grid = ap.Grid(model, (s, s))
+    agents = ap.AgentList(model, n, agent_cls)
+    grid = ap.Grid(model, (s, s), track_empty=track_empty)
     grid.add_agents(agents)
     return model, grid, agents
 
@@ -25,8 +25,15 @@ def test_add_agents():
     grid.add_agents(agents)
     assert grid.apply(len).tolist() == [[2, 1], [1, 1]]
 
+    # Passed positions
     model = ap.Model()
-    model.run_setup(seed=1)
+    grid = ap.Grid(model, (2, 2))
+    agents = ap.AgentList(model, 2)
+    grid.add_agents(agents, [[0, 0], [1, 1]])
+    assert grid.apply(len).tolist() == [[1, 0], [0, 1]]
+
+    model = ap.Model()
+    model.sim_setup(seed=1)
     grid = ap.Grid(model, (2, 2))
     agents = ap.AgentList(model, 5)
     grid.add_agents(agents, random=True)
@@ -35,7 +42,7 @@ def test_add_agents():
     with pytest.raises(AgentpyError):
         # Can't add more agents than empty positions
         model = ap.Model()
-        model.run_setup(seed=1)
+        model.sim_setup(seed=1)
         grid = ap.Grid(model, (2, 2), track_empty=True)
         agents = ap.AgentList(model, 5)
         grid.add_agents(agents, empty=True)
@@ -43,13 +50,13 @@ def test_add_agents():
     with pytest.raises(AgentpyError):
         # Can't use empty if track_empty is False
         model = ap.Model()
-        model.run_setup(seed=1)
+        model.sim_setup(seed=1)
         grid = ap.Grid(model, (2, 2))
         agents = ap.AgentList(model, 5)
         grid.add_agents(agents, empty=True)
 
     model = ap.Model()
-    model.run_setup(seed=1)
+    model.sim_setup(seed=1)
     grid = ap.Grid(model, (2, 2), track_empty=True)
     agents = ap.AgentList(model, 2)
     grid.add_agents(agents, empty=True)
@@ -58,7 +65,7 @@ def test_add_agents():
     assert grid.apply(len).tolist() == [[1, 1], [1, 1]]
 
     model = ap.Model()
-    model.run_setup(seed=1)
+    model.sim_setup(seed=1)
     grid = ap.Grid(model, (2, 2), track_empty=True)
     agents = ap.AgentList(model, 2)
     grid.add_agents(agents)
@@ -67,7 +74,7 @@ def test_add_agents():
     assert grid.apply(len).tolist() == [[2, 2], [0, 0]]
 
     model = ap.Model()
-    model.run_setup(seed=2)
+    model.sim_setup(seed=2)
     grid = ap.Grid(model, (2, 2), track_empty=True)
     agents = ap.AgentList(model, 2)
     grid.add_agents(agents, empty=True)
@@ -76,7 +83,7 @@ def test_add_agents():
     assert grid.apply(len).tolist() == [[1, 1], [0, 1]]
 
     model = ap.Model()
-    model.run_setup(seed=2)
+    model.sim_setup(seed=2)
     grid = ap.Grid(model, (2, 2), track_empty=True)
     agents = ap.AgentList(model, 2)
     grid.add_agents(agents, empty=True)
@@ -92,6 +99,15 @@ def test_remove():
     grid.add_agents(agents)
     grid.remove_agents(agents[0])
     assert grid.apply(len).tolist() == [[0, 1], [0, 0]]
+
+    # With track_empty
+    model = ap.Model()
+    agents = ap.AgentList(model, 2)
+    grid = ap.Grid(model, (2, 2), track_empty=True)
+    grid.add_agents(agents)
+    assert list(grid.empty) == [(1, 1), (1, 0)]
+    grid.remove_agents(agents[0])
+    assert list(grid.empty) == [(1, 1), (1, 0), (0, 0)]
 
 
 def test_grid_iter():
@@ -113,16 +129,60 @@ def test_apply():
     assert grid.apply(len).tolist() == [[1, 1], [1, 1]]
 
 
-def test_movement():
-    model, grid, agents = make_grid(2, 2)
+def test_move():
+    model, grid, agents = make_grid(2, 2, track_empty=True)
     agent = agents[0]
     assert grid.attr_grid('id').tolist()[0] == [1., 2.]
     agent.move_to((1, 0))  # Move in absolute terms
     assert grid.attr_grid('id').tolist()[0][1] == 2.0
     assert grid.attr_grid('id').tolist()[1][0] == 1.0
     assert np.isnan(grid.attr_grid('id').tolist()[1][1])
+    assert list(grid.empty) == [(1, 1), (0, 0)]
     agent.move_by((-1, 0))  # Move in relative terms
     assert grid.attr_grid('id').tolist()[0] == [1., 2.]
+    assert list(grid.empty) == [(1, 1), (1, 0)]
+
+
+def test_move_multi():
+    model, grid, agents = make_grid(2, 2, track_empty=True, agent_cls=ap.MultiAgent)
+    agent = agents[0]
+    assert grid.attr_grid('id').tolist()[0] == [1., 2.]
+    agent.move_to(grid, (1, 0))  # Move in absolute terms
+    assert grid.attr_grid('id').tolist()[0][1] == 2.0
+    assert grid.attr_grid('id').tolist()[1][0] == 1.0
+    assert np.isnan(grid.attr_grid('id').tolist()[1][1])
+    assert list(grid.empty) == [(1, 1), (0, 0)]
+    agent.move_by(grid, (-1, 0))  # Move in relative terms
+    assert grid.attr_grid('id').tolist()[0] == [1., 2.]
+    assert list(grid.empty) == [(1, 1), (1, 0)]
+
+
+def test_move_torus():
+    model = ap.Model()
+    agents = ap.AgentList(model, 1)
+    agent, = agents
+    grid = ap.Grid(model, (4, 4), torus=True)
+    grid.add_agents(agents, [[0, 0]])
+
+    assert agent.pos == [0, 0]
+    agent.move_by([-1, -1])
+    assert agent.pos == [3, 3]
+    agent.move_by([1, 0])
+    assert agent.pos == [0, 3]
+    agent.move_by([0, 1])
+    assert agent.pos == [0, 0]
+
+    model = ap.Model()
+    agents = ap.AgentList(model, 1)
+    agent, = agents
+    grid = ap.Grid(model, (4, 4), torus=False)
+    grid.add_agents(agents, [[0, 0]])
+
+    assert agent.pos == [0, 0]
+    agent.move_by([-1, -1])
+    assert agent.pos == [0, 0]
+    agent.move_by([6, 6])
+    assert agent.pos == [3, 3]
 
 
 def test_neighbors():
@@ -131,3 +191,68 @@ def test_neighbors():
     assert list(a.neighbors()) == list(grid.neighbors(a))
     assert len(a.neighbors(distance=1)) == 8
     assert len(a.neighbors(distance=2)) == 24
+
+    model, grid, agents = make_grid(5, 25, agent_cls=ap.MultiAgent)
+    a = agents[12]
+    assert list(a.neighbors(grid)) == list(grid.neighbors(a))
+    assert len(a.neighbors(grid, distance=1)) == 8
+    assert len(a.neighbors(grid, distance=2)) == 24
+
+
+def test_neighbors_with_torus():
+
+    model = ap.Model()
+    agents = ap.AgentList(model, 5)
+    grid = ap.Grid(model, (4, 4), torus=True)
+    grid.add_agents(agents, [[0, 0], [1, 3], [2, 0], [3, 2], [3, 3]])
+
+    grid.apply(len).tolist()
+
+    assert list(agents[0].neighbors().id) == [5,2]
+
+    model = ap.Model()
+    agents = ap.AgentList(model, 5)
+    grid = ap.Grid(model, (4, 4), torus=True)
+    grid.add_agents(agents, [[0, 1], [1, 3], [2, 0], [3, 2], [3, 3]])
+
+    grid.apply(len).tolist()
+
+    assert list(agents[0].neighbors().id) == [4]
+    assert list(agents[1].neighbors().id) == [3]
+
+    for d in [2, 3, 4]:
+
+        model = ap.Model()
+        agents = ap.AgentList(model, 5)
+        grid = ap.Grid(model, (4, 4), torus=True)
+        grid.add_agents(agents, [[0, 1], [1, 3], [2, 0], [3, 2], [3, 3]])
+
+        grid.apply(len).tolist()
+
+        assert list(agents[0].neighbors(distance=d).id) == [2, 3, 4, 5]
+        assert list(agents[1].neighbors(distance=d).id) == [1, 3, 4, 5]
+
+
+def test_field():
+    model = ap.Model()
+    grid = ap.Grid(model, (2, 2))
+
+    grid.add_field('f1', np.array([[1, 2], [3, 4]]))
+    grid.add_field('f2', 5)
+
+    assert grid.f1.tolist() == [[1, 2], [3, 4]]
+
+    grid.f1[1, 1] = 8
+
+    assert grid.f1.tolist() == [[1, 2], [3, 8]]
+
+    assert grid.f2.tolist() == [[5, 5], [5, 5]]
+    assert grid.grid.f2.tolist() == grid.f2.tolist()
+
+    grid.del_field('f2')
+
+    with pytest.raises(AttributeError):
+        grid.f2
+
+    with pytest.raises(AttributeError):
+        grid.grid.f2

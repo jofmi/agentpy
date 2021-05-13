@@ -1,8 +1,7 @@
 import pytest
 import agentpy as ap
 from SALib.sample import saltelli
-
-# TODO Test Integer Spaces
+from agentpy.tools import AgentpyError
 
 
 def test_repr():
@@ -10,13 +9,29 @@ def test_repr():
     assert v.__repr__() == "Set of 2 parameter values"
     r = ap.Range(1, 2)
     assert r.__repr__() == "Parameter range from 1 to 2"
+    ir = ap.IntRange(1, 2)
+    assert ir.__repr__() == "Integer parameter range from 1 to 2"
     s = ap.Sample({'x': r}, 10)
     assert s.__repr__() == "Sample of 10 parameter combinations"
 
 
+def test_seed():
+    parameters = {'x': ap.Range(), 'seed': 1}
+    sample = ap.Sample(parameters, 2, seed=1)
+
+    assert list(sample) == [{'x': 0.0, 'seed': 272996653310673477252411125948039410165},
+                            {'x': 1.0, 'seed': 40125655066622386354123033417875897284}]
+
+
+def test_errors():
+    parameters = {'x': ap.Range(), 'seed': 1}
+    with pytest.raises(AgentpyError):
+        sample = ap.Sample(parameters)
+
+
 def test_linspace_product():
     parameters = {
-        'a': ap.Range(1, 2, int_range=True),
+        'a': ap.IntRange(1, 2),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True
@@ -64,7 +79,7 @@ def test_linspace_zip():
 
 def test_sample_saltelli():
     parameters = {
-        'a': ap.Range(1, 2, int_range=True),
+        'a': ap.IntRange(1, 2),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True
@@ -90,7 +105,7 @@ def test_sample_saltelli():
 
 def test_sample_saltelli_second():
     parameters = {
-        'a': ap.Range(1, 2, int_range=True),
+        'a': ap.IntRange(1, 2),
         'b': ap.Range(3, 3.5),
         'c': ap.Values(*'xyz'),
         'd': True

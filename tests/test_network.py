@@ -56,6 +56,29 @@ def test_move_agent():
     assert graph.positions[a] is n2
 
 
+def test_move_agent_multi():
+
+    # Move agent one node to another
+    model = ap.Model()
+    graph = ap.Network(model)
+    n1 = graph.add_node()
+    n2 = graph.add_node()
+    a = ap.MultiAgent(model)
+    graph.add_agents([a], positions=[n1])
+
+    assert len(n1) == 1
+    assert len(n2) == 0
+    assert a.pos[graph] is n1
+    assert graph.positions[a] is n1
+
+    graph.move_agent(a, n2)
+
+    assert len(n1) == 0
+    assert len(n2) == 1
+    assert a.pos[graph] is n2
+    assert graph.positions[a] is n2
+
+
 def test_remove_agents():
 
     model = ap.Model()

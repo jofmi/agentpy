@@ -51,12 +51,12 @@ def test_combine_vars():
     results = model.run(1, display=False)
     assert results._combine_pars(constants=False) is None
 
-    results.variables = 1
-    with pytest.raises(TypeError):
-        assert results._combine_vars()
-    results.parameters = 1
-    with pytest.raises(TypeError):
-        assert results._combine_pars()
+    #results.variables = 1
+    #with pytest.raises(TypeError):
+    #    assert results._combine_vars()
+    #results.parameters = 1
+    #with pytest.raises(TypeError):
+    #    assert results._combine_pars()
 
 
 repr = """DataDict {
@@ -169,14 +169,15 @@ def arrange_things(results):
             results.arrange(reporters='m_key'),
             results.arrange(variables=True,
                             parameters=True,
-                            reporters=True))
+                            reporters=True),
+            results.arrange())
 
 
 def test_datadict_arrange_for_single_run():
 
     results = pytest.model_results
     data = arrange_things(results)
-    x_data, x_data2, xy_data, z_data, p_data, m_data, all_data = data
+    x_data, x_data2, xy_data, z_data, p_data, m_data, all_data, no_data = data
 
     assert x_data.equals(x_data2)
     assert list(x_data['x']) == ['x1'] * 4 + ['x2'] * 4 + ['x3'] * 2
@@ -187,13 +188,14 @@ def test_datadict_arrange_for_single_run():
     assert p_data.shape == (1, 2)
     assert m_data.shape == (1, 2)
     assert all_data.shape == (15, 8)
+    assert no_data.empty is True
 
 
 def test_datadict_arrange_for_multi_run():
 
     results = pytest.exp_results
     data = arrange_things(results)
-    x_data, x_data2, xy_data, z_data, p_data, m_data, all_data = data
+    x_data, x_data2, xy_data, z_data, p_data, m_data, all_data, no_data = data
 
     assert x_data.equals(x_data2)
     assert x_data.shape == (40, 6)
@@ -202,6 +204,7 @@ def test_datadict_arrange_for_multi_run():
     assert p_data.shape == (2, 2)
     assert m_data.shape == (4, 3)
     assert all_data.shape == (60, 10)
+    assert no_data.empty is True
 
 
 def test_datadict_arrange_measures():
@@ -318,7 +321,7 @@ def test_calc_sobol():
     parameters = {'x': ap.Range(0., 1.)}
     sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
     results = ap.Experiment(SobolModel, sample).run(display=False)
-    results.calc_sobol()
+    results.calc_sobol(reporters='x')
     assert results.sensitivity.sobol['S1'][0] == si
 
     # Test if a non-varied parameter causes errors
@@ -328,11 +331,24 @@ def test_calc_sobol():
     results.calc_sobol()
     assert results.sensitivity.sobol['S1'][0] == si
 
+    # Test wrong sample type raises error
+    parameters = {'x': ap.Range(0., 1.), 'y': 1}
+    sample = ap.Sample(parameters, n=10)
+    results = ap.Experiment(SobolModel, sample).run(display=False)
+    with pytest.raises(AgentpyError):
+        results.calc_sobol()
+
+    # Test merging iterations
+    # TODO Improve
+    parameters = {'x': ap.Range(0., 1.)}
+    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    results = ap.Experiment(SobolModel, sample, iterations=10).run(display=False)
+    results.calc_sobol(reporters='x')
+    assert results.sensitivity.sobol['S1'][0] == si
+
     # Test calc_second_order
     parameters = {'x': ap.Range(0., 1.), 'y': 1}
     sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=True)
     results = ap.Experiment(SobolModel, sample).run(display=False)
     results.calc_sobol()
     assert results.sensitivity.sobol[('S2', 'x')][0].__repr__() == 'nan'
-
-    # TODO Test sobol with iteration merging

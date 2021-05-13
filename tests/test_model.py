@@ -20,6 +20,63 @@ def test_run():
     assert model.t == 1
 
 
+def test_default_parameter_choice():
+    parameters = {'x': ap.Range(1, 2), 'y': ap.Values(1, 2)}
+    model = ap.Model(parameters)
+    assert model.p == {'x': 1, 'y': 1}
+
+
+def test_report_and_as_function():
+    class MyModel(ap.Model):
+        def setup(self, y):
+            self.x = self.p.x
+            self.report('x')
+            self.report('y', y)
+            self.stop()
+
+    parameters = {'x': 1}
+    model = MyModel(parameters, y=2)
+    model.run(display=False)
+    assert model.reporters == {'x': 1, 'y': 2}
+    model_func = MyModel.as_function(y=2)
+    assert model_func(x=1) == {'x': 1, 'y': 2}
+
+
+def test_update_parameters():
+    parameters = {'x': 1, 'y': 2}
+    model = ap.Model(parameters)
+    assert model.p == {'x': 1, 'y': 2}
+    parameters2 = {'z': 4, 'y': 3}
+    model.set_parameters(parameters2)
+    assert model.p == {'x': 1, 'y': 3, 'z': 4}
+
+
+def test_sim_methods():
+    class MyModel(ap.Model):
+        def setup(self, y):
+            self.x = self.p.x
+            self.y = y
+
+        def step(self):
+            self.x = False
+            self.y = False
+            self.stop()
+
+    parameters = {'x': True}
+    model = MyModel(parameters, y=True)
+    assert model.t == 0
+    model.sim_setup()
+    assert model.x is True
+    assert model.y is True
+    model.sim_step()
+    assert model.x is False
+    assert model.y is False
+    model.sim_reset()
+    model.sim_setup()
+    assert model.x is True
+    assert model.y is True
+
+
 def test_run_seed():
     """ Test random seed setting. """
     rd = random.Random(1)
