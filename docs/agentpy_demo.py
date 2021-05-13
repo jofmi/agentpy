@@ -22,7 +22,7 @@ class MoneyModel(ap.Model):
 
     def setup(self):
         self.agents = ap.AgentList(
-            self.p.agents, MoneyAgent)
+            self, self.p.n, MoneyAgent)
 
     def step(self):
         self.agents.record('wealth')
@@ -39,7 +39,7 @@ class MoneyModel(ap.Model):
 
 # Perform single run
 parameters = {
-    'agents': ap.IntRange(10, 500), 
+    'n': ap.IntRange(10, 500), 
     'steps': 10
 }
 model = MoneyModel(parameters)
