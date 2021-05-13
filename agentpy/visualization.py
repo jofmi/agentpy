@@ -98,12 +98,20 @@ def _apply_colors(grid, color_dict, convert):
                 return color_dict[None] if np.isnan(v) else color_dict[v]
         else:
             def func(v):
-                return color_dict[v]
+                return np.nan if np.isnan(v) else color_dict[v]
         grid = np.vectorize(func)(grid)
     if convert is True:
         def func(v):
-            return (0., 0., 0., 0.) if not isinstance(v, str) and np.isnan(v) \
-                else matplotlib.colors.to_rgba(v)
+            # TODO Can be improved
+            if isinstance(v, str):
+                if v == 'nan':
+                    return 0., 0., 0., 0.
+                else:
+                    return matplotlib.colors.to_rgba(v)
+            elif np.isnan(v):
+                return 0., 0., 0., 0.
+            else:
+                return matplotlib.colors.to_rgba(v)
         grid = np.vectorize(func)(grid)
         grid = np.moveaxis(grid, 0, 2)
     return grid

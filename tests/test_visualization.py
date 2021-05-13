@@ -8,12 +8,12 @@ def test_gridplot():
     """Test only for errors."""
 
     # Use cmap values
-    grid1 = [[1, 1], [1, np.nan]]
+    grid1 = np.array([[1, 1], [1, np.nan]])
     ap.gridplot(grid1)
 
     # Use RGB values
     x = (1., 1., 0.)
-    grid2 = [[x, x], [x, x]]
+    grid2 = np.array([[x, x], [x, x]])
     ap.gridplot(grid2)
 
     # Use color dict and convert
