@@ -316,24 +316,24 @@ class SobolModel(ap.Model):
 
 
 def test_calc_sobol():
-    si = 0.6593259637723373
+    si = 1.2380952380952384
 
     parameters = {'x': ap.Range(0., 1.)}
-    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    sample = ap.Sample(parameters, n=8, method='saltelli', calc_second_order=False)
     results = ap.Experiment(SobolModel, sample).run(display=False)
     results.calc_sobol(reporters='x')
     assert results.sensitivity.sobol['S1'][0] == si
 
     # Test if a non-varied parameter causes errors
     parameters = {'x': ap.Range(0., 1.), 'y': 1}
-    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    sample = ap.Sample(parameters, n=8, method='saltelli', calc_second_order=False)
     results = ap.Experiment(SobolModel, sample).run(display=False)
     results.calc_sobol()
     assert results.sensitivity.sobol['S1'][0] == si
 
     # Test wrong sample type raises error
     parameters = {'x': ap.Range(0., 1.), 'y': 1}
-    sample = ap.Sample(parameters, n=10)
+    sample = ap.Sample(parameters, n=8)
     results = ap.Experiment(SobolModel, sample).run(display=False)
     with pytest.raises(AgentpyError):
         results.calc_sobol()
@@ -341,14 +341,14 @@ def test_calc_sobol():
     # Test merging iterations
     # TODO Improve
     parameters = {'x': ap.Range(0., 1.)}
-    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=False)
+    sample = ap.Sample(parameters, n=8, method='saltelli', calc_second_order=False)
     results = ap.Experiment(SobolModel, sample, iterations=10).run(display=False)
     results.calc_sobol(reporters='x')
     assert results.sensitivity.sobol['S1'][0] == si
 
     # Test calc_second_order
     parameters = {'x': ap.Range(0., 1.), 'y': 1}
-    sample = ap.Sample(parameters, n=10, method='saltelli', calc_second_order=True)
+    sample = ap.Sample(parameters, n=8, method='saltelli', calc_second_order=True)
     results = ap.Experiment(SobolModel, sample).run(display=False)
     results.calc_sobol()
     assert results.sensitivity.sobol[('S2', 'x')][0].__repr__() == 'nan'

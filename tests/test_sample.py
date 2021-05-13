@@ -94,7 +94,7 @@ def test_sample_saltelli():
                    [0., 3.],
                   ]
     }
-    param_values = saltelli.sample(problem, 1, calc_second_order=False)
+    param_values = saltelli.sample(problem, 2, calc_second_order=False)
 
     for s1, s2 in zip(sample, param_values):
         assert s1['a'] == int(s2[0])
@@ -121,7 +121,7 @@ def test_sample_saltelli_second():
                    [0., 3.],
                   ]
     }
-    param_values = saltelli.sample(problem, 1, calc_second_order=True)
+    param_values = saltelli.sample(problem, 2, calc_second_order=True)
 
     for s1, s2 in zip(sample, param_values):
         assert s1['a'] == int(s2[0])
