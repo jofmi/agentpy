@@ -33,7 +33,7 @@ class Object:
         setattr(self, key, value)
 
     def _set_var_ignore(self):
-        """Store current attributes to seperate them from custom variables"""
+        """Store current attributes to separate them from custom variables"""
         self._var_ignore = [k for k in self.__dict__.keys() if k[0] != '_']
 
     @property

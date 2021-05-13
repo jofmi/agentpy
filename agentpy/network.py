@@ -24,7 +24,9 @@ class AgentNode(set):
 
 class Network(Object):
     """ Agent environment with a graph topology.
-    Every node of the network represents an agent in the environment.
+    Every node of the network is a :class:`AgentNode` that can hold
+    multiple agents as well as node attributes.
+
     This class can be used as a parent class for custom network types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.

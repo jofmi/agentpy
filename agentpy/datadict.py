@@ -51,7 +51,7 @@ class DataDict(AttrDict):
         parameters (DataDict):
             Simulation parameters.
         variables (DataDict):
-            Recorded variables, seperated per object type.
+            Recorded variables, separatedper object type.
         reporters (pandas.DataFrame):
             Reported outcomes of the simulation.
         sensitivity (DataDict):

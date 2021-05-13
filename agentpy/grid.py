@@ -91,12 +91,12 @@ class GridIter(AgentIter):
 class Grid(Object):
     """ Environment that contains agents with a discrete spatial topology,
     supporting both multiple agents per cell and multiple fields per grid.
+    For a continuous spatial topology, see :class:`Space`.
+
     This class can be used as a parent class for custom grid types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
 
-    See Also:
-        For a continuous spatial topology, see :class:`Space`.
 
     Arguments:
         model (Model): The model instance.

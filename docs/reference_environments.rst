@@ -5,12 +5,12 @@ Environments
 ============
 
 Environments are objects in which agents can inhabit a specific position.
-The connection between positions is defined by the environments
+The connection between positions is defined by the environment's
 topology. There are currently three types:
 
 - :class:`Grid` n-dimensional spatial topology with discrete positions.
 - :class:`Space` n-dimensional spatial topology with continuous positions.
-- :class:`Network` graph topology consisting of vertices and edges.
+- :class:`Network` graph topology consisting of :class:`AgentNode` and edges.
 
 ----
 

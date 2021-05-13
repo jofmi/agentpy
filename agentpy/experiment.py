@@ -101,7 +101,7 @@ class Experiment:
         self._parameters_to_output()
 
     def _parameters_to_output(self):
-        """ Document parameters (seperately for fixed & variable). """
+        """ Document parameters (separately for fixed & variable). """
         df = pd.DataFrame(self.sample)
         df.index.rename('sample_id', inplace=True)
         fixed_pars = {}
