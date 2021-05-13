@@ -39,6 +39,7 @@ def _last_exp_id(name, path):
     return exp_id
 
 
+# TODO Create DataSubDict without methods
 class DataDict(AttrDict):
     """ Nested dictionary for output data of simulations.
     Items can be accessed like attributes.
@@ -47,7 +48,7 @@ class DataDict(AttrDict):
     Attributes:
         info (dict):
             Metadata of the simulation.
-        parameters (dict or DataDict):
+        parameters (DataDict):
             Simulation parameters.
         variables (DataDict):
             Recorded variables, seperated per object type.
@@ -205,15 +206,11 @@ class DataDict(AttrDict):
             vs = self['variables']
         else:
             return None
-        if isinstance(vs, pd.DataFrame):
-            return vs  # Return df if vs is already a df
-        elif isinstance(vs, DataDict) and len(vs.keys()) == 1:
+
+        if len(vs.keys()) == 1:
             return list(vs.values())[0]  # Return df if vs has only one entry
-        elif isinstance(vs, (dict, DataDict)):
+        elif isinstance(vs, DataDict):
             df_dict = dict(vs)  # Convert to dict if vs is DataDict
-        else:
-            raise TypeError("DataDict.variables must be of type dict,"
-                             "agentpy.DataDict, or pandas.DataFrame.")
 
         # Remove dataframes that don't include any of the selected var_keys
         if var_keys is not True:
@@ -259,29 +256,20 @@ class DataDict(AttrDict):
 
     def _combine_pars(self, sample=True, constants=True):
         """ Returns pandas dataframe with parameters and sample_id """
-        # Case 0: Cancel if there are no parameters
+        # Cancel if there are no parameters
         if 'parameters' not in self:
             return None
-        # Case 1: There is a subdict with fixed & combined
         dfp = pd.DataFrame()
-        if isinstance(self.parameters, DataDict):
-            if sample and 'sample' in self.parameters:
-                dfp = self.parameters.sample.copy()
-                if constants and 'constants' in self.parameters:
-                    for k, v in self.parameters.constants.items():
-                        dfp[k] = v
-            elif constants and 'constants' in self.parameters:
-                dfp = self._dict_pars_to_df(self.parameters.constants)
-        # Case 2: There is a dict with fixed parameters (only for single_run)
-        elif isinstance(self.parameters, dict) and constants:
-            dfp = self._dict_pars_to_df(self.parameters)
-        # Case 4: Raise error if no valid data type if found
-        else:
-            raise TypeError("DataDict.parameters must be a dict or DataDict.")
-        # Case 5: Cancel if no parameters have been selected
-        if dfp is None or dfp.shape == (0, 0):
+        if sample and 'sample' in self.parameters:
+            dfp = self.parameters.sample.copy()
+            if constants and 'constants' in self.parameters:
+                for k, v in self.parameters.constants.items():
+                    dfp[k] = v
+        elif constants and 'constants' in self.parameters:
+            dfp = self._dict_pars_to_df(self.parameters.constants)
+        # Cancel if no parameters have been selected
+        if dfp is None or dfp.empty is True:
             return None
-
         return dfp
 
     def arrange(self, variables=False, reporters=False, parameters=False,
@@ -348,16 +336,12 @@ class DataDict(AttrDict):
             if df is None:
                 df = dfp
             else:  # Combine df with parameters
-                if len(dfp) > 1:  # If multi run, add parameters by sample_id
-                    if df is not None and isinstance(df.index, pd.MultiIndex):
-                        dfp = dfp.reindex(df.index, level='sample_id')
-                    df = pd.concat([df, dfp], axis=1)
-                else:  # Elif single run, add parameters as columns
-                    for k, v in dfp.items():
-                        # dfp is a dataframe, items returns columns, Series
-                        df[k] = v[0]
+                if df is not None and isinstance(df.index, pd.MultiIndex):
+                    dfp = dfp.reindex(df.index, level='sample_id')
+                df = pd.concat([df, dfp], axis=1)
+
         if df is None:
-            return None
+            return pd.DataFrame()
 
         # Step 6: Reset index
         if not index:
