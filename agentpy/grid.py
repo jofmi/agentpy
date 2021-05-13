@@ -3,14 +3,12 @@ Agentpy Grid Module
 Content: Class for discrete spatial environments
 """
 
-# TODO Agent Fields - How to combine with track_empty?
-
 import itertools
 import numpy as np
 import random as rd
 import collections.abc as abc
 import numpy.lib.recfunctions as rfs
-from .objects import Spatial
+from .objects import Object
 from .tools import make_list, make_matrix, AgentpyError, ListDict
 from .sequences import AgentSet, AgentIter, AgentList
 
@@ -48,12 +46,12 @@ class _IterArea:
                 )
             else:
                 return itertools.filterfalse(
-                    lambda x: x is self.exclude, area)
+                    lambda x: x is self.exclude, self.area)
         else:
             if isinstance(self.area, np.ndarray):
                 return itertools.chain.from_iterable(self.area.flat)
             else:
-                return iter(area)
+                return iter(self.area)
 
 
 class GridIter(AgentIter):
@@ -90,7 +88,7 @@ class GridIter(AgentIter):
         return GridIter(_IterArea(sub_area), sub_area)
 
 
-class Grid(Spatial):
+class Grid(Object):
     """ Environment that contains agents with a discrete spatial topology,
     supporting both multiple agents per cell and multiple fields per grid.
     This class can be used as a parent class for custom grid types.
@@ -114,7 +112,7 @@ class Grid(Spatial):
             Whether to keep track of empty cells (default False).
             If true, empty cells can be accessed via :obj:`Grid.empty`.
         check_border (bool, optional):
-            Ensure that agents have to stay within border (default True).
+            Ensure that agents stay within border (default True).
             Can be set to False for faster performance.
         **kwargs: Will be forwarded to :func:`Grid.setup`.
 
@@ -147,7 +145,7 @@ class Grid(Spatial):
         return array
 
     def __init__(self, model, shape, torus=False,
-                 track_empty=False, check_border=False, **kwargs):
+                 track_empty=False, check_border=True, **kwargs):
 
         super().__init__(model)
 
@@ -228,12 +226,14 @@ class Grid(Spatial):
             else:
                 positions = itertools.cycle(self.all)
 
-        if empty:
-            if len(positions) < len(agents):
-                raise AgentpyError("More new agents than free positions.")
+        if empty and len(positions) < len(agents):
+            raise AgentpyError("Cannot add more agents than empty positions.")
+
+        if self._track_empty:
             for agent, position in zip(agents, positions):
                 self._add_agent(agent, position, field)
-                self.empty.remove(position)
+                if position in self.empty:
+                    self.empty.remove(position)
         else:
             for agent, position in zip(agents, positions):
                 self._add_agent(agent, position, field)
@@ -242,13 +242,31 @@ class Grid(Spatial):
         """ Removes agents from the environment. """
         for agent in make_list(agents):
             agent._remove_env(self)  # Remove env from agent
-            pos = self.positions[agent]  # Get position
-            self.grid.agents[tuple(pos)].remove(agent)  # Rem. agent from grid
+            pos = tuple(self.positions[agent])  # Get position
+            self.grid.agents[pos].remove(agent)  # Rem. agent from grid
             del self.positions[agent]  # Remove agent from position dict
             if self._track_empty:
                 self.empty.add(pos)  # Add position to free spots
 
     # Move and select agents ------------------------------------------------ #
+
+    @staticmethod
+    def _border_behavior(position, shape, torus):
+        # Connected - Jump to other side
+        if torus:
+            for i in range(len(position)):
+                while position[i] > shape[i]-1:
+                    position[i] -= shape[i]
+                while position[i] < 0:
+                    position[i] += shape[i]
+
+        # Not connected - Stop at border
+        else:
+            for i in range(len(position)):
+                if position[i] > shape[i]-1:
+                    position[i] = shape[i]-1
+                elif position[i] < 0:
+                    position[i] = 0
 
     def move_agent(self, agent, pos):
         """ Moves agent to new position.
@@ -291,7 +309,7 @@ class Grid(Spatial):
         if self._torus:
             slices = [(p-distance, p+distance+1) for p in pos]
             new_slices = []
-            for (x_from, x_to), x_max in zip(slices, shape):
+            for (x_from, x_to), x_max in zip(slices, self.shape):
                 if x_to > x_max and x_from < 0:
                     sl_tupl = [(0, x_max)]
                 elif x_to > x_max:
@@ -310,17 +328,19 @@ class Grid(Spatial):
             list_of_slices = list(itertools.product(*new_slices))
             areas = []
             for slices in list_of_slices:
+                slices = tuple([slice(*sl) for sl in slices])
                 areas.append(self.grid.agents[slices])
-            area_iters = [_IterArea(areas[0], exclude=agent)]
-            area_iters += [_IterArea(area) for area in areas[1:]]
-            return AgentIter(itertools.chain(area_iters))
+            # TODO Exclude in every area inefficient
+            area_iters = [_IterArea(area, exclude=agent) for area in areas]
+            return AgentIter(itertools.chain.from_iterable(area_iters))
+            # TODO Iterate twice?
 
         # Case 2: Non-toroidal
         else:
             slices = tuple([slice(p-distance if p-distance >= 0 else 0,
                                   p+distance+1) for p in pos])
             area = self.grid.agents[slices]
-            # Iterate over all agents in area, exclude original agent
+            # Iterator over all agents in area, exclude original agent
             return AgentIter(_IterArea(area, exclude=agent))
 
     # Fields and attributes ------------------------------------------------- #
