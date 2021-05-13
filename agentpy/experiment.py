@@ -245,6 +245,7 @@ class Experiment:
 
         return self.output
 
+    # TODO Depreciate
     def interactive(self, plot, *args, **kwargs):
         """
         Displays interactive output for Jupyter notebooks,
@@ -289,8 +290,6 @@ class Experiment:
             temp_model.run()
             IPython.display.clear_output()
             plot(temp_model, *args, **kwargs)
-
-        print(self.output.parameters)
 
         # Get variable parameters
         var_pars = self.output._combine_pars(sample=True, constants=False)
