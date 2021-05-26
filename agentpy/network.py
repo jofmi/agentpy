@@ -36,7 +36,7 @@ class Network(Object):
         graph (networkx.Graph, optional): The environments' graph.
             Can also be a DiGraph, MultiGraph, or MultiDiGraph.
             Nodes will be converted to :class:`AgentNode`,
-            and node labels will be kept as `AgentNode.label`.
+            with their original label being kept as `AgentNode.label`.
             If none is passed, an empty :class:`networkx.Graph` is created.
         **kwargs: Will be forwarded to :func:`Network.setup`.
 
@@ -111,7 +111,6 @@ class Network(Object):
                 Must have the same length as 'agents',
                 with each entry being an :class:`AgentNode` of the network.
                 If none is passed, new nodes will be created for each agent.
-
         """
 
         if positions is None:
@@ -119,41 +118,34 @@ class Network(Object):
                 node = self.add_node()
                 node.add(agent)
                 self.positions[agent] = node
-                agent._add_env(self, node)
         else:
             for agent, node in zip(agents, positions):
                 node.add(agent)
                 self.positions[agent] = node
-                agent._add_env(self, node)
 
     def remove_agents(self, agents):
         """ Removes agents from the network. """
         for agent in make_list(agents):
-            agent._remove_env(self)  # Remove env from agent
             self.positions[agent].remove(agent)
             del self.positions[agent]
 
     # Move and select agents ------------------------------------------------ #
 
-    def move_agent(self, agent, pos):
+    def move_to(self, agent, node):
         """ Moves agent to new position.
 
         Arguments:
             agent (Agent): Instance of the agent.
-            pos (AgentNode): New position of the agent.
+            node (AgentNode): New position of the agent.
         """
 
-        pos.add(agent)
+        node.add(agent)
         self.positions[agent].remove(agent)
-        self.positions[agent] = pos
-        if isinstance(agent.pos, dict):
-            agent.pos[self] = pos
-        else:
-            agent.pos = pos
+        self.positions[agent] = node
 
-    def neighbors(self, agent, distance=1):
+    def neighbors(self, agent):
         """ Select agents from neighboring nodes.
-        Does not include other agents from the agents' node.
+        Does not include other agents from the agents' own node.
 
         Arguments:
             agent (Agent): Instance of the agent.
@@ -162,5 +154,6 @@ class Network(Object):
             AgentIter: Iterator over the selected neighbors.
         """
 
-        nodes = self.graph.neighbors(agent.pos)
+        # TODO Improve
+        nodes = self.graph.neighbors(self.positions[agent])
         return AgentIter(itertools.chain.from_iterable(nodes))

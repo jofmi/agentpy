@@ -120,13 +120,11 @@ class Space(Object):
 
             pos = pos if isinstance(pos, np.ndarray) else np.array(pos)
             self.positions[agent] = pos  # Add pos to agent_dict
-            agent._add_env(self, pos=pos)  # Add env & pos to agent
 
     def remove_agents(self, agents):
         """ Removes agents from the space. """
         self._cKDTree = None  # Reset KDTree
         for agent in make_list(agents):
-            agent._remove_env(self)  # Remove env from agent
             del self.positions[agent]  # Remove agent from env
 
     # Move and select agents ------------------------------------------------ #
@@ -151,7 +149,7 @@ class Space(Object):
                 elif position[i] < 0:
                     position[i] = 0
 
-    def move_agent(self, agent, pos):
+    def move_to(self, agent, pos):
         """ Moves agent to new position.
 
         Arguments:
@@ -162,6 +160,16 @@ class Space(Object):
         self._cKDTree = None  # Reset KDTree
         self._border_behavior(pos, self.shape, self._torus)
         self.positions[agent][...] = pos  # In-place
+
+    def move_by(self, agent, path):
+        """ Moves agent to new position, relative to current position.
+
+        Arguments:
+            agent (Agent): Instance of the agent.
+            path (array_like): Relative change of position.
+        """
+        pos = [p + c for p, c in zip(self.positions[agent], path)]
+        self.move_to(agent, pos)
 
     def neighbors(self, agent, distance):
         """ Select agent neighbors within a given distance.

@@ -90,17 +90,18 @@ class GridIter(AgentIter):
 
 class Grid(Object):
     """ Environment that contains agents with a discrete spatial topology,
-    supporting both multiple agents per cell and multiple fields per grid.
+    supporting multiple agents and attribute fields per cell.
     For a continuous spatial topology, see :class:`Space`.
 
     This class can be used as a parent class for custom grid types.
     All agentpy model objects call the method :func:`setup` after creation,
     and can access class attributes like dictionary items.
 
-
     Arguments:
-        model (Model): The model instance.
-        shape (tuple of int): Size of the grid.
+        model (Model):
+            The model instance.
+        shape (tuple of int):
+            Size of the grid.
             The length of the tuple defines the number of dimensions,
             and the values in the tuple define the length of each dimension.
         torus (bool, optional):
@@ -170,10 +171,9 @@ class Grid(Object):
     # Add and remove agents ------------------------------------------------- #
 
     def _add_agent(self, agent, position, field):
-        position = list(position)  # Position must be mutable object
-        self.grid[field][tuple(position)].add(agent)  # Add agent to grid
-        self.positions[agent] = position  # Add agent to posdict
-        agent._add_env(self, pos=position)  # Add env to agent
+        position = tuple(position)
+        self.grid[field][position].add(agent)  # Add agent to grid
+        self.positions[agent] = position  # Add agent position to dict
 
     def add_agents(self, agents, positions=None, random=False, empty=False):
         """ Adds agents to the grid environment.
@@ -184,7 +184,7 @@ class Grid(Object):
             positions (Sequence of positions, optional):
                 The positions of the agents.
                 Must have the same length as 'agents',
-                with each entry being a position (list of int).
+                with each entry being a tuple of integers.
                 If none is passed, positions will be chosen automatically
                 based on the arguments 'random' and 'empty':
 
@@ -241,17 +241,17 @@ class Grid(Object):
     def remove_agents(self, agents):
         """ Removes agents from the environment. """
         for agent in make_list(agents):
-            agent._remove_env(self)  # Remove env from agent
-            pos = tuple(self.positions[agent])  # Get position
-            self.grid.agents[pos].remove(agent)  # Rem. agent from grid
+            pos = self.positions[agent]  # Get position
+            self.grid.agents[pos].remove(agent)  # Remove agent from grid
             del self.positions[agent]  # Remove agent from position dict
             if self._track_empty:
-                self.empty.add(pos)  # Add position to free spots
+                self.empty.append(pos)  # Add position to free spots
 
     # Move and select agents ------------------------------------------------ #
 
     @staticmethod
     def _border_behavior(position, shape, torus):
+        position = list(position)
         # Connected - Jump to other side
         if torus:
             for i in range(len(position)):
@@ -267,31 +267,40 @@ class Grid(Object):
                     position[i] = shape[i]-1
                 elif position[i] < 0:
                     position[i] = 0
+        return tuple(position)
 
-    def move_agent(self, agent, pos):
+    def move_to(self, agent, pos):
         """ Moves agent to new position.
 
         Arguments:
             agent (Agent): Instance of the agent.
-            pos (list of int): New position of the agent.
+            pos (tuple of int): New position of the agent.
         """
 
         pos_old = self.positions[agent]
-        pos = list(pos)
 
         # Grid options
         if self._check_border:
-            self._border_behavior(pos, self.shape, self._torus)
+            pos = self._border_behavior(pos, self.shape, self._torus)
         if self._track_empty:
-            self.empty.replace(tuple(pos), tuple(pos_old))
+            self.empty.replace(pos, pos_old)
 
-        self.grid.agents[tuple(pos_old)].remove(agent)
-        self.grid.agents[tuple(pos)].add(agent)
-        self.positions[agent][:] = pos  # Change position in-place
+        self.grid.agents[pos_old].remove(agent)
+        self.grid.agents[pos].add(agent)
+        self.positions[agent] = pos  # Change position in-place
+
+    def move_by(self, agent, path):
+        """ Moves agent to new position, relative to current position.
+
+        Arguments:
+            agent (Agent): Instance of the agent.
+            path (tuple of int): Relative change of position.
+        """
+        pos = [p + c for p, c in zip(self.positions[agent], path)]
+        self.move_to(agent, tuple(pos))
 
     def neighbors(self, agent, distance=1):
-        """ Select agent neighbors within a given distance.
-        Supports toroidal grids.
+        """ Select neighbors of an agent within a given distance.
 
         Arguments:
             agent (Agent): Instance of the agent.
@@ -305,6 +314,7 @@ class Grid(Object):
 
         pos = self.positions[agent]
 
+        # TODO Change method upon initiation
         # Case 1: Toroidal
         if self._torus:
             slices = [(p-distance, p+distance+1) for p in pos]
@@ -332,8 +342,8 @@ class Grid(Object):
                 areas.append(self.grid.agents[slices])
             # TODO Exclude in every area inefficient
             area_iters = [_IterArea(area, exclude=agent) for area in areas]
+            # TODO Can only be iterated on once
             return AgentIter(itertools.chain.from_iterable(area_iters))
-            # TODO Iterate twice?
 
         # Case 2: Non-toroidal
         else:
