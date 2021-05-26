@@ -21,55 +21,91 @@ bibliography: paper.bib
 
 # Introduction
 
-Agentpy is an open-source library for the development and analysis of agent-based models (ABMs) in Python. 
-ABMs are computer simulations
-to generate and understand emergent dynamics of complex systems 
-based on the autonomous behavior of heterogeneous agents.
-This method is being increasingly applied in fields like
-ecology [@DeAngelis2019], cognitive sciences [@Madsen2019], management [@North2007], 
-policy analysis [@Castro2020], economics [@Farmer2009], and sociology [@Bianchi2015].
+Agent-based models are computer simulations based on the autonomous behavior of heterogeneous agents. They are used to generate and understand the emergent dynamics of complex systems, with applications in fields like ecology [@DeAngelis2019], cognitive sciences [@Madsen2019], management [@North2007], policy analysis [@Castro2020], economics [@Farmer2009], and sociology [@Bianchi2015].
 
-The aim of agentpy is to provide an intuitive syntax for the creation of models
-together with advanced tools for scientific applications.
-The framework integrates the tasks of model design, numerical experiments, 
-and subsequent data analysis and visualization within a single environment, and is
-optimized for interactive computing with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/) (see \autoref{fig:example}). A reference of all features
-as well as a model library with tutorials and examples can be found in the [documentation](https://agentpy.readthedocs.io/).
+Agentpy is an open-source library for the development and analysis of agent-based models. It aims to provide a new intuitive syntax for the creation of models together with advanced tools for scientific applications. The framework is written in Python 3, and optimized for interactive computing with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). A reference of all features as well as a model library with tutorials and examples can be found in the documentation (https://agentpy.readthedocs.io/).
 
-![A screenshot of Jupyter Lab with two interactive tutorials from the agentpy model library.\label{fig:example}](docs/agentpy_example.png)
+# Statement of Need
 
-# Overview
+There are numerous modeling and simulation tools for agent-based models, each with their own particular focus and style [@Abar2017]. Most notable examples are NetLogo [@Netlogo], which is written in Scala/Java and has become the most established tool in the field; and Mesa [@Mesa2016], a more recent framework that has popularized the development of agent-based models in Python. 
 
-The framework follows a nested structure that is illustrated in \autoref{fig:structure}.
-The basic building blocks are the agents, which can be designed with custom variables and methods.
-These agents can then be placed within different environments like a network or a spatial grid.
-A model is used to initiate these objects, perform a simulation, and record data. 
-Experiments, in turn, can take a model and run it over multiple iterations and parameter combinations.
-The resulting output data can be saved, loaded, and re-arranged for analysis and visualization.
+Agentpy's main feature in comparison to these existing tools is that it integrates the many different tasks of agent-based modeling within a single environment. These tasks include the creation of custom agent, environment, and model types; interactive simulations (similar to the traditional NetLogo interface); numeric experiments over multiple runs; and subsequent data analysis of the output.
 
-![Nested structure of the agentpy framework.\label{fig:structure}](docs/structure.png){ width=70% }
+The software is further designed for scientific applications, and includes tools for parameter sampling (similar to NetLogo's BehaviorSpace), Monte Carlo experiments, random number generation, parallel computing, and sensitivity analysis; as well as compatibility with established Python packages like [EMA Workbench](https://emaworkbench.readthedocs.io/), [NetworkX](https://networkx.org/), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/), [SALib](https://salib.readthedocs.io/), [SciPy](https://www.scipy.org/),  and [seaborn](https://seaborn.pydata.org/).
 
-An example of how to design and execute a simple model can be seen on the left panel of \autoref{fig:example}. 
-The syntax of the framework is designed to be both intuitive and efficient. 
-For example, to call a method *action* for a whole group of *agents*, one would simply call: `agents.action()`. To select agents with a variable *x* above zero: `agents.select(agents.x > 0)`. To increase this variable by one: `agents.x += 1`. And to record it: `agents.record('x')`. 
+# Basic structure
 
-The package further aims to provide advanced tools for experimentation and analysis. At the time of writing, these include Monte-Carlo simulation, scenario comparison, parameter sampling, sensitivity analysis, parallel computing, interactive sliders, data manipulation, animations, and plots.
-These features make use of – and are compatible with – established Python libraries for scientific computing, including [pandas](https://pandas.pydata.org/), [networkx](https://networkx.org/), [SALib](https://salib.readthedocs.io/), and [seaborn](https://seaborn.pydata.org/).
+The agentpy framework follows a nested structure that is illustrated in \autoref{fig:structure}. The basic building blocks are the agents, which can be placed within (multiple) environments with different topologies like a network, a spatial grid, or a continuous space. Models are used to initiate these objects, perform a simulation, and record data. Experiments can run a model over multiple iterations and parameter combinations. The resulting output data can then be saved and re-arranged for analysis and visualization.
 
-# Comparison
+![Nested structure of the agentpy framework.\label{fig:structure}](docs/graphics/structure.png){ width=70% }
 
-There are numerous modeling and simulation tools for ABMs [@Abar2017],
-each with their own particular focus and style. 
-The main alternative to agentpy is [Mesa](https://mesa.readthedocs.io/), 
-which aims to be a "Python 3-based counterpart to NetLogo, Repast, or MASON" [@Mesa2016]. 
-All of these frameworks traditionally focus on spatial environments and live visual interfaces,
-where users can observe dynamics and adjust parameters while the model is running.
+# Usage example
 
-Agentpy, in contrast, is more focused on experiments over multiple runs, 
-with tools to generate and analyze output data from these experiments. 
-It further differs from existing frameworks in both style and structure,
-most notably through its nested structure (\autoref{fig:structure}), simple syntax for interactive computing, and direct integration of analysis tools within the same framework.
-Further comparison of code examples and features can be found [here](https://agentpy.readthedocs.io/en/latest/comparison.html).
+The following code shows an example of a simple model that explores the distribution of wealth under a randomly trading population of agents. The original version of this model has been written in Mesa [@Mesa2016], allowing for a comparison of the syntax between the two frameworks. To start, we import the agentpy library as follows:
+
+```python
+import agentpy as ap
+```
+
+We then define a new type of [`Agent`](https://agentpy.readthedocs.io/en/stable/reference_agents.html). The first method `setup` will be called automatically at the agent's creation. Each agent starts with one unit of wealth. The other method `wealth_transfer` will be called by the model during each time-step. When called, the agent randomly selects a trading partner and hands them one unit of their wealth, given that they have one to spare. 
+
+```python
+class MoneyAgent(ap.Agent):
+
+    def setup(self):
+        self.wealth = 1
+
+    def wealth_transfer(self):
+        if self.wealth > 0:
+            partner = self.model.agents.random()
+            partner.wealth += 1
+            self.wealth -= 1
+```
+
+Next, we define a [`Model`](https://agentpy.readthedocs.io/en/stable/reference_model.html). The methods `setup` and `end` will be called at the beginning and end of the simulation, while `step` is called during each time-step. An [`AgentList`](https://agentpy.readthedocs.io/en/stable/reference_sequences.html) is used to create a set of agents that can then be accessed as a group. The attribute `p` is used to access the model's parameters. And the method [`record`](https://agentpy.readthedocs.io/en/stable/reference_agents.html#agentpy.Agent.record) is used to store data for later analysis.
+
+```python
+class MoneyModel(ap.Model):
+
+    def setup(self):
+        self.agents = ap.AgentList(self, self.p.n, MoneyAgent)
+
+    def step(self):
+        self.agents.wealth_transfer()
+
+    def end(self):
+        self.agents.record('wealth')
+```
+
+To run a simulation, a new instance of the model is created with a dictionary of parameters.
+While the parameter `n` is used in the model's setup, `steps` is used automatically to define the maximum number of time-steps. Alternatively, the simulation could also be stopped with [`Model.stop`](https://agentpy.readthedocs.io/en/stable/reference_model.html#agentpy.Model.stop). To perform the actual simulation, one can use [`Model.run`](https://agentpy.readthedocs.io/en/stable/reference_model.html#agentpy.Model.run).
+
+```python
+parameters = {'n': 10, 'steps': 10}
+model = MoneyModel(parameters)
+results = model.run()
+```
+
+Parameters can also be defined as ranges and used to generate a [`Sample`](https://agentpy.readthedocs.io/en/latest/reference_sample.html).
+This sample can then be used to initiate an [`Experiment`](https://agentpy.readthedocs.io/en/latest/reference_experiment.html) that can repeatedly run the model over multiple parameter combinations and iterations. In the following example, the parameter `n` is varied from 1 to 100 and the simulation is repeated five times for each value of `n`.
+
+```python
+parameters = {'n': ap.IntRange(1, 100), 'steps': 10}
+sample = ap.Sample(parameters, n=10)
+exp = ap.Experiment(MoneyModel, sample, iterations=10, record=True)
+results = exp.run()
+```
+
+The output of both models and experiments is given as a [`DataDict`](https://agentpy.readthedocs.io/en/stable/reference_data.html) with tools to save, arrange, and analyse data. Here, we use the seaborn library to display a histogram of the experiments output. The output is shown in figure \autoref{fig:boltzmann}. It shows that the random interaction of the agents creates an inequality of wealth that follows a Boltzmann distribution. 
+
+```python
+import seaborn as sns
+sns.histplot(data=results.variables.MoneyAgent, binwidth=1);
+```
+
+![Histogram of the agent's wealth.\label{fig:boltzmann}](docs/graphics/moneymodel_hist.png)
+
+More examples - including spatial environments, networks, stochastic processes, interactive simulation interfaces, animations, and sensitivity analysis - can be found in the [model library](https://agentpy.readthedocs.io/en/stable/model_library.html) and [user guides](https://agentpy.readthedocs.io/en/stable/guide.html) of the documentation (https://agentpy.readthedocs.io/). For questions and ideas, please visit the discussion forum (https://github.com/JoelForamitti/agentpy/discussions).
 
 # Acknowledgements
 
