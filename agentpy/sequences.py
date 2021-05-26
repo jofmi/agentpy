@@ -248,6 +248,11 @@ class AgentList(AgentSequence, list):
             for obj in self:
                 setattr(obj, name, value)
 
+    def __add__(self, other):
+        agents = AgentList(self.model, self)
+        agents.extend(other)
+        return agents
+
     def select(self, selection):
         """ Returns a new :class:`AgentList` based on `selection`.
 
@@ -288,7 +293,7 @@ class AgentList(AgentSequence, list):
         return self
 
 
-class AgentGroup(AgentSequence, ListDict):
+class AgentDList(AgentSequence, ListDict):
     """ Ordered collection of agentpy objects.
     This container behaves similar to :class:`AgentList` in most aspects,
     but comes with additional features for object removal and lookup.
@@ -300,9 +305,9 @@ class AgentGroup(AgentSequence, ListDict):
     - No duplicates are allowed.
     - The order of agents in the group cannot be changed.
     - Removal of agents changes the order of the group.
-    - :func:`AgentGroup.buffer` makes it possible to
+    - :func:`AgentDList.buffer` makes it possible to
       remove objects from the group while iterating over the group.
-    - :func:`AgentGroup.shuffle` returns an iterator
+    - :func:`AgentDList.shuffle` returns an iterator
       instead of shuffling in-place.
 
     Arguments:
@@ -340,6 +345,11 @@ class AgentGroup(AgentSequence, ListDict):
             # Apply single value to all agents
             for obj in self:
                 setattr(obj, name, value)
+
+    def __add__(self, other):
+        agents = AgentDList(self.model, self)
+        agents.extend(other)
+        return agents
 
     def random(self, n=1, replace=False):
         """ Creates a random sample of agents.
@@ -380,12 +390,12 @@ class AgentGroup(AgentSequence, ListDict):
     def shuffle(self):
         """ Return :class:`AgentIter` over the content of the group
          with the order of objects being shuffled. """
-        return AgentGroupIter(self.model, self, shuffle=True)
+        return AgentDListIter(self.model, self, shuffle=True)
 
     def buffer(self):
         """ Return :class:`AgentIter` over the content of the group
          that supports deletion of objects from the group during iteration. """
-        return AgentGroupIter(self.model, self, buffer=True)
+        return AgentDListIter(self.model, self, buffer=True)
 
 
 class AgentSet(AgentSequence, set):
@@ -436,8 +446,8 @@ class AgentIter(AgentSequence):
                 setattr(obj, name, value)
 
 
-class AgentGroupIter(AgentIter):
-    """ Iterator over agentpy objects in an :class:`AgentGroup`. """
+class AgentDListIter(AgentIter):
+    """ Iterator over agentpy objects in an :class:`AgentDList`. """
 
     def __init__(self, model, source=(), shuffle=False, buffer=False):
         object.__setattr__(self, '_model', model)
