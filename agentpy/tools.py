@@ -106,9 +106,9 @@ class ListDict(Sequence):
     def __init__(self, iterable):
         self.item_to_position = {}
         self.items = []
-        self.add = self.append
+        #self.add = self.append
         for item in iterable:
-            self.add(item)
+            self.append(item)
 
     def __iter__(self):
         return iter(self.items)
@@ -121,6 +121,10 @@ class ListDict(Sequence):
 
     def __contains__(self, item):
         return item in self.item_to_position
+
+    def extend(self, seq):
+        for s in seq:
+            self.append(s)
 
     def append(self, item):
         if item in self.item_to_position:
