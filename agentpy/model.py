@@ -315,6 +315,7 @@ class Model(Object):
     def sim_reset(self):
         """ Reset model to initial conditions. """
         # TODO Remove attributes
+        self.record = super().record
         self.__init__(parameters=self.p,
                       _run_id=self._run_id,
                       **self._setup_kwargs)
