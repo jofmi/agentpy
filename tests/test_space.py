@@ -10,6 +10,8 @@ def make_space(s, n=0, torus=False):
     agents = ap.AgentList(model, n)
     space = ap.Space(model, (s, s), torus=torus)
     space.add_agents(agents)
+    for agent in agents:
+        agent.pos = space.positions[agent]
     return model, space, agents
 
 
@@ -35,7 +37,7 @@ def test_add_agents_random():
     model.run(steps=0, seed=1, display=False)
     agent = ap.Agent(model)
     space.add_agents([agent], random=True)
-    assert list(agent.pos) == [1.527549237953228, 0.5101380514788434]
+    assert list(space.positions[agent]) == [1.527549237953228, 0.5101380514788434]
 
 
 def test_remove():
@@ -57,9 +59,8 @@ def test_positions():
     space.add_agents([a2], positions=[(1, 2)])
 
     # Position reference
-    assert list(a1.pos) == list(space.positions[a1])
-    assert list(a1.pos) == [0, 0]
-    assert list(a2.pos) == [1, 2]
+    assert list(space.positions[a1]) == [0, 0]
+    assert list(space.positions[a2]) == [1, 2]
     assert [list(x) for x in space.positions.values()] == [[0, 0], [1, 2]]
 
     # Get agents
@@ -69,17 +70,17 @@ def test_positions():
     assert len(space.select((1, 1), 1.42)) == 2
 
     # Get neighbors
-    assert len(a1.neighbors(distance=2.0)) == 0
-    assert len(a1.neighbors(distance=2.5)) == 1
-    assert list(a1.neighbors(distance=2.5))[0] is a2
+    assert len(space.neighbors(a1, distance=2.0)) == 0
+    assert len(space.neighbors(a1, distance=2.5)) == 1
+    assert list(space.neighbors(a1, distance=2.5))[0] is a2
 
     # Movement restricted by border
-    a2.move_by((2, -3))
-    assert list(a2.pos) == [2, 0]
+    space.move_by(a2, (2, -3))
+    assert list(space.positions[a2]) == [2, 0]
 
     # Move directly
-    space.move_agent(a2, (1, 1))
-    assert list(a2.pos) == [1, 1]
+    space.move_to(a2, (1, 1))
+    assert list(space.positions[a2]) == [1, 1]
 
     # Connected space (toroidal)
     model, space, agents = make_space(2, torus=True)
@@ -87,8 +88,8 @@ def test_positions():
     a2 = ap.Agent(model)
     space.add_agents([a1])
     space.add_agents([a2], positions=[(0, 1.9)])
-    assert list(a1.neighbors(distance=0.11))[0] == a2
+    assert list(space.neighbors(a1, distance=0.11))[0] == a2
 
     # Movement over border
-    a2.move_by((-3, 1.1))
-    assert list(a2.pos) == [1, 1]
+    space.move_by(a2, (-3, 1.1))
+    assert list(space.positions[a2]) == [1, 1]

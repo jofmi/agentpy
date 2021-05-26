@@ -42,7 +42,6 @@ def test_attr_dict():
 
 def test_ListDict():
     x = ListDict([1, 2, 3, 4, 5])
-    assert x.append == x.add
     assert list(x) == [1, 2, 3, 4, 5]
     x.replace(3, 8)
     assert list(x) == [1, 2, 8, 4, 5]

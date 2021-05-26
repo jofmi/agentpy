@@ -133,26 +133,12 @@ def test_move():
     model, grid, agents = make_grid(2, 2, track_empty=True)
     agent = agents[0]
     assert grid.attr_grid('id').tolist()[0] == [1., 2.]
-    agent.move_to((1, 0))  # Move in absolute terms
+    grid.move_to(agent, (1, 0))  # Move in absolute terms
     assert grid.attr_grid('id').tolist()[0][1] == 2.0
     assert grid.attr_grid('id').tolist()[1][0] == 1.0
     assert np.isnan(grid.attr_grid('id').tolist()[1][1])
     assert list(grid.empty) == [(1, 1), (0, 0)]
-    agent.move_by((-1, 0))  # Move in relative terms
-    assert grid.attr_grid('id').tolist()[0] == [1., 2.]
-    assert list(grid.empty) == [(1, 1), (1, 0)]
-
-
-def test_move_multi():
-    model, grid, agents = make_grid(2, 2, track_empty=True, agent_cls=ap.MultiAgent)
-    agent = agents[0]
-    assert grid.attr_grid('id').tolist()[0] == [1., 2.]
-    agent.move_to(grid, (1, 0))  # Move in absolute terms
-    assert grid.attr_grid('id').tolist()[0][1] == 2.0
-    assert grid.attr_grid('id').tolist()[1][0] == 1.0
-    assert np.isnan(grid.attr_grid('id').tolist()[1][1])
-    assert list(grid.empty) == [(1, 1), (0, 0)]
-    agent.move_by(grid, (-1, 0))  # Move in relative terms
+    grid.move_by(agent, (-1, 0))  # Move in relative terms
     assert grid.attr_grid('id').tolist()[0] == [1., 2.]
     assert list(grid.empty) == [(1, 1), (1, 0)]
 
@@ -164,13 +150,13 @@ def test_move_torus():
     grid = ap.Grid(model, (4, 4), torus=True)
     grid.add_agents(agents, [[0, 0]])
 
-    assert agent.pos == [0, 0]
-    agent.move_by([-1, -1])
-    assert agent.pos == [3, 3]
-    agent.move_by([1, 0])
-    assert agent.pos == [0, 3]
-    agent.move_by([0, 1])
-    assert agent.pos == [0, 0]
+    assert grid.positions[agent] == (0, 0)
+    grid.move_by(agent, [-1, -1])
+    assert grid.positions[agent] == (3, 3)
+    grid.move_by(agent, [1, 0])
+    assert grid.positions[agent] == (0, 3)
+    grid.move_by(agent, [0, 1])
+    assert grid.positions[agent] == (0, 0)
 
     model = ap.Model()
     agents = ap.AgentList(model, 1)
@@ -178,25 +164,19 @@ def test_move_torus():
     grid = ap.Grid(model, (4, 4), torus=False)
     grid.add_agents(agents, [[0, 0]])
 
-    assert agent.pos == [0, 0]
-    agent.move_by([-1, -1])
-    assert agent.pos == [0, 0]
-    agent.move_by([6, 6])
-    assert agent.pos == [3, 3]
+    assert grid.positions[agent] == (0, 0)
+    grid.move_by(agent, [-1, -1])
+    assert grid.positions[agent] == (0, 0)
+    grid.move_by(agent, [6, 6])
+    assert grid.positions[agent] == (3, 3)
 
 
 def test_neighbors():
     model, grid, agents = make_grid(5, 25)
     a = agents[12]
-    assert list(a.neighbors()) == list(grid.neighbors(a))
-    assert len(a.neighbors(distance=1)) == 8
-    assert len(a.neighbors(distance=2)) == 24
-
-    model, grid, agents = make_grid(5, 25, agent_cls=ap.MultiAgent)
-    a = agents[12]
-    assert list(a.neighbors(grid)) == list(grid.neighbors(a))
-    assert len(a.neighbors(grid, distance=1)) == 8
-    assert len(a.neighbors(grid, distance=2)) == 24
+    assert list(grid.neighbors(a)) == list(grid.neighbors(a))
+    assert len(grid.neighbors(a, distance=1)) == 8
+    assert len(grid.neighbors(a, distance=2)) == 24
 
 
 def test_neighbors_with_torus():
@@ -208,7 +188,7 @@ def test_neighbors_with_torus():
 
     grid.apply(len).tolist()
 
-    assert list(agents[0].neighbors().id) == [5,2]
+    assert list(grid.neighbors(agents[0]).id) == [5,2]
 
     model = ap.Model()
     agents = ap.AgentList(model, 5)
@@ -217,8 +197,8 @@ def test_neighbors_with_torus():
 
     grid.apply(len).tolist()
 
-    assert list(agents[0].neighbors().id) == [4]
-    assert list(agents[1].neighbors().id) == [3]
+    assert list(grid.neighbors(agents[0]).id) == [4]
+    assert list(grid.neighbors(agents[1]).id) == [3]
 
     for d in [2, 3, 4]:
 
@@ -229,8 +209,8 @@ def test_neighbors_with_torus():
 
         grid.apply(len).tolist()
 
-        assert list(agents[0].neighbors(distance=d).id) == [2, 3, 4, 5]
-        assert list(agents[1].neighbors(distance=d).id) == [1, 3, 4, 5]
+        assert list(grid.neighbors(agents[0], distance=d).id) == [2, 3, 4, 5]
+        assert list(grid.neighbors(agents[1], distance=d).id) == [1, 3, 4, 5]
 
 
 def test_field():

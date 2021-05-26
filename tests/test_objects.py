@@ -17,52 +17,6 @@ def test_basics():
         assert agent.z
 
 
-def test_single_env_agents():
-
-    model = ap.Model()
-    env = ap.Grid(model, (10, 10))
-    agent = ap.Agent(model)
-    env.add_agents([agent])
-
-    with pytest.raises(AgentpyError):
-        env.add_agents([agent])
-
-    assert env == agent.env
-    assert env.positions[agent] == agent.pos
-
-    env.remove_agents([agent])
-
-    assert agent.env is None
-    assert agent.pos is None
-
-    with pytest.raises(AgentpyError):
-        env.remove_agents([agent])
-
-
-def test_multi_env_agents():
-
-    model = ap.Model()
-    env1 = ap.Grid(model, (1, 1))
-    env2 = ap.Grid(model, (1, 1))
-    agent = ap.MultiAgent(model)
-    env1.add_agents([agent])
-    env2.add_agents([agent])
-
-    assert agent.env is agent.pos
-    assert agent.env == {env1: [0, 0], env2: [0, 0]}
-
-    env1.remove_agents([agent])
-
-    assert agent.env == {env2: [0, 0]}
-
-    env2.remove_agents([agent])
-
-    assert agent.env == {}
-
-    with pytest.raises(KeyError):
-        env2.remove_agents([agent])
-
-
 def test_record():
     """ Record a dynamic variable """
 

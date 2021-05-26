@@ -14,27 +14,51 @@ def test_basics():
     assert l3.__repr__() == "AgentList (2 objects)"
 
     agentlist = ap.AgentList(model, 2)
-    agentgroup = ap.AgentGroup(model, 2)
+    AgentDList = ap.AgentDList(model, 2)
     agentiter = ap.AgentIter(agentlist)
-    agentgroupiter = ap.AgentGroupIter(agentlist)
+    AgentDListiter = ap.AgentDListIter(agentlist)
     attriter = agentiter.id
 
     assert np.array(agentlist).tolist() == list(agentlist)
-    assert np.array(agentgroup).tolist() == list(agentgroup)
+    assert np.array(AgentDList).tolist() == list(AgentDList)
     assert np.array(agentiter).tolist() == list(agentiter)
-    assert np.array(agentgroupiter).tolist() == list(agentgroupiter)
+    assert np.array(AgentDListiter).tolist() == list(AgentDListiter)
     assert np.array(attriter).tolist() == list(attriter)
 
     with pytest.raises(AgentpyError):
         _ = agentiter[2]  # No item lookup allowed
 
     # Seta and get attribute
-    for agents in [agentlist, agentgroup, agentiter]:
+    for agents in [agentlist, AgentDList, agentiter]:
         agents.x = 1
         agents.y = 1
         assert list(agents.x) == [1, 1]
         agents.x += agents.x
         assert list(agents.x) == [2, 2]
+
+
+def test_add():
+    model = ap.Model()
+    agents1 = ap.AgentList(model, 2)
+    agents2 = ap.AgentList(model, 2)
+    agents3 = agents1 + agents2
+
+    assert list(agents3.id) == [1, 2, 3, 4]
+
+    agents4 = agents3 + [ap.Agent(model)]
+
+    assert list(agents4.id) == [1, 2, 3, 4, 5]
+
+    model = ap.Model()
+    agents1 = ap.AgentDList(model, 2)
+    agents2 = ap.AgentDList(model, 2)
+    agents3 = agents1 + agents2
+
+    assert list(agents3.id) == [1, 2, 3, 4]
+
+    agents4 = agents3 + [ap.Agent(model)]
+
+    assert list(agents4.id) == [1, 2, 3, 4, 5]
 
 
 def test_agent_group():
@@ -47,14 +71,14 @@ def test_agent_group():
     # Delete later element in list
     model = ap.Model()
     model.called = []
-    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents = ap.AgentDList(model, 4, MyAgent)
     model.agents.buffer().method(2)
     assert model.called == [1, 2, 4]
 
     # Delete earlier element in list
     model = ap.Model()
     model.called = []
-    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents = ap.AgentDList(model, 4, MyAgent)
     model.agents.buffer().method(0)
     assert model.called == [1, 2, 3, 4]
 
@@ -69,7 +93,7 @@ def test_agent_group():
     model = ap.Model()
     model.run(seed=2, steps=0, display=False)
     model.called = []
-    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents = ap.AgentDList(model, 4, MyAgent)
     model.agents.shuffle().buffer().method(2)
     assert model.called == [2, 4, 1]
 
@@ -77,7 +101,7 @@ def test_agent_group():
     model = ap.Model()
     model.run(seed=2, steps=0, display=False)
     model.called = []
-    model.agents = ap.AgentGroup(model, 4, MyAgent)
+    model.agents = ap.AgentDList(model, 4, MyAgent)
     model.agents.buffer().shuffle().method(2)
     assert model.called == [2, 4, 1]
 
@@ -123,7 +147,7 @@ def test_select():
     assert list(model.agents.select(selection1).id) == [2]
 
     model = ap.Model()
-    model.agents = ap.AgentGroup(model, 3)
+    model.agents = ap.AgentDList(model, 3)
     selection1 = model.agents.id == 2
     assert selection1 == [False, True, False]
     assert list(model.agents.select(selection1).id) == [2]
@@ -149,7 +173,7 @@ def test_random():
     # Agent Group
     model = ap.Model()
     model.run(steps=0, seed=1, display=False)
-    model.agents = ap.AgentGroup(model, 10)
+    model.agents = ap.AgentDList(model, 10)
     assert list(model.agents.random())[0].id == 2
     assert list(model.agents.shuffle())[0].id == 9
 
@@ -165,7 +189,7 @@ def test_sort():
     assert list(model.agents.id) == [2, 1]
 
     model = ap.Model()
-    model.agents = ap.AgentGroup(model, 2)
+    model.agents = ap.AgentDList(model, 2)
     model.agents[0].x = 1
     model.agents[1].x = 0
     model.agents = model.agents.sort('x')  # Not in-place
@@ -220,13 +244,13 @@ def test_remove():
     assert list(agents.id) == [2, 3]
 
     model = ap.Model()
-    agents = ap.AgentGroup(model, 3, ap.Agent)
+    agents = ap.AgentDList(model, 3, ap.Agent)
     assert list(agents.id) == [1, 2, 3]
     agents.remove(agents[0])
     assert list(agents.id) == [3, 2]
 
     model = ap.Model()
-    agents = ap.AgentGroup(model, 3, ap.Agent)
+    agents = ap.AgentDList(model, 3, ap.Agent)
     assert list(agents.id) == [1, 2, 3]
     agents.pop(0)
     assert list(agents.id) == [3, 2]
