@@ -32,11 +32,12 @@ class Experiment:
         record (bool, optional):
             Keep the record of dynamic variables (default False).
         random (bool, optional):
-            Choose random seeds for every new iteration (default False).
-            The seed for the random number generator will be taken from the
-            experiments's current parameter combination.
-            Note that if there is no parameter 'seed',
-            iterations will have random seeds even if this is False.
+            Generate different random seeds for every iteration (default True).
+            If True, the parameter 'seed' will be used to initialize a random
+            seed generator for every parameter combination in the sample.
+            If False, the same seed will be used for every iteration.
+            If no parameter 'seed' is defined, all seeds will be random.
+            See :doc:`guide_random` for more information.
         **kwargs:
             Will be forwarded to all model instances created by the experiment.
 
@@ -45,7 +46,7 @@ class Experiment:
     """
 
     def __init__(self, model_class, sample=None, iterations=1,
-                 record=False, random=False, **kwargs):
+                 record=False, random=True, **kwargs):
 
         self.model = model_class
         self.output = DataDict()
@@ -73,14 +74,24 @@ class Experiment:
 
         # Prepare seeds
         if random:
-            rngs = [rd.Random(p['seed'])
-                    if 'seed' in p else rd.Random()
-                    for p in sample]
-            self._random = {
-                (sample_id, iteration): rngs[sample_id].getrandbits(128)
-                for sample_id in range(len(self.sample))
-                for iteration in range(iterations)
-            }
+            if combos > 1:
+                rngs = [rd.Random(p['seed'])
+                        if 'seed' in p else rd.Random() for p in self.sample]
+                self._random = {
+                    (sample_id, iteration): rngs[sample_id].getrandbits(128)
+                    for sample_id in sample_range
+                    for iteration in iter_range
+                }
+            else:
+                p = list(self.sample)[0]
+                if p is not None and 'seed' in p:
+                    rng = rd.Random(p['seed'])
+                else:
+                    rng = rd.Random()
+                self._random = {
+                    (None, iteration): rng.getrandbits(128)
+                    for iteration in iter_range
+                }
         else:
             self._random = None
 
