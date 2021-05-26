@@ -34,7 +34,7 @@ over data structures in which to hold objects. Some agents can be kept in
 different sequences than others, and different kinds of sequences can be used.
 
 In addition to :class:`AgentList`, there is new sequence type
-:class:`AgentGroup` that provides increased performance
+:class:`AgentDList` that provides increased performance
 for the lookup and deletion of agents.
 It also comes with a method `buffer` that allows for deletion of agents
 from the group during an active iteration over the group.

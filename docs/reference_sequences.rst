@@ -10,11 +10,11 @@ depends on the specific requirements of each model.
 
 - :class:`AgentList` is a list of agentpy objects with
   methods to select and manipulate its entries.
-- :class:`AgentGroup` is an ordered collection of agentpy objects,
+- :class:`AgentDList` is an ordered collection of agentpy objects,
   optimized for removing and looking up objects.
 - :class:`AgentSet` is an unordered collection of agents
   that can access agent attributes.
-- :class:`AgentIter` and :class:`AgentGroupIter` are a list-like iterators
+- :class:`AgentIter` and :class:`AgentDListIter` are a list-like iterators
   over a selection of agentpy objects.
 - :class:`AttrIter` is a list-like iterator over the attributes of
   each agent in a selection of agentpy objects.
@@ -29,7 +29,7 @@ Containers
 .. autoclass:: AgentList
     :members:
 
-.. autoclass:: AgentGroup
+.. autoclass:: AgentDList
     :members:
 
 .. autoclass:: AgentSet
@@ -41,7 +41,7 @@ Iterators
 .. autoclass:: AgentIter
     :members:
 
-.. autoclass:: AgentGroupIter
+.. autoclass:: AgentDListIter
     :members:
 
 .. autoclass:: AttrIter

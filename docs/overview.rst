@@ -17,7 +17,7 @@ Structure
 
 The basic structure of the agentpy framework has four levels:
 
-1. The agent types :class:`Agent` and :class:`MultiAgent` are the basic building blocks of the model
+1. The :class:`Agent` is the basic building block of a model
 2. The environment types :class:`Grid`, :class:`Space`, and :class:`Network` contain agents
 3. A :class:`Model` contains agents, environments, parameters, and simulation procedures
 4. An :class:`Experiment` can run a model multiple times with different parameter combinations
@@ -73,13 +73,13 @@ here is how a basic model could look like::
 
         def end(self):
             """ Record an evaluation measure. """
-            self.measure('my_measure', 1)
+            self.report('my_measure', 1)
 
 The simulation procedures of a model are defined by four special methods
 that will be used automatically during different parts of a simulation.
 
 - :class:`Model.setup` is called at the start of the simulation (`t==0`).
-- :class:`Model.step` is called during every time-step.
+- :class:`Model.step` is called during every time-step (excluding `t==0`).
 - :class:`Model.update` is called after every time-step (including `t==0`).
 - :class:`Model.end` is called at the end of the simulation.
 
@@ -92,7 +92,7 @@ Agent sequences
 ###############
 
 The :doc:`reference_sequences` module provides containers for groups of agents.
-The main classes are :class:`AgentList` and :class:`AgentGroup`,
+The main classes are :class:`AgentList` and :class:`AgentDList`,
 which come with methods to access and manipulate the whole group of agents.
 
 For example, when the model defined above calls :func:`self.agents.agent_method`,
@@ -112,6 +112,7 @@ Environments
 ############
 
 :doc:`reference_environments` are objects in which agents can inhabit a specific position.
+A model can contain zero, one or multiple environments which agents can enter and leave.
 The connection between positions is defined by the environment's topology.
 There are currently three types:
 
@@ -119,14 +120,11 @@ There are currently three types:
 - :class:`Space` n-dimensional spatial topology with continuous positions.
 - :class:`Network` graph topology consisting of :class:`AgentNode` and edges.
 
-Models can contain zero, one, or multiple environments with different topologies.
-The default :class:`Agent` can inhabit zero or one environments,
-while :class:`MultiAgent` can be part of multiple environments.
-
 Applications of networks can be found in the demonstration models
 :doc:`agentpy_virus_spread` and :doc:`agentpy_button_network`;
 spatial grids in :doc:`agentpy_forest_fire` and :doc:`agentpy_segregation`;
 and continuous spaces in :doc:`agentpy_flocking`.
+Note that there can also be models without environments like in :doc:`agentpy_wealth_transfer`.
 
 Recording data
 ##############

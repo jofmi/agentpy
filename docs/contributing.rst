@@ -38,7 +38,8 @@ Write documentation
 
 Agentpy could always use more documentation, whether as part of the
 official agentpy docs, in docstrings, or even on the web in blog posts,
-articles, and such.
+articles, and such. Contributions of clear and simple demonstration models for the :doc:`model_library`
+that illustrate a particular application are also very welcome.
 
 Submit feedback
 ~~~~~~~~~~~~~~~
