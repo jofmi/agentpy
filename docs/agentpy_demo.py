@@ -38,20 +38,20 @@ class MoneyModel(ap.Model):
 
 
 # Perform single run
-parameters = {
-    'n': ap.IntRange(10, 500), 
-    'steps': 10
-}
+parameters = {'n': 10, 'steps': 10}
 model = MoneyModel(parameters)
 results = model.run()
 
 # Perform multiple runs
-sample = ap.Sample(parameters, n=49)
+variable_params = {
+    'n': ap.IntRange(10, 500), 
+    'steps': 10
+}
+sample = ap.Sample(variable_params, n=49)
 exp = ap.Experiment(
     MoneyModel,
     sample,
     iterations=5,
     record=True
 )
-
 results = exp.run()
