@@ -273,7 +273,7 @@ class DataDict(AttrDict):
         return dfp
 
     def arrange(self, variables=False, reporters=False, parameters=False,
-                obj_types=True, index=False):
+                constants=False, obj_types=True, index=False):
         """ Combines and/or filters data based on passed arguments.
 
         Arguments:
@@ -289,6 +289,8 @@ class DataDict(AttrDict):
                 Key or list of keys of parameters to include in the dataframe.
                 If True, all non-constant parameters are selected.
                 If False (default), no parameters are selected.
+            constants (bool, optional):
+                Include constants if 'parameters' is True (default False).
             obj_types (str or list of str, optional):
                 Agent and/or environment types to include in the dataframe.
                 If True (default), all objects are selected.
@@ -315,7 +317,7 @@ class DataDict(AttrDict):
 
         # Step 3: Parameters
         if parameters is True:
-            dfp = self._combine_pars(constants=False)
+            dfp = self._combine_pars(constants=constants)
         elif parameters is not False:
             dfp = self._combine_pars()
             dfp = dfp[make_list(parameters)]
