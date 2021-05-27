@@ -31,7 +31,7 @@ class Experiment:
             How often to repeat every parameter combination (default 1).
         record (bool, optional):
             Keep the record of dynamic variables (default False).
-        random (bool, optional):
+        randomize (bool, optional):
             Generate different random seeds for every iteration (default True).
             If True, the parameter 'seed' will be used to initialize a random
             seed generator for every parameter combination in the sample.
@@ -46,7 +46,7 @@ class Experiment:
     """
 
     def __init__(self, model_class, sample=None, iterations=1,
-                 record=False, random=True, **kwargs):
+                 record=False, randomize=True, **kwargs):
 
         self.model = model_class
         self.output = DataDict()
@@ -73,7 +73,7 @@ class Experiment:
         self.n_runs = len(self.run_ids)
 
         # Prepare seeds
-        if random:
+        if randomize:
             if combos > 1:
                 rngs = [rd.Random(p['seed'])
                         if 'seed' in p else rd.Random() for p in self.sample]
@@ -104,7 +104,7 @@ class Experiment:
             'experiment': True,
             'scheduled_runs': self.n_runs,
             'completed': False,
-            'random': random,
+            'random': randomize,
             'record': record,
             'sample_size': len(self.sample),
             'iterations': iterations

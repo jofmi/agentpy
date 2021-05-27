@@ -17,10 +17,15 @@ def test_repr():
 
 def test_seed():
     parameters = {'x': ap.Range(), 'seed': 1}
-    sample = ap.Sample(parameters, 2, seed=1)
+    sample = ap.Sample(parameters, 2, randomize=True)
 
     assert list(sample) == [{'x': 0.0, 'seed': 272996653310673477252411125948039410165},
                             {'x': 1.0, 'seed': 40125655066622386354123033417875897284}]
+
+    sample = ap.Sample(parameters, 2, randomize=False)
+
+    assert list(sample) == [{'x': 0.0, 'seed': 1},
+                            {'x': 1.0, 'seed': 1}]
 
 
 def test_errors():
