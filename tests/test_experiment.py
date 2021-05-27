@@ -83,7 +83,7 @@ def test_random():
             self.report('x', self.model.random.random())
 
     sample = ap.Sample(parameters)
-    exp = ap.Experiment(Model, sample, iterations=2, random=False)
+    exp = ap.Experiment(Model, sample, iterations=2, randomize=False)
     results = exp.run()
 
     l = list(results.reporters['x'])
