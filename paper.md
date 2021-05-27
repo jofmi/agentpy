@@ -50,7 +50,7 @@ import agentpy as ap
 We then define a new type of [`Agent`](https://agentpy.readthedocs.io/en/stable/reference_agents.html). The method [`setup`](https://agentpy.readthedocs.io/en/stable/reference_agents.html#agentpy.Agent.setup) will be called automatically at the agent's creation. Each agent starts with one unit of wealth. `wealth_transfer` will be called by the model during each time-step. When called, the agent randomly selects a trading partner and hands them one unit of their wealth, given that they have one to spare. 
 
 ```python
-class MoneyAgent(ap.Agent):
+class WealthAgent(ap.Agent):
 
     def setup(self):
         self.wealth = 1
@@ -65,10 +65,10 @@ class MoneyAgent(ap.Agent):
 Next, we define a [`Model`](https://agentpy.readthedocs.io/en/stable/reference_model.html). The method [`setup`](https://agentpy.readthedocs.io/en/stable/reference_model.html#agentpy.Model.setup) is called at the beginning the simulation, [`step`](https://agentpy.readthedocs.io/en/stable/reference_model.html#agentpy.Model.step) is called during each time-step, and [`end`](https://agentpy.readthedocs.io/en/stable/reference_model.html#agentpy.Model.end) is called after the simulation has finished. An [`AgentList`](https://agentpy.readthedocs.io/en/stable/reference_sequences.html) is used to create a set of agents that can then be accessed as a group. The attribute `p` is used to access the model's parameters. And the method [`record`](https://agentpy.readthedocs.io/en/stable/reference_agents.html#agentpy.Agent.record) is used to store data for later analysis.
 
 ```python
-class MoneyModel(ap.Model):
+class WealthModel(ap.Model):
 
     def setup(self):
-        self.agents = ap.AgentList(self, self.p.n, MoneyAgent)
+        self.agents = ap.AgentList(self, self.p.n, WealthAgent)
 
     def step(self):
         self.agents.wealth_transfer()
