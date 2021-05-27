@@ -40,20 +40,21 @@ of each framework (:doc:`Agentpy <agentpy_wealth_transfer>` &
 
 Finally, the following table provides a comparison of the main features of each framework.
 
-==========================  ===================================  ===================================
+==========================  ===================================  ======================================
 **Feature**                 **Agentpy**                          **Mesa**
-| Agent management          | Sequence classes                   | Scheduler classes for
-                            | like AgentList and AgentDList    | different activation orders
+| Containers                | Sequence classes                   | Scheduler classes for
+                            | like AgentList and AgentDList      | different activation orders
 | Topologies                | Spatial grid, continuous space,    | Spatial grid, continuous space,
                             | network                            | network
 | Data recording            | Recording methods for variables    | DataCollector class that can
                             | of agents, environments, and       | collect variables of agents
                             | model; as well as reporters        | and model
-| Parameter sampling        | Classes for sample generation      | Custom sample has to be defined
-                            | and variable parameter ranges      |
+| Parameter sampling        | Classes for sample generation
+                            | and parameter ranges
 | Multi-run experiments     | Experiment class that supports     | BatchRunner class that supports
                             | multiple iterations, parameter     | multiple iterations and parameter
-                            | samples, and parallel processing   | samples
+                            | samples, randomization,            | samples
+                            | and parallel processing
 | Output data               | DataDict class to store, save,     | Methods to generate dataframes
                             | load, and re-arrange output data   |
 | Visualization             | Plots, animations,                 | Plots and interactive visualization
@@ -61,4 +62,4 @@ Finally, the following table provides a comparison of the main features of each 
                             | within IPython/Jupyter
 | Analysis                  | Tools for data arrangement and
                             | sensitivity analysis
-==========================  ===================================  ===================================
+==========================  ===================================  ======================================

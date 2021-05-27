@@ -14,7 +14,7 @@ The most notable API changes are described below.
 Object creation
 ...............
 
-The methods :func:`add_agents`, :func:`add_env`, etc. have been depreciated.
+The methods :func:`add_agents`, :func:`add_env`, etc. have been removed.
 Instead, new objects are now created directly or through :doc:`reference_sequences`.
 This allows for more control over data structures (see next point) and attribute names.
 For example::
@@ -36,16 +36,16 @@ It also comes with a method :func:`AgentDList.buffer`
 that allows for save deletion of agents
 from the list while it is iterated over
 
-The structure of :class:`AttrList` has also been changed to an iterable over its
-source list. This improves performance and makes it possible to change
+:class:`AttrList` has been replaced by :class:`AttrIter`.
+This improves performance and makes it possible to change
 agent attributes by setting new values to items in the attribute list (see
 :class:`AgentList` for an example). In most other ways, the class still behaves like a normal list.
+There are also two new classes :class:`AgentIter` and :class:`AgentDListIter` that are returned by some of the library's methods.
 
 Environments
 ............
 
-The three environment classes have undergone a major revision,
-aiming for better consistency and higher performance.
+The three environment classes have undergone a major revision.
 The :func:`add_agents` functions have been extended with new features
 and are now more consistent between the three environment classes.
 The method :func:`move_agents` has been replaced by :func:`move_to` and :func:`move_by`.
@@ -72,8 +72,8 @@ For example, agents in an environment can be set up as follows::
 
 The agent methods `move_to`, `move_by`, and `neighbors` have also been removed.
 Instead, agents can access these methods through their environment.
-In the above example, a given agent `a` could for example access their
-neighbors through calling `a.mygrid.neighbors(a)`.
+In the above example, a given agent `a` could for example access their position
+through `a.mygrid.positions[a]` or their neighbors through calling `a.mygrid.neighbors(a)`.
 
 Parameter samples
 .................
@@ -84,7 +84,7 @@ Parameter dictionaries with these classes can be used to create samples,
 but can also be passed to a normal model, which will then use default values.
 
 The sampling methods :func:`sample`, :func:`sample_discrete`, and :func:`sample_saltelli`
-have been depreciated and integrated into the new class :class:`Sample`,
+have been removed and integrated into the new class :class:`Sample`,
 which comes with additional features to create new kinds of samples.
 
 Random number generators
@@ -107,13 +107,13 @@ Parameters are now stored in the two categories `constants` and `sample`.
 Variables are stored in separate dataframes based on the object type.
 The dataframe's index is now separated into `sample_id` and `iteration`.
 
-The function :func:`sensitivity_sobol` has been depreciated and is replaced
+The function :func:`sensitivity_sobol` has been removed and is replaced
 by the method :func:`DataDict.calc_sobol`.
 
 Interactive visualization interface
 ...................................
 
-The method :func:`Experiment.interactive` has been depreciated and is replaced
+The method :func:`Experiment.interactive` has been removed and is replaced
 by an interactive simulation interface that is being developed in the separate
 package `ipysimulare <https://github.com/JoelForamitti/ipysimulate>`_.
 This new package provides interactive javascript widgets with parameter sliders
