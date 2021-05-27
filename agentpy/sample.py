@@ -125,22 +125,29 @@ class Sample:
                 - ``calc_second_order`` (bool, optional):
                   Whether to calculate second-order indices (default True).
 
-        seed (int, optional):
-            Random seed that will be used to generate a different seed
-            for all parameter combinations in the sample (default None).
-            If used, this will overwrite the parameter 'seed'.
+        randomize (bool, optional):
+            Whether to use the constant parameter 'seed' to generate different
+            random seeds for every parameter combination (default True).
+            If False, every parameter combination will have the same seed.
+            If there is no constant parameter 'seed',
+            this option has no effect.
 
         **kwargs: Additional keyword arguments for chosen `method`.
 
     """
 
-    def __init__(self, parameters, n=None, method='linspace',
-                 seed=None, **kwargs):
+    def __init__(self, parameters, n=None,
+                 method='linspace', randomize=True, **kwargs):
 
-        self._log = {'type': method, 'seed': seed, 'n': n}
+        self._log = {'type': method, 'n': n, 'randomized': False}
         self._sample = getattr(self, f"_{method}")(parameters, n, **kwargs)
-        if seed:
-            self._assign_random_seeds(seed)
+        if 'seed' in parameters and randomize:
+            ranges = (Range, IntRange, Values)
+            if not isinstance(parameters['seed'], ranges):
+                seed = parameters['seed']
+                self._log['randomized'] = True
+                self._log['seed'] = seed
+                self._assign_random_seeds(seed)
 
     def __repr__(self):
         return f"Sample of {len(self)} parameter combinations"
