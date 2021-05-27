@@ -51,8 +51,8 @@ are equipped with the following default attributes:
 
 - :attr:`model` the model instance
 - :attr:`id` a unique identifier number for each object
-- :attr:`p` the models' parameters
-- :attr:`log` the objects' recorded variables
+- :attr:`p` the model's parameters
+- :attr:`log` the object's recorded variables
 
 Using the new agent type defined above,
 here is how a basic model could look like::
@@ -72,7 +72,7 @@ here is how a basic model could look like::
             self.agents.record('my_attribute')
 
         def end(self):
-            """ Record an evaluation measure. """
+            """ Repord an evaluation measure. """
             self.report('my_measure', 1)
 
 The simulation procedures of a model are defined by four special methods
@@ -92,8 +92,8 @@ Agent sequences
 ###############
 
 The :doc:`reference_sequences` module provides containers for groups of agents.
-The main classes are :class:`AgentList` and :class:`AgentDList`,
-which come with methods to access and manipulate the whole group of agents.
+The main classes are :class:`AgentList`, :class:`AgentDList`, and :class:`AgentSet`,
+which come with special methods to access and manipulate whole groups of agents.
 
 For example, when the model defined above calls :func:`self.agents.agent_method`,
 it will call the method :func:`MyAgentType.agent_method` for every agent in the model.
@@ -152,7 +152,7 @@ Running a simulation
 To perform a simulation, we initialize a new instance of our model type
 with a dictionary of parameters, and then use the function :func:`Model.run`.
 This will return a :class:`DataDict` with recorded data from the simulation.
-A simple run could be prepared and executed as follows::
+A simple run can be prepared and executed as follows::
 
     parameters = {
         'my_parameter':42,
@@ -186,7 +186,7 @@ Multi-run experiments
 #####################
 
 The :doc:`reference_sample` module provides tools to create a :class:`Sample`
-with multiple parameter combinations.
+with multiple parameter combinations from a dictionary of ranges.
 Here is an example using :class:`IntRange` integer ranges::
 
     parameters = {
@@ -194,7 +194,6 @@ Here is an example using :class:`IntRange` integer ranges::
         'agents': ap.IntRange(10, 20),
         'steps': ap.IntRange(10, 20)
     }
-
     sample = ap.Sample(parameters, n=5)
 
 The class :class:`Experiment` can be used to run a model multiple times
@@ -202,7 +201,6 @@ with repeated iterations, varied parameter values.
 Here is an example of an experiment with the model defined above::
 
     exp = ap.Experiment(MyModel, sample, iterations=2, record=True)
-
     results = exp.run()
 
 In this experiment, we use a sample where one parameter is kept fixed
@@ -231,6 +229,9 @@ The output from the experiment defined above looks as follows::
     'reporters': DataFrame with 1 variable and 50 rows
     }
 
+All data is given in a :class:`pandas.DataFrame` and
+formatted as `long-form data <https://seaborn.pydata.org/tutorial/data_structure.html>`_
+that can easily be used with statistical packages like `seaborn <https://seaborn.pydata.org/>`_.
 The output can contain the following categories of data:
 
 - :attr:`info` holds meta-data about the model and simulation performance.
@@ -239,22 +240,17 @@ The output can contain the following categories of data:
 - :attr:`reporters` holds evaluation measures that are documented only once per simulation.
 - :attr:`sensitivity` holds calculated sensitivity measures.
 
-The :class:`DataDict` provides various methods to handle data:
+The :class:`DataDict` provides the following methods to handle data:
 
 - :func:`DataDict.save` and :func:`DataDict.load` can be used to store results.
-- :func:`DataDict.arrange` generates a custom combined dataframes.
+- :func:`DataDict.arrange`, :func:`DataDict.arrange_reporters`, :func:`DataDict.arrange_variables` generate custom combined dataframes.
 - :func:`DataDict.calc_sobol` performs a Sobol sensitivity analysis.
-
-All data is given in a :class:`pandas.DataFrame` and
-formatted as `long-form data <https://seaborn.pydata.org/tutorial/data_structure.html>`_
-that can easily be used with statistical packages like `seaborn <https://seaborn.pydata.org/>`_.
 
 Visualization
 #############
 
 Agentpy further provides the following functions for analysis:
 
-- :func:`Experiment.interactive` generates an interactive widget for parameter variation.
 - :func:`animate` generates an animation that can display output over time.
 - :func:`gridplot` visualizes agent positions on a spatial :class:`Grid`.
 

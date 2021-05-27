@@ -7,71 +7,79 @@ Changelog
 0.1.0.dev
 ---------
 
-This update contains some major revisions of most classes and methods in the
-package, including new features, better performance, and a more coherent syntax.
-Unfortunately, this causes some API changes without backward compatibility.
-There will hopefully be less major changes from now on,
-and backward compatibility will be ensured after first major release (v1.0.0).
+This update contains major revisions of most classes and methods in the
+library, including new features, better performance, and a more coherent syntax.
+The most notable API changes are described below.
 
 Object creation
 ...............
 
 The methods :func:`add_agents`, :func:`add_env`, etc. have been depreciated.
-Instead, new objects can now be created directly or through sequences.
+Instead, new objects are now created directly or through :doc:`reference_sequences`.
+This allows for more control over data structures (see next point) and attribute names.
 For example::
 
     class Model(ap.Model):
         def setup(self):
-            self.special_agent = ap.Agent()  # Create a single agent
+            self.single_agent = ap.Agent()  # Create a single agent
             self.agents = ap.AgentList(self, 10)  # Create a sequence of 10 agents
             self.grid = ap.Grid(self, (5, 5))  # Create a grid environment
 
 Data structures
 ...............
 
-The main advantage of the new way of object creation is increased control
-over data structures in which to hold objects. Some agents can be kept in
-different sequences than others, and different kinds of sequences can be used.
-
-In addition to :class:`AgentList`, there is new sequence type
+The new way of object creation makes it possible to choose specific data structures for different groups of agents.
+In addition to :class:`AgentList`, there is a new sequence type
 :class:`AgentDList` that provides increased performance
 for the lookup and deletion of agents.
-It also comes with a method `buffer` that allows for deletion of agents
-from the group during an active iteration over the group.
+It also comes with a method :func:`AgentDList.buffer`
+that allows for save deletion of agents
+from the list while it is iterated over
 
-The structure of :class:`AttrList` has been changed to an iterable over its
+The structure of :class:`AttrList` has also been changed to an iterable over its
 source list. This improves performance and makes it possible to change
 agent attributes by setting new values to items in the attribute list (see
-:class:`AgentList` for an example). Otherwise, the class behaves as before.
+:class:`AgentList` for an example). In most other ways, the class still behaves like a normal list.
 
 Environments
 ............
 
-The agent class has been split into two types :class:`Agent` and :class:`MultiAgent`,
-and can access their environment(s) through the attributes `pos` and `env`.
-The former should be used for models with zero or one environment, while the latter
-can be part of multiple environments.
+The three environment classes have undergone a major revision,
+aiming for better consistency and higher performance.
+The :func:`add_agents` functions have been extended with new features
+and are now more consistent between the three environment classes.
+The method :func:`move_agents` has been replaced by :func:`move_to` and :func:`move_by`.
 
-All three environment types have been revised.
-:class:`Grid` is now a structured array
+:class:`Grid` is now defined as a structured numpy array
 that can hold field attributes per position in addition to agents,
-and can be customized with the arguments `torus`, `track_free`, and `check_border`.
-:class:`Network` can now hold multiple agents per node.
+and can be customized with the arguments `torus`, `track_empty`, and `check_border`.
+:func:`gridplot` has been adapted to support this new numpy structure.
+:class:`Network` now consists of :class:`AgentNode` nodes that can hold multiple agents per node, as well as node attributes.
 
-Random number generators
-........................
+Environment-agent interaction
+.............................
 
-:class:`Model` now contains two random number generators `random` and `nprandom`
-so that both standard and numpy random operations can be used.
-The parameter `seed` can be used to initialize both.
-:class:`Experiment` now also has an argument `random` to control whether
-to vary seeds over different iterations.
+The agents' `env` attribute has been removed.
+Instead, environments are manually added as agent attributes,
+giving more control over the attribute name in the case of multiple environments.
+For example, agents in an environment can be set up as follows::
+
+    class Model(ap.Model):
+        def setup(self):
+            self.agents = ap.AgentList(self, 10)
+            self.grid = self.agents.mygrid = ap.Grid(self, (10, 10))
+            self.grid.add_agents(self.agents)
+
+The agent methods `move_to`, `move_by`, and `neighbors` have also been removed.
+Instead, agents can access these methods through their environment.
+In the above example, a given agent `a` could for example access their
+neighbors through calling `a.mygrid.neighbors(a)`.
 
 Parameter samples
 .................
 
-Variable parameters can now be defined with the two new classes
-:class:`Range` (for continuous parameter ranges) and :class:`Values` (for pre-defined of discrete parameter values).
+Variable parameters can now be defined with the three new classes
+:class:`Range` (for continuous parameter ranges), :class:`IntRange` (for integer parameter ranges), and :class:`Values` (for pre-defined of discrete parameter values).
 Parameter dictionaries with these classes can be used to create samples,
 but can also be passed to a normal model, which will then use default values.
 
@@ -79,16 +87,38 @@ The sampling methods :func:`sample`, :func:`sample_discrete`, and :func:`sample_
 have been depreciated and integrated into the new class :class:`Sample`,
 which comes with additional features to create new kinds of samples.
 
+Random number generators
+........................
+
+:class:`Model` now contains two random number generators `random` and `nprandom`
+so that both standard and numpy random operations can be used.
+The parameter `seed` is used to initialize both.
+:class:`Sample` has an argument `seed` to vary seeds over parameter samples.
+And :class:`Experiment` has a new argument `random` to control whether
+to vary seeds over different iterations.
+More on this can be found in :doc:`guide_random`.
+
 Data analysis
 .............
 
-The structure of output data from experiments has been changed.
+The structure of output data in :class:`DataDict` has been changed.
 The name of `measures` has been changed to `reporters`.
 Parameters are now stored in the two categories `constants` and `sample`.
 Variables are stored in separate dataframes based on the object type.
-The dataframes' index is now separatedinto `sample_id` and `iteration`.
+The dataframe's index is now separated into `sample_id` and `iteration`.
 
-:class:`DataDict` now contains new methods.
+The function :func:`sensitivity_sobol` has been depreciated and is replaced
+by the method :func:`DataDict.calc_sobol`.
+
+Interactive visualization interface
+...................................
+
+The method :func:`Experiment.interactive` has been depreciated and is replaced
+by an interactive simulation interface that is being developed in the separate
+package `ipysimulare <https://github.com/JoelForamitti/ipysimulate>`_.
+This new package provides interactive javascript widgets with parameter sliders
+and live plots similar to the traditional NetLogo interface.
+Examples can be found in :doc:`guide_interactive`.
 
 0.0.7 (March 2021)
 ------------------
