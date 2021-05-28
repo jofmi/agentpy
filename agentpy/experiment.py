@@ -4,8 +4,6 @@ Content: Experiment class
 """
 
 import pandas as pd
-import ipywidgets
-import IPython
 import random as rd
 
 from os import sys
@@ -14,8 +12,7 @@ from .version import __version__
 from datetime import datetime, timedelta
 from .tools import make_list
 from .datadict import DataDict
-from .sample import Sample
-
+from .sample import Sample, Range, IntRange, Values
 
 class Experiment:
     """ Experiment that can run an agent-based model
@@ -36,8 +33,8 @@ class Experiment:
             If True, the parameter 'seed' will be used to initialize a random
             seed generator for every parameter combination in the sample.
             If False, the same seed will be used for every iteration.
-            If no parameter 'seed' is defined, all seeds will be random.
-            See :doc:`guide_random` for more information.
+            If no parameter 'seed' is defined, this option has no effect.
+            For more information, see :doc:`guide_random` .
         **kwargs:
             Will be forwarded to all model instances created by the experiment.
 
@@ -64,17 +61,18 @@ class Experiment:
             self._sample_log = None
 
         # Prepare runs
-        combos = len(self.sample)
+        len_sample = len(self.sample)
         iter_range = range(iterations) if iterations > 1 else [None]
-        sample_range = range(combos) if combos > 1 else [None]
+        sample_range = range(len_sample) if len_sample > 1 else [None]
         self.run_ids = [(sample_id, iteration)
                         for sample_id in sample_range
                         for iteration in iter_range]
         self.n_runs = len(self.run_ids)
 
         # Prepare seeds
-        if randomize:
-            if combos > 1:
+        if randomize and sample is not None \
+                and any(['seed' in p for p in self.sample]):
+            if len_sample > 1:
                 rngs = [rd.Random(p['seed'])
                         if 'seed' in p else rd.Random() for p in self.sample]
                 self._random = {
@@ -84,10 +82,11 @@ class Experiment:
                 }
             else:
                 p = list(self.sample)[0]
-                if p is not None and 'seed' in p:
-                    rng = rd.Random(p['seed'])
-                else:
-                    rng = rd.Random()
+                seed = p['seed']
+                ranges = (Range, IntRange, Values)
+                if isinstance(seed, ranges):
+                    seed = seed.vdef
+                rng = rd.Random(seed)
                 self._random = {
                     (None, iteration): rng.getrandbits(128)
                     for iteration in iter_range
@@ -248,6 +247,7 @@ class Experiment:
                     single_output, combined_output)
 
         self._combine_dataframes(combined_output)
+        self.end()
         self.output.info['completed'] = True
         self.output.info['run_time'] = ct = str(datetime.now() - t0)
 
@@ -256,70 +256,7 @@ class Experiment:
 
         return self.output
 
-    # TODO Depreciate
-    def interactive(self, plot, *args, **kwargs):
-        """
-        Displays interactive output for Jupyter notebooks,
-        using :mod:`IPython` and :mod:`ipywidgets`.
-        A slider will be shown for varied parameters.
-        Every time a parameter value is changed on the slider,
-        the experiment will re-run the model and pass it
-        to the 'plot' function.
-
-        Arguments:
-            plot: Function that takes a model instance as input
-                and prints or plots the desired output..
-            *args: Will be forwarded to 'plot'.
-            **kwargs: Will be forwarded to 'plot'.
-
-        Returns:
-            ipywidgets.HBox: Interactive output widget
-            
-        Examples:
-            The following example uses a custom model :class:`MyModel`
-            and creates a slider for the parameters 'x' and 'y',
-            both of which can be varied interactively over 10 different values.
-            Every time a value is changed, the experiment will simulate the
-            model with the new parameters and pass it to the plot function::
-            
-                def plot(model):
-                    # Display interactive output here
-                    print(model.output)
-                    
-                param_ranges = {'x': (0, 10), 'y': (0., 1.)}
-                sample = ap.sample(param_ranges, n=10)
-                exp = ap.Experiment(MyModel, sample)
-                exp.interactive(plot)
-        """
-
-        def var_run(**param_updates):
-            """ Display plot for updated parameters. """
-            IPython.display.clear_output()
-            parameters = dict(self.sample[0])
-            parameters.update(param_updates)
-            temp_model = self.model(parameters, **self._model_kwargs)
-            temp_model.run()
-            IPython.display.clear_output()
-            plot(temp_model, *args, **kwargs)
-
-        # Get variable parameters
-        var_pars = self.output._combine_pars(sample=True, constants=False)
-
-        # Create widget dict
-        widget_dict = {}
-        for par_key in list(var_pars):
-            par_list = list(var_pars[par_key])
-
-            widget_dict[par_key] = ipywidgets.SelectionSlider(
-                options=par_list,
-                value=par_list[0],
-                description=par_key,
-                continuous_update=False,
-                style=dict(description_width='initial'),
-                layout={'width': '300px'}
-            )
-
-        widgets_left = ipywidgets.VBox(list(widget_dict.values()))
-        output_right = ipywidgets.interactive_output(var_run, widget_dict)
-
-        return ipywidgets.HBox([widgets_left, output_right])
+    def end(self):
+        """ Defines the experiment's actions after the last simulation.
+        Can be overwritten for final calculations and reporting."""
+        pass

@@ -42,17 +42,6 @@ def test_parallel_processing():
     assert results == results2
 
 
-def test_interactive():
-    """Test only for errors."""
-    def interactive_plot(m):
-        print("x =", m.p.x)
-    param_ranges = {'steps': 1, 'x': ap.Range(0., 1.)}
-    sample = ap.Sample(param_ranges, n=10)
-    exp = ap.Experiment(ap.Model, sample)
-    exp.interactive(interactive_plot)
-    assert True
-
-
 def test_random():
     parameters = {
         'steps': 0,
@@ -73,15 +62,6 @@ def test_random():
     assert l[0:2] == l[2:4]
     assert l[0:2] != l[4:6]
 
-    parameters = {
-        'steps': 0,
-        'seed': ap.Values(1, 1, 2)
-    }
-
-    class Model(ap.Model):
-        def setup(self):
-            self.report('x', self.model.random.random())
-
     sample = ap.Sample(parameters)
     exp = ap.Experiment(Model, sample, iterations=2, randomize=False)
     results = exp.run()
@@ -91,3 +71,18 @@ def test_random():
     assert l[0] == l[1]
     assert l[0:2] == l[2:4]
     assert l[0:2] != l[4:6]
+
+    exp = ap.Experiment(Model, parameters, iterations=2)
+    results = exp.run()
+
+    l1 = list(results.reporters['x'])
+
+    assert l1 == [0.03542265363082542, 0.08363464439430013]
+
+    parameters['seed'] = 1
+    exp = ap.Experiment(Model, parameters, iterations=2)
+    results = exp.run()
+
+    l2 = list(results.reporters['x'])
+
+    assert l1 == l2

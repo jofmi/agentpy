@@ -10,17 +10,17 @@ each with their own particular focus and style
 The three main distinguishing features of agentpy are the following:
 
 - Agentpy integrates the multiple tasks of agent-based modeling
-  - model design, exploration with live visualization interfaces,
+  - model design, interactive simulations,
   numerical experiments, and data analysis - within a single environment
   and is optimized for interactive computing with IPython and Jupyter.
 - Agentpy is designed for scientific use with experiments over multiple runs.
   It provides tools for parameter sampling (similar to NetLogo's BehaviorSpace),
   Monte Carlo experiments, stochastic processes, parallel computing,
-  sensitivity analysis, and interactive visualization.
+  and sensitivity analysis.
 - Agentpy is written in Python, one of the world’s most popular
   programming languages that offers a vast number of tools and libraries for scientific use.
-  It aims to be easily compatible with established packages like
-  numpy, scipy, networkx, pandas, ema_workbench, and SALib.
+  It is further designed for compatibility with established packages like
+  numpy, scipy, networkx, pandas, ema_workbench, seaborn, and SALib.
 
 The main alternative to agentpy in Python is `Mesa <https://mesa.readthedocs.io/>`__.
 To allow for an comparison of the syntax,
@@ -38,7 +38,7 @@ of each framework (:doc:`Agentpy <agentpy_wealth_transfer>` &
 |                                            |                                              |
 +--------------------------------------------+----------------------------------------------+
 
-Finally, the following table provides a comparison of the main features of each framework.
+The following table further provides a comparison of the main features of each framework.
 
 ==========================  ===================================  ======================================
 **Feature**                 **Agentpy**                          **Mesa**
@@ -50,16 +50,17 @@ Finally, the following table provides a comparison of the main features of each 
                             | of agents, environments, and       | collect variables of agents
                             | model; as well as reporters        | and model
 | Parameter sampling        | Classes for sample generation
-                            | and parameter ranges
+                            | and different types of
+                            | parameter ranges
 | Multi-run experiments     | Experiment class that supports     | BatchRunner class that supports
                             | multiple iterations, parameter     | multiple iterations and parameter
-                            | samples, randomization,            | samples
+                            | samples, randomization,            | ranges
                             | and parallel processing
 | Output data               | DataDict class to store, save,     | Methods to generate dataframes
                             | load, and re-arrange output data   |
-| Visualization             | Plots, animations,                 | Plots and interactive visualization
+| Visualization             | Gridplots, animations,             | Plots and interactive visualization
                             | and interactive visualization      | in a separate web-server
-                            | within IPython/Jupyter
+                            | within Jupyter Notebooks
 | Analysis                  | Tools for data arrangement and
                             | sensitivity analysis
 ==========================  ===================================  ======================================

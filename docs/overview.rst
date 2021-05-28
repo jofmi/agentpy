@@ -5,17 +5,17 @@ Overview
 ========
 
 This section provides an overview over the main classes and
-functions of agentpy and how they are meant to be used.
+functions of AgentPy and how they are meant to be used.
 For a more detailed description of each element,
 please refer to the :doc:`guide` and :doc:`reference`.
-Throughout this documentation, agentpy is imported as follows::
+Throughout this documentation, AgentPy is imported as follows::
 
     import agentpy as ap
 
 Structure
 #########
 
-The basic structure of the agentpy framework has four levels:
+The basic structure of the AgentPy framework has four levels:
 
 1. The :class:`Agent` is the basic building block of a model
 2. The environment types :class:`Grid`, :class:`Space`, and :class:`Network` contain agents
@@ -42,7 +42,7 @@ A custom agent type can be defined as follows::
             pass
 
 The method :func:`Agent.setup` is meant to be overwritten
-and will be called automatically after an agents' creation.
+and will be called automatically after an agent's creation.
 All variables of an agents should be initialized within this method.
 Other methods can represent actions that the agent will be able to take during a simulation.
 
@@ -163,7 +163,7 @@ A simple run can be prepared and executed as follows::
     model = MyModel(parameters)
     results = model.run()
 
-A simulation proceeds as follows:
+A simulation proceeds as follows (see also Figure 1 below):
 
 0. The model initializes with the time-step :attr:`Model.t = 0`.
 1. :func:`Model.setup` and :func:`Model.update` are called.
@@ -172,13 +172,22 @@ A simulation proceeds as follows:
 4. Step 2 and 3 are repeated until the simulation is stopped.
 5. :func:`Model.end` is called.
 
-The simulation of a model can be stopped by one of the following three ways:
+The simulation of a model can be stopped by one of the following two ways:
 
 1. Calling the :func:`Model.stop` during the simulation.
 2. Reaching the time-limit, which be defined as follows:
 
    - Defining :attr:`steps` in the paramater dictionary.
    - Passing :attr:`steps` as an argument to :func:`Model.run`.
+
+Interactive simulations
+#######################
+
+Within a Jupyter Notebook,
+AgentPy models can be explored as an interactive simulation
+(similar to the traditional NetLogo interface)
+using `ipysimulate <https://github.com/JoelForamitti/ipysimulate>`_ and `d3.js <https://d3js.org/>`_.
+For more information on this, please refer to :doc:`guide_interactive`.
 
 .. _overview_experiments:
 
@@ -196,18 +205,43 @@ Here is an example using :class:`IntRange` integer ranges::
     }
     sample = ap.Sample(parameters, n=5)
 
-The class :class:`Experiment` can be used to run a model multiple times
-with repeated iterations, varied parameter values.
-Here is an example of an experiment with the model defined above::
+The class :class:`Experiment` can be used to run a model multiple times.
+As shown in Figure 1, it will start with the first parameter combination
+in the sample and repeat the simulation for the amount of defined iterations.
+After, that the same cycle is repeated for the next parameter combination.
+
+.. figure:: graphics/simulation_flow.png
+   :alt: Chain of events in Model and Experiment
+
+   Figure 1: Chain of events in :class:`Model` and :class:`Experiment`.
+
+Here is an example of an experiment with the model defined above.
+In this experiment, we use a sample where one parameter is kept fixed
+while the other two are varied 5 times from 10 to 20 and rounded to integer.
+Every possible combination is repeated 2 times, which results in 50 runs::
 
     exp = ap.Experiment(MyModel, sample, iterations=2, record=True)
     results = exp.run()
 
-In this experiment, we use a sample where one parameter is kept fixed
-while the other two are varied 5 times from 10 to 20 and rounded to integer.
-Every possible combination is repeated 2 times, which results in 50 runs.
 For more applied examples of experiments, check out the demonstration models
 :doc:`agentpy_virus_spread`, :doc:`agentpy_button_network`, and :doc:`agentpy_forest_fire`.
+An alternative to the built-in experiment class is to use AgentPy models with
+the EMA workbench (see :doc:`guide_ema`).
+
+Random numbers
+##############
+
+:class:`Model` contains two random number generators:
+
+- :attr:`Model.random` is an instance of :class:`random.Random`
+- :attr:`Model.nprandom` is an instance of :class:`numpy.random.Generator`
+
+The random seed for these generators can be set by defining a parameter `seed`.
+The :class:`Sample` class has an argument `randomize`
+to control whether vary seeds over different parameter combinations.
+Similarly, :class:`Experiment` also has an argument `randomize`
+to control whether to vary seeds over different iterations.
+More on this can be found in :doc:`guide_random`.
 
 .. _overview_analysis:
 
@@ -240,16 +274,17 @@ The output can contain the following categories of data:
 - :attr:`reporters` holds evaluation measures that are documented only once per simulation.
 - :attr:`sensitivity` holds calculated sensitivity measures.
 
-The :class:`DataDict` provides the following methods to handle data:
+The :class:`DataDict` provides the following main methods to handle data:
 
 - :func:`DataDict.save` and :func:`DataDict.load` can be used to store results.
-- :func:`DataDict.arrange`, :func:`DataDict.arrange_reporters`, :func:`DataDict.arrange_variables` generate custom combined dataframes.
+- :func:`DataDict.arrange` generates custom combined dataframes.
 - :func:`DataDict.calc_sobol` performs a Sobol sensitivity analysis.
 
 Visualization
 #############
 
-Agentpy further provides the following functions for analysis:
+In addition to the :doc:`guide_interactive`,
+AgentPy provides the following functions for visualization:
 
 - :func:`animate` generates an animation that can display output over time.
 - :func:`gridplot` visualizes agent positions on a spatial :class:`Grid`.

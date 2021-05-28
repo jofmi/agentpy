@@ -1,9 +1,5 @@
-# Model design
 import agentpy as ap
 import numpy as np
-
-# Visualization
-import seaborn as sns
 
 
 def gini(x):
@@ -37,16 +33,16 @@ class WealthAgent(ap.Agent):
 class WealthModel(ap.Model):
 
     """
-    A simple model of random wealth transfers.
+    Demonstration model of random wealth transfers.
 
-    Parameters:
-        agents (int): Number of agents.
+    See Also:
+        Notebook in the model library: :doc:`agentpy_wealth_transfer`
 
-    Recorded variables:
-        gini: Gini coefficient during each time-step.
+    Arguments:
+        parameters (dict):
 
-    Reporters:
-        gini: Gini coefficient at the end of the simulation.
+            - agents (int): Number of agents.
+            - steps (int, optional): Number of time-steps.
     """
 
     def setup(self):
@@ -62,3 +58,78 @@ class WealthModel(ap.Model):
     def end(self):
         self.report('gini')
 
+
+class SegregationAgent(ap.Agent):
+
+    def setup(self):
+        """ Initiate agent attributes. """
+        self.grid = self.model.grid
+        self.random = self.model.random
+        self.group = self.random.choice(range(self.p.n_groups))
+        self.share_similar = 0
+        self.happy = False
+
+    def update_happiness(self):
+        """ Be happy if rate of similar neighbors is high enough. """
+        neighbors = self.grid.neighbors(self)
+        similar = len([n for n in neighbors if n.group == self.group])
+        ln = len(neighbors)
+        self.share_similar = similar / ln if ln > 0 else 0
+        self.happy = self.share_similar >= self.p.want_similar
+
+    def find_new_home(self):
+        """ Move to random free spot and update free spots. """
+        new_spot = self.random.choice(self.model.grid.empty)
+        self.grid.move_to(self, new_spot)
+
+
+class SegregationModel(ap.Model):
+    """
+    Demonstration model of segregation dynamics.
+
+    See Also:
+        Notebook in the model library: :doc:`agentpy_segregation`
+
+    Arguments:
+        parameters (dict):
+
+            - want_similar (float):
+              Percentage of similar neighbors
+              for agents to be happy
+            - n_groups (int): Number of groups
+            - density (float): Density of population
+            - size (int): Height and length of the grid
+            - steps (int, optional): Maximum number of steps
+    """
+
+    def setup(self):
+
+        # Parameters
+        s = self.p.size
+        n = self.n = int(self.p.density * (s ** 2))
+
+        # Create grid and agents
+        self.grid = ap.Grid(self, (s, s), track_empty=True)
+        self.agents = ap.AgentList(self, n, SegregationAgent)
+        self.grid.add_agents(self.agents, random=True, empty=True)
+
+    def update(self):
+        # Update list of unhappy people
+        self.agents.update_happiness()
+        self.unhappy = self.agents.select(self.agents.happy == False)
+
+        # Stop simulation if all are happy
+        if len(self.unhappy) == 0:
+            self.stop()
+
+    def step(self):
+        # Move unhappy people to new location
+        self.unhappy.find_new_home()
+
+    def get_segregation(self):
+        # Calculate average percentage of similar neighbors
+        return round(sum(self.agents.share_similar) / self.n, 2)
+
+    def end(self):
+        # Measure segregation at the end of the simulation
+        self.report('segregation', self.get_segregation())

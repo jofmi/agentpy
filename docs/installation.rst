@@ -18,16 +18,16 @@ Dependencies
 Agentpy supports Python 3.6 and higher.
 The installation includes the following packages:
 
-- `numpy <https://numpy.org>`_ and `scipy <https://docs.scipy.org/>`_, for scientific computing tools
+- `numpy <https://numpy.org>`_ and `scipy <https://docs.scipy.org/>`_, for scientific computing
 - `matplotlib <https://matplotlib.org/>`_, for visualization
 - `pandas <https://pandas.pydata.org>`_, for data manipulation
-- `networkx <https://networkx.org/documentation/>`_, for network analysis
-- `IPython <https://ipython.org/>`_ and `ipywidgets <https://ipywidgets.readthedocs.io/>`_, for interactive computing
+- `networkx <https://networkx.org/documentation/>`_, for networks/graphs
 - `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
 
 These optional packages can further be useful in combination with agentpy:
 
 - `jupyter <https://jupyter.org/>`_, for interactive computing
+- `ipysimulate <https://ipysimulate.readthedocs.io/>`_ >= 0.2.0, for interactive simulations
 - `ema_workbench <https://emaworkbench.readthedocs.io/>`_, for exploratory modeling
 - `seaborn <https://seaborn.pydata.org/>`_, for statistical data visualization
 

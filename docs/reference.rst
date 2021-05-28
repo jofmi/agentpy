@@ -16,4 +16,5 @@ API Reference
    reference_experiment
    reference_data
    reference_visualization
+   reference_examples
    reference_other

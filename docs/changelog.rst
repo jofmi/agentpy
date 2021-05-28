@@ -4,12 +4,12 @@
 Changelog
 =========
 
-0.1.0.dev
----------
+0.1.0 (May 2021)
+----------------
 
 This update contains major revisions of most classes and methods in the
 library, including new features, better performance, and a more coherent syntax.
-The most notable API changes are described below.
+The most important API changes are described below.
 
 Object creation
 ...............
@@ -49,7 +49,6 @@ The three environment classes have undergone a major revision.
 The :func:`add_agents` functions have been extended with new features
 and are now more consistent between the three environment classes.
 The method :func:`move_agents` has been replaced by :func:`move_to` and :func:`move_by`.
-
 :class:`Grid` is now defined as a structured numpy array
 that can hold field attributes per position in addition to agents,
 and can be customized with the arguments `torus`, `track_empty`, and `check_border`.
@@ -82,7 +81,6 @@ Variable parameters can now be defined with the three new classes
 :class:`Range` (for continuous parameter ranges), :class:`IntRange` (for integer parameter ranges), and :class:`Values` (for pre-defined of discrete parameter values).
 Parameter dictionaries with these classes can be used to create samples,
 but can also be passed to a normal model, which will then use default values.
-
 The sampling methods :func:`sample`, :func:`sample_discrete`, and :func:`sample_saltelli`
 have been removed and integrated into the new class :class:`Sample`,
 which comes with additional features to create new kinds of samples.
@@ -90,11 +88,11 @@ which comes with additional features to create new kinds of samples.
 Random number generators
 ........................
 
-:class:`Model` now contains two random number generators `random` and `nprandom`
+:class:`Model` now contains two random number generators `Model.random` and `Model.nprandom`
 so that both standard and numpy random operations can be used.
-The parameter `seed` is used to initialize both.
-:class:`Sample` has an argument `seed` to vary seeds over parameter samples.
-And :class:`Experiment` has a new argument `random` to control whether
+The parameter `seed` can be used to initialize both generators.
+:class:`Sample` has an argument `randomize` to vary seeds over parameter samples.
+And :class:`Experiment` has a new argument `randomize` to control whether
 to vary seeds over different iterations.
 More on this can be found in :doc:`guide_random`.
 
@@ -106,16 +104,15 @@ The name of `measures` has been changed to `reporters`.
 Parameters are now stored in the two categories `constants` and `sample`.
 Variables are stored in separate dataframes based on the object type.
 The dataframe's index is now separated into `sample_id` and `iteration`.
-
 The function :func:`sensitivity_sobol` has been removed and is replaced
 by the method :func:`DataDict.calc_sobol`.
 
-Interactive visualization interface
-...................................
+Interactive simulations
+.......................
 
 The method :func:`Experiment.interactive` has been removed and is replaced
 by an interactive simulation interface that is being developed in the separate
-package `ipysimulare <https://github.com/JoelForamitti/ipysimulate>`_.
+package `ipysimulate <https://github.com/JoelForamitti/ipysimulate>`_.
 This new package provides interactive javascript widgets with parameter sliders
 and live plots similar to the traditional NetLogo interface.
 Examples can be found in :doc:`guide_interactive`.
@@ -132,8 +129,8 @@ There is a new demonstration model :doc:`agentpy_flocking` in the model library,
 which shows how to simulate the flocking behavior of animals
 and demonstrates the use of the continuous space environment.
 
-Random generators
-.................
+Random number generators
+........................
 
 :class:`Model` has a new property :obj:`Model.random`, which returns the
 models' random number generator of type :func:`numpy.random.Generator`.

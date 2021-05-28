@@ -25,7 +25,15 @@ class Model(Object):
     Template of an agent-based model.
 
     Arguments:
-        parameters (dict, optional): Dictionary of the model's parameters.
+        parameters (dict, optional):
+            Dictionary of the model's parameters.
+            Default values will be selected from entries of type
+            :class:`Range`, :class:`IntRange`, and :class:`Values`.
+            The following parameters will be used automatically:
+
+            - steps: Defines the maximum number of time-steps.
+            - seed: Used to initiate the model's random number generators.
+
         **kwargs: Will be forwarded to :func:`Model.setup`.
 
     Attributes:

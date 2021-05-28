@@ -14,7 +14,7 @@ To learn how agentpy compares with other frameworks, take a look at :doc:`compar
    :caption: Contents
    :maxdepth: 1
 
-   guide_random
-   guide_interactive
-   guide_ema
+    guide_interactive
+    guide_random
+    guide_ema
 

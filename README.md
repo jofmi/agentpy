@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/agentpy)](https://pypi.org/project/agentpy/)
 [![GitHub](https://img.shields.io/github/license/joelforamitti/agentpy)](https://github.com/JoelForamitti/agentpy/blob/master/LICENSE)
 [![Build Status](https://travis-ci.com/JoelForamitti/agentpy.svg?branch=master)](https://travis-ci.com/JoelForamitti/agentpy)
-[![Documentation Status](https://readthedocs.org/projects/agentpy/badge/?version=latest)](https://agentpy.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/agentpy/badge/?version=stable)](https://agentpy.readthedocs.io/en/stable/?badge=stable)
 [![codecov](https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0)](https://codecov.io/gh/JoelForamitti/agentpy)
 
 AgentPy is an open-source library for the development and analysis of agent-based models in Python. 
