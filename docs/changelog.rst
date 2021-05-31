@@ -33,7 +33,7 @@ In addition to :class:`AgentList`, there is a new sequence type
 :class:`AgentDList` that provides increased performance
 for the lookup and deletion of agents.
 It also comes with a method :func:`AgentDList.buffer`
-that allows for save deletion of agents
+that allows for safe deletion of agents
 from the list while it is iterated over
 
 :class:`AttrList` has been replaced by :class:`AttrIter`.
