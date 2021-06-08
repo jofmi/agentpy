@@ -116,6 +116,6 @@ More examples - including spatial environments, networks, stochastic processes, 
 
 # Acknowledgements
 
-This study has received funding through an ERC Advanced Grant from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement n° 741087).
+This study has received funding through an ERC Advanced Grant from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement n° 741087). I thank Jeroen C.J.M van den Berg, Ivan Savin, Martí Bosch, and James Millington for their helpful comments.
 
 # References
