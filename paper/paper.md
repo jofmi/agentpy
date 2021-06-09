@@ -27,7 +27,7 @@ AgentPy is an open-source library for the development and analysis of agent-base
 
 # Statement of Need
 
-There are numerous modeling and simulation tools for agent-based models, each with their own particular focus and style [@Abar2017]. Notable examples are [NetLogo](https://ccl.northwestern.edu/netlogo/) [@Netlogo], which is written in Scala/Java and has become the most established tool in the field; and [Mesa](https://mesa.readthedocs.io/), a more recent framework that has popularized the development of agent-based models in Python.[^2]
+There are numerous modeling and simulation tools for agent-based models, each with their own particular focus and style [@Abar2017]. Notable examples are [NetLogo](https://ccl.northwestern.edu/netlogo/) [@Netlogo], which is written in Scala/Java and has become the most established tool in the field; and [Mesa](https://mesa.readthedocs.io/) [@Mesa2015], a more recent framework that has popularized the development of agent-based models in Python.
 
 AgentPy's main distinguishing feature is that it integrates the many different tasks of agent-based modeling within a single environment for interactive computing. This includes the creation of custom agent and model types, interactive simulations (\autoref{fig:interactive}) similar to the traditional NetLogo interface, numeric experiments over multiple runs, and the subsequent data analysis of the output. All of these can be performed within a [Jupyter Notebook](https://jupyter.org/).
 
@@ -110,7 +110,6 @@ sns.histplot(data=results.variables.MoneyAgent, binwidth=1)
 More examples - including spatial environments, networks, stochastic processes, interactive simulations (see \autoref{fig:interactive}), animations, and sensitivity analysis - can be found in the [model library](https://agentpy.readthedocs.io/en/stable/model_library.html) and [user guides](https://agentpy.readthedocs.io/en/stable/guide.html) of the documentation. For questions and ideas, please visit the [discussion forum](https://github.com/JoelForamitti/agentpy/discussions).[^4]
 
 [^1]: Link to the AgentPy documentation: [https://agentpy.readthedocs.io](https://agentpy.readthedocs.io)
-[^2]: Link to the Mesa documentation: [https://mesa.readthedocs.io](https://mesa.readthedocs.io)
 [^3]: For a direct comparison, see: [https://agentpy.readthedocs.io/en/stable/comparison.html](https://agentpy.readthedocs.io/en/stable/comparison.html)
 [^4]: Link to the AgentPy dicussion forum: [https://github.com/JoelForamitti/agentpy/discussions](https://github.com/JoelForamitti/agentpy/discussions)
 
