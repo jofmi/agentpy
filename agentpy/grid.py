@@ -278,16 +278,17 @@ class Grid(Object):
         """
 
         pos_old = self.positions[agent]
+        if pos != pos_old:
 
-        # Grid options
-        if self._check_border:
-            pos = self._border_behavior(pos, self.shape, self._torus)
-        if self._track_empty:
-            self.empty.replace(pos, pos_old)
+            # Grid options
+            if self._check_border:
+                pos = self._border_behavior(pos, self.shape, self._torus)
+            if self._track_empty:
+                self.empty.replace(pos, pos_old)
 
-        self.grid.agents[pos_old].remove(agent)
-        self.grid.agents[pos].add(agent)
-        self.positions[agent] = pos  # Change position in-place
+            self.grid.agents[pos_old].remove(agent)
+            self.grid.agents[pos].add(agent)
+            self.positions[agent] = pos
 
     def move_by(self, agent, path):
         """ Moves agent to new position, relative to current position.
