@@ -134,6 +134,7 @@ def test_move():
     agent = agents[0]
     assert grid.attr_grid('id').tolist()[0] == [1., 2.]
     grid.move_to(agent, (1, 0))  # Move in absolute terms
+    grid.move_to(agent, (1, 0))  # Moving to same pos causes no error
     assert grid.attr_grid('id').tolist()[0][1] == 2.0
     assert grid.attr_grid('id').tolist()[1][0] == 1.0
     assert np.isnan(grid.attr_grid('id').tolist()[1][1])
