@@ -4,6 +4,12 @@
 Changelog
 =========
 
+0.1.1 (June 2021)
+-----------------
+
+- Marked release for the upcoming JOSS publication of AgentPy.
+- Fixed :func:`Grid.move_to`: Agents can now move to their current position.
+
 0.1.0 (May 2021)
 ----------------
 
