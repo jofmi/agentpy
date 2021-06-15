@@ -4,6 +4,22 @@
 Changelog
 =========
 
+0.1.2.dev
+---------
+
+- The property :attr:`Network.nodes` now returns an :class:`AttrIter`,
+  so that network nodes can be assigned to agents as follows::
+
+      self.nw = ap.Network(self)
+      self.agents = ap.AgentList(self, 10)
+      self.nw.add_agents(self.agents)
+      self.agents.node = self.nw.nodes
+
+- :class:`AgentIter` now requires the model to be passed upon creation
+  and has two new methods :func:`AgentIter.to_list` and
+  :func:`AgentIter.to_dlist` for conversion between sequence types.
+- Syntax highlighting in the documentation has been fixed.
+
 0.1.1 (June 2021)
 -----------------
 

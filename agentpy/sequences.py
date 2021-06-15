@@ -141,7 +141,7 @@ class AttrIter(AgentSequence, Sequence):
 
 # Object Containers --------------------------------------------------------- #
 
-def _random(gen, obj_list, n=1, replace=False):
+def _random(model, gen, obj_list, n=1, replace=False):
     """ Creates a random sample of agents.
 
     Arguments:
@@ -159,7 +159,7 @@ def _random(gen, obj_list, n=1, replace=False):
         selection = gen.sample(obj_list, k=n)
     else:
         selection = gen.choices(obj_list, k=n)
-    return AgentIter(selection)
+    return AgentIter(model, selection)
 
 
 class AgentList(AgentSequence, list):
@@ -274,7 +274,7 @@ class AgentList(AgentSequence, list):
         Returns:
             AgentIter: The selected agents.
         """
-        return _random(self.model.random, self, n, replace)
+        return _random(self.model, self.model.random, self, n, replace)
 
     def sort(self, var_key, reverse=False):
         """ Sorts the list in-place, and returns self.
@@ -363,7 +363,7 @@ class AgentDList(AgentSequence, ListDict):
         Returns:
             AgentIter: The selected agents.
         """
-        return _random(self.model.random, self.items, n, replace)
+        return _random(self.model, self.model.random, self.items, n, replace)
 
     def select(self, selection):
         """ Returns a new :class:`AgentList` based on `selection`.
@@ -422,7 +422,8 @@ class AgentSet(AgentSequence, set):
 class AgentIter(AgentSequence):
     """ Iterator over agentpy objects. """
 
-    def __init__(self, source=()):
+    def __init__(self, model, source=()):
+        object.__setattr__(self, '_model', model)
         object.__setattr__(self, '_source', source)
 
     def __getitem__(self, item):
@@ -444,6 +445,14 @@ class AgentIter(AgentSequence):
             # Apply single value to all agents
             for obj in self:
                 setattr(obj, name, value)
+
+    def to_list(self):
+        """Returns an :class:`AgentList` of the iterator. """
+        return AgentList(self._model, self)
+
+    def to_dlist(self):
+        """Returns an :class:`AgentDList` of the iterator. """
+        return AgentDList(self._model, self)
 
 
 class AgentDListIter(AgentIter):

@@ -15,7 +15,7 @@ def test_basics():
 
     agentlist = ap.AgentList(model, 2)
     AgentDList = ap.AgentDList(model, 2)
-    agentiter = ap.AgentIter(agentlist)
+    agentiter = ap.AgentIter(model, agentlist)
     AgentDListiter = ap.AgentDListIter(agentlist)
     attriter = agentiter.id
 

@@ -16,9 +16,11 @@ def test_add_agents():
     env.add_agents(agents, positions=env.nodes)
     for agent in agents:
         agent.pos = env.positions[agent]
+    agents.node = env.nodes
     env.graph.add_edge(*agents.pos)
 
     # Test structure
+    assert list(agents.pos) == list(agents.node)
     assert env.nodes == env.graph.nodes()
     assert list(env.graph.edges) == [tuple(agents.pos)]
     assert list(env.neighbors(agents[0]).id) == [3]

@@ -70,7 +70,7 @@ class Space(Object):
 
     @property
     def agents(self):
-        return AgentIter(self.positions.keys())
+        return AgentIter(self.model, self.positions.keys())
 
     @property
     def kdtree(self):
@@ -189,7 +189,7 @@ class Space(Object):
 
         agents = [self._sorted_agents[list_id] for list_id in list_ids]
         agents.remove(agent)  # Remove original agent
-        return AgentIter(agents)
+        return AgentIter(self.model, agents)
 
     def select(self, center, radius):
         """ Select agents within a given area.
@@ -204,6 +204,6 @@ class Space(Object):
         if self.kdtree:
             list_ids = self.kdtree.query_ball_point(center, radius)
             agents = [self._sorted_agents[list_id] for list_id in list_ids]
-            return AgentIter(agents)
+            return AgentIter(self.model, agents)
         else:
-            return AgentIter()
+            return AgentIter(self.model)

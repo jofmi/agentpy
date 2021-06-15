@@ -3,7 +3,7 @@
 import itertools
 import networkx as nx
 from .objects import Object
-from .sequences import AgentList, AgentIter
+from .sequences import AgentList, AgentIter, AttrIter
 from .tools import make_list
 
 
@@ -41,7 +41,9 @@ class Network(Object):
         **kwargs: Will be forwarded to :func:`Network.setup`.
 
     Attributes:
-        graph (networkx.Graph): The environments' graph.
+        graph (networkx.Graph): The network's graph instance.
+        agents (AgentIter): Iterator over the network's agents.
+        nodes (AttrIter): Iterator over the network's nodes.
     """
 
     def __init__(self, model, graph=None, **kwargs):
@@ -63,11 +65,11 @@ class Network(Object):
 
     @property
     def agents(self):
-        return AgentIter(self.positions.keys())
+        return AgentIter(self.model, self.positions.keys())
 
     @property
     def nodes(self):
-        return self.graph.nodes
+        return AttrIter(self.graph.nodes)
 
     # Add and remove nodes -------------------------------------------------- #
 
@@ -156,4 +158,4 @@ class Network(Object):
 
         # TODO Improve
         nodes = self.graph.neighbors(self.positions[agent])
-        return AgentIter(itertools.chain.from_iterable(nodes))
+        return AgentIter(self.model, itertools.chain.from_iterable(nodes))

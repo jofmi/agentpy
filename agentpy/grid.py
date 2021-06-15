@@ -79,13 +79,13 @@ class GridIter(AgentIter):
             GridIter (25 objects)
     """
 
-    def __init__(self, iter_, items):
-        super().__init__(iter_)
+    def __init__(self, model, iter_, items):
+        super().__init__(model, iter_)
         object.__setattr__(self, '_items', items)
 
     def __getitem__(self, item):
         sub_area = self._items[item]
-        return GridIter(_IterArea(sub_area), sub_area)
+        return GridIter(self._model, _IterArea(sub_area), sub_area)
 
 
 class Grid(Object):
@@ -166,7 +166,7 @@ class Grid(Object):
 
     @property
     def agents(self):
-        return GridIter(self.positions.keys(), self.grid.agents)
+        return GridIter(self.model, self.positions.keys(), self.grid.agents)
 
     # Add and remove agents ------------------------------------------------- #
 
@@ -344,7 +344,8 @@ class Grid(Object):
             # TODO Exclude in every area inefficient
             area_iters = [_IterArea(area, exclude=agent) for area in areas]
             # TODO Can only be iterated on once
-            return AgentIter(itertools.chain.from_iterable(area_iters))
+            return AgentIter(self.model,
+                             itertools.chain.from_iterable(area_iters))
 
         # Case 2: Non-toroidal
         else:
@@ -352,7 +353,7 @@ class Grid(Object):
                                   p+distance+1) for p in pos])
             area = self.grid.agents[slices]
             # Iterator over all agents in area, exclude original agent
-            return AgentIter(_IterArea(area, exclude=agent))
+            return AgentIter(self.model, _IterArea(area, exclude=agent))
 
     # Fields and attributes ------------------------------------------------- #
 
