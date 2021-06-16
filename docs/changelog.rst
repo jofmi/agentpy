@@ -4,8 +4,8 @@
 Changelog
 =========
 
-0.1.2.dev
----------
+0.1.2 (June 2021)
+-----------------
 
 - The property :attr:`Network.nodes` now returns an :class:`AttrIter`,
   so that network nodes can be assigned to agents as follows::
