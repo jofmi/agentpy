@@ -5,11 +5,17 @@
 [![Build Status](https://travis-ci.com/JoelForamitti/agentpy.svg?branch=master)](https://travis-ci.com/JoelForamitti/agentpy)
 [![Documentation Status](https://readthedocs.org/projects/agentpy/badge/?version=latest)](https://agentpy.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0)](https://codecov.io/gh/JoelForamitti/agentpy)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.03065/status.svg)](https://doi.org/10.21105/joss.03065)
 
 AgentPy is an open-source library for the development and analysis of agent-based models in Python. 
 The framework integrates the tasks of model design, interactive simulations, numerical experiments, 
 and data analysis within a single environment, and is optimized for interactive computing 
 with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). 
+
+Please cite this software as follows:
+
+> Foramitti, J., (2021). AgentPy: A package for agent-based modeling in Python. 
+> Journal of Open Source Software, 6(62), 3065, https://doi.org/10.21105/joss.03065
 
 **Installation:** `pip install agentpy`
 

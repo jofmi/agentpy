@@ -14,7 +14,8 @@ AgentPy - Agent-based modeling in Python
     :target: https://agentpy.readthedocs.io/en/latest/?badge=latest
 .. image:: https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0
     :target: https://codecov.io/gh/JoelForamitti/agentpy
-
+.. image:: https://joss.theoj.org/papers/10.21105/joss.03065/status.svg
+    :target: https://doi.org/10.21105/joss.03065
 
 .. raw:: latex
 
@@ -34,6 +35,15 @@ If you have questions or ideas for improvements, please visit the
 - For a detailled description of all classes and functions, refer to :doc:`reference`.
 - To learn how agentpy compares with other frameworks, take a look at :doc:`comparison`.
 - If you are interested to contribute to the library, see :doc:`contributing`.
+
+.. rubric:: Citation
+
+Please cite this software as follows:
+
+.. code-block:: text
+
+    Foramitti, J., (2021). AgentPy: A package for agent-based modeling in Python.
+    Journal of Open Source Software, 6(62), 3065, https://doi.org/10.21105/joss.03065
 
 .. only:: html
 
