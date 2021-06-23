@@ -14,8 +14,8 @@ with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/).
 
 Please cite this software as follows:
 
-> Foramitti, J., (2021). AgentPy: A package for agent-based modeling in Python. 
-> Journal of Open Source Software, 6(62), 3065, https://doi.org/10.21105/joss.03065
+    Foramitti, J., (2021). AgentPy: A package for agent-based modeling in Python. 
+    Journal of Open Source Software, 6(62), 3065, https://doi.org/10.21105/joss.03065
 
 **Installation:** `pip install agentpy`
 
