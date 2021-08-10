@@ -103,10 +103,10 @@ class AttrDict(dict):
 class ListDict(Sequence):
     """ List with fast deletion & lookup. """
     # H/T Amber https://stackoverflow.com/a/15993515/14396787
+
     def __init__(self, iterable):
         self.item_to_position = {}
         self.items = []
-        #self.add = self.append
         for item in iterable:
             self.append(item)
 
