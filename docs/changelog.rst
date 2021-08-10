@@ -4,6 +4,21 @@
 Changelog
 =========
 
+0.1.3 (August 2021)
+-------------------
+
+- The :class:`Grid` functionality `track_empty` has been fixed
+  to work with multiple agents per cell.
+- Getting and setting items in :class:`AttrIter` has been fixed.
+- Sequences like :class:`AgentList` and :class:`AgentDList`
+  no longer accept `args`, only `kwargs`.
+  These keyword arguments are forwarded
+  to the constructor of the new objects.
+  Keyword arguments with sequences of type :class:`AttrIter` will be
+  broadcasted, meaning that the first value will be assigned
+  to the first object, the second to the second, and so forth.
+  Otherwise, the same value will be assigned to all objects.
+
 0.1.2 (June 2021)
 -----------------
 
