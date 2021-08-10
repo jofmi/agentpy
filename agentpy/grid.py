@@ -284,7 +284,13 @@ class Grid(Object):
             if self._check_border:
                 pos = self._border_behavior(pos, self.shape, self._torus)
             if self._track_empty:
-                self.empty.replace(pos, pos_old)
+                if len(self.grid.agents[pos_old]) == 1:
+                    if pos in self.empty:
+                        self.empty.replace(pos, pos_old)
+                    else:
+                        self.empty.append(pos_old)
+                elif pos in self.empty:
+                    self.empty.remove(pos)
 
             self.grid.agents[pos_old].remove(agent)
             self.grid.agents[pos].add(agent)

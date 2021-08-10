@@ -144,6 +144,21 @@ def test_move():
     assert list(grid.empty) == [(1, 1), (1, 0)]
 
 
+def test_move_empty_multiple_agents():
+    model = ap.Model()
+    grid = ap.Grid(model, (2, 2), track_empty=True)
+    agents = ap.AgentList(model, 3)
+    agent = agents[0]
+    grid.add_agents(agents, [(0, 0), (0, 0), (0, 1)])
+    assert list(grid.empty) == [(1, 1), (1, 0)]
+    grid.move_to(agent, (1, 1))
+    assert list(grid.empty) == [(1, 0)]
+    grid.move_to(agent, (0, 0))
+    assert list(grid.empty) == [(1, 0), (1, 1)]
+    grid.move_to(agent, (0, 1))
+    assert list(grid.empty) == [(1, 0), (1, 1)]
+
+
 def test_move_torus():
     model = ap.Model()
     agents = ap.AgentList(model, 1)
