@@ -1,6 +1,6 @@
 """
 Agentpy - Agent-based modeling in Python
-Copyright (c) 2020 Joël Foramitti
+Copyright (c) 2020-2021 Joël Foramitti
 
 Documentation: https://agentpy.readthedocs.io/
 Examples: https://agentpy.readthedocs.io/en/latest/model_library.html
