@@ -7,6 +7,9 @@ import os
 
 from agentpy.tools import AgentpyError
 
+from SALib.sample import saltelli
+from SALib.analyze import sobol
+
 
 def test_combine_vars():
 
@@ -316,7 +319,10 @@ class SobolModel(ap.Model):
 
 
 def test_calc_sobol():
-    si = 1.2380952380952384
+    # Running a demo problem with salib
+    problem = {'num_vars': 1, 'names': ['x'], 'bounds': [[0, 1]]}
+    param_values = saltelli.sample(problem, 8)
+    si = sobol.analyze(problem, param_values.T[0])['S1']
 
     parameters = {'x': ap.Range(0., 1.)}
     sample = ap.Sample(parameters, n=8, method='saltelli', calc_second_order=False)
