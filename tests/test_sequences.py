@@ -37,6 +37,23 @@ def test_basics():
         assert list(agents.x) == [2, 2]
 
 
+def test_kwargs():
+    model = ap.Model()
+    attrs = [1, 2]
+    agents = ap.AgentList(model, 2, x=attrs)
+
+    assert list(agents.x) == [[1, 2], [1, 2]]
+
+    model = ap.Model()
+    attrs = ap.AttrIter([1, 2])
+    agents = ap.AgentList(model, 2, x=attrs)
+
+    assert list(agents.x) == [1, 2]
+
+    with pytest.raises(AgentpyError):
+        agents = ap.AgentList(model, 2, ap.Agent, 'arg w/o keyword')
+
+
 def test_add():
     model = ap.Model()
     agents1 = ap.AgentList(model, 2)
@@ -126,6 +143,12 @@ def test_attr_list():
     assert l3.id.__repr__() == "[1, 2]"
     assert l3.p.update({1: 1}) == [None, None]
     assert l3.p == [{1: 1}, {1: 1}]
+
+    # Attribute list with attribute key
+    # sets/gets attr like a normal list
+    al = l3.id + 1
+    al[1] = 0
+    assert al[1] == 0
 
 
 def test_select():

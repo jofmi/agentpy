@@ -31,10 +31,21 @@ class AgentSequence:
 
     @staticmethod
     def _obj_gen(model, n, cls, *args, **kwargs):
+        """ Generate objects for sequence. """
+
         if cls is None:
             cls = ap.Agent
-        for _ in range(n):
-            yield cls(model, *args, **kwargs)
+
+        if args != tuple():
+            raise AgentpyError(
+                "Sequences no longer accept extra arguments without a keyword."
+                f" Please assign a keyword to the following arguments: {args}")
+
+        for i in range(n):
+            # AttrIter values get broadcasted among agents
+            i_kwargs = {k: arg[i] if isinstance(arg, AttrIter) else arg
+                        for k, arg in kwargs.items()}
+            yield cls(model, **i_kwargs)
 
 
 # Attribute List ------------------------------------------------------------ #
@@ -75,11 +86,17 @@ class AttrIter(AgentSequence, Sequence):
 
     def __getitem__(self, key):
         """ Get item from source list. """
-        return getattr(self.source[key], self.attr)
+        if self.attr:
+            return getattr(self.source[key], self.attr)
+        else:
+            return self.source[key]
 
     def __setitem__(self, key, value):
         """ Set item to source list. """
-        setattr(self.source[key], self.attr, value)
+        if self.attr:
+            setattr(self.source[key], self.attr, value)
+        else:
+            self.source[key] = value
 
     def __call__(self, *args, **kwargs):
         return [func_obj(*args, **kwargs) for func_obj in self]
@@ -177,8 +194,13 @@ class AgentList(AgentSequence, list):
             An integer number of new objects to be created,
             or a sequence of existing objects (default empty).
         cls (type, optional): Class for the creation of new objects.
-        *args: Forwarded to the constructor of the new objects.
-        **kwargs: Forwarded to the constructor of the new objects.
+        **kwargs:
+            Keyword arguments are forwarded
+            to the constructor of the new objects.
+            Keyword arguments with sequences of type :class:`AttrIter` will be
+            broadcasted, meaning that the first value will be assigned
+            to the first object, the second to the second, and so forth.
+            Otherwise, the same value will be assigned to all objects.
 
     Examples:
 
@@ -316,8 +338,13 @@ class AgentDList(AgentSequence, ListDict):
             An integer number of new objects to be created,
             or a sequence of existing objects (default empty).
         cls (type, optional): Class for the creation of new objects.
-        *args: Forwarded to the constructor of the new objects.
-        **kwargs: Forwarded to the constructor of the new objects.
+        **kwargs:
+            Keyword arguments are forwarded
+            to the constructor of the new objects.
+            Keyword arguments with sequences of type :class:`AttrIter` will be
+            broadcasted, meaning that the first value will be assigned
+            to the first object, the second to the second, and so forth.
+            Otherwise, the same value will be assigned to all objects.
 
     """
 
@@ -407,8 +434,13 @@ class AgentSet(AgentSequence, set):
             An integer number of new objects to be created,
             or a sequence of existing objects (default empty).
         cls (type, optional): Class for the creation of new objects.
-        *args: Forwarded to the constructor of the new objects.
-        **kwargs: Forwarded to the constructor of the new objects.
+        **kwargs:
+            Keyword arguments are forwarded
+            to the constructor of the new objects.
+            Keyword arguments with sequences of type :class:`AttrIter` will be
+            broadcasted, meaning that the first value will be assigned
+            to the first object, the second to the second, and so forth.
+            Otherwise, the same value will be assigned to all objects.
     """
 
     def __init__(self, model, objs=(), cls=None, *args, **kwargs):
