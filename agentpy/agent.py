@@ -26,5 +26,4 @@ class Agent(Object):
 
     def __init__(self, model, *args, **kwargs):
         super().__init__(model)
-        # TODO add random here?
         self.setup(*args, **kwargs)
