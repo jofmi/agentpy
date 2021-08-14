@@ -9,8 +9,8 @@
 
 AgentPy is an open-source library for the development and analysis of agent-based models in Python. 
 The framework integrates the tasks of model design, interactive simulations, numerical experiments, 
-and data analysis within a single environment, and is optimized for interactive computing 
-with [IPython](http://ipython.org/) and [Jupyter](https://jupyter.org/). 
+and data analysis within a single environment. The package is optimized for interactive computing 
+with [IPython](http://ipython.org/), [IPySimulate](https://github.com/JoelForamitti/ipysimulate), and [Jupyter](https://jupyter.org/). 
 
 Please cite this software as follows:
 
@@ -20,6 +20,8 @@ Please cite this software as follows:
 **Installation:** `pip install agentpy`
 
 **Documentation:** https://agentpy.readthedocs.io
+
+**JOSS publication:** https://doi.org/10.21105/joss.03065
 
 **Discussion forum:** https://github.com/JoelForamitti/agentpy/discussions
 
