@@ -136,6 +136,7 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
     if color_dict is not None or convert:
         grid = _apply_colors(grid, color_dict, convert)
     if ax:
-        ax.imshow(grid, **kwargs)
+        im = ax.imshow(grid, **kwargs)
     else:
-        plt.imshow(grid, **kwargs)
+        im = plt.imshow(grid, **kwargs)
+    return im
