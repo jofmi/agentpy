@@ -120,7 +120,11 @@ def _apply_colors(grid, color_dict, convert):
 def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
     """ Visualizes values on a two-dimensional grid with
     :func:`matplotlib.pyplot.imshow`.
-
+    
+    Returns
+        -------
+        `~matplotlib.image.AxesImage`
+        
     Arguments:
         grid (numpy.array): Two-dimensional array with values.
             numpy.nan values will be plotted as empty patches.
