@@ -121,10 +121,6 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
     """ Visualizes values on a two-dimensional grid with
     :func:`matplotlib.pyplot.imshow`.
     
-    Returns
-        -------
-        `~matplotlib.image.AxesImage`
-        
     Arguments:
         grid (numpy.array): Two-dimensional array with values.
             numpy.nan values will be plotted as empty patches.
@@ -135,7 +131,10 @@ def gridplot(grid, color_dict=None, convert=False, ax=None, **kwargs):
              using :func:`matplotlib.colors.to_rgba` (default False).
         ax (matplotlib.pyplot.axis, optional): Axis to be used for plot.
         **kwargs: Forwarded to :func:`matplotlib.pyplot.imshow`.
-     """
+        
+    Returns:
+        :class:`matplotlib.image.AxesImage`  
+    """
     # TODO Make feature for legend
     if color_dict is not None or convert:
         grid = _apply_colors(grid, color_dict, convert)
