@@ -4,6 +4,11 @@
 Changelog
 =========
 
+0.1.4.dev
+---------
+
+- :func:`gridplot` now returns an :class:`matplotlib.image.AxesImage`
+
 0.1.3 (August 2021)
 -------------------
 
