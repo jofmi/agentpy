@@ -9,6 +9,7 @@ Changelog
 
 - :func:`gridplot` now returns an :class:`matplotlib.image.AxesImage`
 - :func:`DataDict.save` now supports values of type :class:`numpy.bool_`
+  and can re-write to existing directories.
 
 0.1.3 (August 2021)
 -------------------

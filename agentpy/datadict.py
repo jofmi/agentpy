@@ -401,39 +401,41 @@ class DataDict(AttrDict):
             exp_id = _last_exp_id(exp_name, path) + 1
 
         # Create new directory for output
-        path = f'{path}/{exp_name}_{exp_id}'
-        makedirs(path)
+        directory = f'{exp_name}_{exp_id}'
+        path_dir = f'{path}/{directory}'
+        if directory not in listdir(path):
+            makedirs(path_dir)
 
         # Save experiment data
         for key, output in self.items():
 
             if isinstance(output, pd.DataFrame):
-                output.to_csv(f'{path}/{key}.csv')
+                output.to_csv(f'{path_dir}/{key}.csv')
 
             elif isinstance(output, DataDict):
                 for k, o in output.items():
 
                     if isinstance(o, pd.DataFrame):
-                        o.to_csv(f'{path}/{key}_{k}.csv')
+                        o.to_csv(f'{path_dir}/{key}_{k}.csv')
                     elif isinstance(o, dict):
-                        with open(f'{path}/{key}_{k}.json', 'w') as fp:
+                        with open(f'{path_dir}/{key}_{k}.json', 'w') as fp:
                             json.dump(o, fp, cls=NpEncoder)
 
             else:  # Use JSON for other object types
                 try:
-                    with open(f'{path}/{key}.json', 'w') as fp:
+                    with open(f'{path_dir}/{key}.json', 'w') as fp:
                         json.dump(output, fp, cls=NpEncoder)
                 except TypeError as e:
                     print(f"Warning: Object '{key}' could not be saved. "
                           f"(Reason: {e})")
-                    os.remove(f'{path}/{key}.json')
+                    os.remove(f'{path_dir}/{key}.json')
 
             # TODO Support grids & graphs
             # elif t == nx.Graph:
             #    nx.write_graphml(output, f'{path}/{key}.graphml')
 
         if display:
-            print(f"Data saved to {path}")
+            print(f"Data saved to {path_dir}")
 
     def _load(self, exp_name=None, exp_id=None,
               path='ap_output', display=True):
