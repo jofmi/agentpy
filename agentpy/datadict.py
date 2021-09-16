@@ -153,7 +153,9 @@ class DataDict(AttrDict):
         # STEP 2 - Calculate Sobol Sensitivity Indices
         if reporters is None:
             reporters = reporters_df.columns
-        if isinstance(reporters, str):
+            if 'seed' in reporters:
+                reporters = reporters.drop('seed')
+        elif isinstance(reporters, str):
             reporters = [reporters]
         p_keys = self._combine_pars(sample=True, constants=False).keys()
         dfs_list = [[] for _ in range(4 if calc_second_order else 2)]
