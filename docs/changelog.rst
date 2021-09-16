@@ -7,9 +7,16 @@ Changelog
 0.1.4.dev
 ---------
 
+- :class:`AttrIter` now returns a new :class:`AttrIter` when called as a function.
 - :func:`gridplot` now returns an :class:`matplotlib.image.AxesImage`
-- :func:`DataDict.save` now supports values of type :class:`numpy.bool_`
-  and can re-write to existing directories.
+- :func:`DataDict.save` now
+  supports values of type :class:`numpy.bool_`
+  and can re-write to existing directories if an existing `exp_id` is passed.
+- :func:`DataDict.load` now supports the argument `exp_id = 0`.
+- :func:`animate` now supports more than 100 steps.
+- :class:`AttrIter` now returns a new :class:`AttrIter` when called as a function.
+- :class:`Model` can take a new parameter `report_seed` (default True) that
+  indicates whether the seed of the current run should be reported.
 
 0.1.3 (August 2021)
 -------------------
