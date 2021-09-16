@@ -27,7 +27,7 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
         steps(int, optional):
             Maximum number of steps for the simulation to run.
             If none is given, the parameter 'Model.p.steps' will be used.
-            If there is no such parameter, 'steps' will be infinite.
+            If there is no such parameter, 'steps' will be set to 10000.
         seed (int, optional):
             Seed for the models random number generators.
             If none is given, the parameter 'Model.p.seed' will be used.
@@ -80,11 +80,13 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
             ax.clear()
         plot(m, axs, *fargs)  # Perform plot
 
-    #  TODO save_count=model._steps necessary? Breaks if no steps are defined
+    save_count = 10000 if model._steps is np.nan else model._steps
+
     ani = matplotlib.animation.FuncAnimation(
         fig, update,
         frames=frames,
         fargs=(model, axs, *fargs),
+        save_count=save_count,  # Limits animation to 100 steps otherwise
         **kwargs)  # noqa
 
     plt.close()  # Don't display static plot
