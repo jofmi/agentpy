@@ -54,18 +54,11 @@ def test_combine_vars():
     results = model.run(1, display=False)
     assert results._combine_pars(constants=False) is None
 
-    #results.variables = 1
-    #with pytest.raises(TypeError):
-    #    assert results._combine_vars()
-    #results.parameters = 1
-    #with pytest.raises(TypeError):
-    #    assert results._combine_pars()
-
 
 repr = """DataDict {
 'info': Dictionary with 12 keys
 'parameters': 
-    'constants': Dictionary with 1 key
+    'constants': Dictionary with 2 keys
     'sample': DataFrame with 1 variable and 10 rows
     'log': Dictionary with 3 keys
 'variables': 
@@ -85,7 +78,7 @@ class MyModel(ap.Model):
 
 
 def test_repr():
-    param_ranges = {'x': ap.Range(0., 1.), 'y': 1}
+    param_ranges = {'x': ap.Range(0., 1.), 'y': 1, 'report_seed': False}
     sample = ap.Sample(param_ranges, n=10)
     results = ap.Experiment(MyModel, sample, record=True).run()
     assert results.__repr__() == repr
@@ -146,7 +139,7 @@ class ModelType0(ap.Model):
 
 def test_testing_model():
 
-    parameters = {'steps': 2, 'px': ap.Values(1, 2)}
+    parameters = {'steps': 2, 'px': ap.Values(1, 2), 'report_seed': False}
     sample = ap.Sample(parameters)
     settings = {'iterations': 2,
                 'record': True}

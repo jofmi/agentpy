@@ -34,12 +34,12 @@ def test_report_and_as_function():
             self.report('y', y)
             self.stop()
 
-    parameters = {'x': 1}
+    parameters = {'x': 1, 'report_seed': False}
     model = MyModel(parameters, y=2)
     model.run(display=False)
     assert model.reporters == {'x': 1, 'y': 2}
     model_func = MyModel.as_function(y=2)
-    assert model_func(x=1) == {'x': 1, 'y': 2}
+    assert model_func(x=1, report_seed=False) == {'x': 1, 'y': 2}
 
 
 def test_update_parameters():

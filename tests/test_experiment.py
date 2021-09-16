@@ -29,11 +29,11 @@ def test_basics():
 
 def test_parallel_processing():
 
-    exp = ap.Experiment(MyModel, [{'steps': 1}] * 3)
+    exp = ap.Experiment(MyModel, [{'steps': 1, 'report_seed': False}] * 3)
     pool = mp.Pool(mp.cpu_count())
     results = exp.run(pool)
 
-    exp2 = ap.Experiment(MyModel, [{'steps': 1}] * 3)
+    exp2 = ap.Experiment(MyModel, [{'steps': 1, 'report_seed': False}] * 3)
     results2 = exp2.run()
 
     del results.info
