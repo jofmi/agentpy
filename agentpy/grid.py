@@ -59,8 +59,8 @@ class GridIter(AgentIter):
 
     Examples:
 
-         Create a model with a 10 by 10 grid
-         with one agent in each position::
+        Create a model with a 10 by 10 grid
+        with one agent in each position::
 
             model = ap.Model()
             agents = ap.AgentList(model, 100)
