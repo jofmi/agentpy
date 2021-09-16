@@ -99,7 +99,7 @@ class AttrIter(AgentSequence, Sequence):
             self.source[key] = value
 
     def __call__(self, *args, **kwargs):
-        return [func_obj(*args, **kwargs) for func_obj in self]
+        return AttrIter([func_obj(*args, **kwargs) for func_obj in self])
 
     def __eq__(self, other):
         return [obj == other for obj in self]
