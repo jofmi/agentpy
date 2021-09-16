@@ -132,7 +132,8 @@ class DataDict(AttrDict):
 
         Arguments:
             reporters (str or list of str, optional): The reporters that should
-                be used for the analysis. If none are passed, all are used.
+                be used for the analysis. If none are passed,
+                all existing reporters except 'seed' are used.
             **kwargs: Will be forwarded to :func:`SALib.analyze.sobol.analyze`.
 
         Returns:
