@@ -32,13 +32,13 @@ class NpEncoder(json.JSONEncoder):
 def _last_exp_id(name, path):
     """ Identifies existing experiment data and return highest id. """
 
-    exp_id = 0
     output_dirs = listdir(path)
     exp_dirs = [s for s in output_dirs if name in s]
     if exp_dirs:
         ids = [int(s.split('_')[-1]) for s in exp_dirs]
-        exp_id = max(ids)
-    return exp_id
+        return max(ids)
+    else:
+        return None
 
 
 # TODO Create DataSubDict without methods
@@ -398,7 +398,11 @@ class DataDict(AttrDict):
 
         # Set exp_id
         if exp_id is None:
-            exp_id = _last_exp_id(exp_name, path) + 1
+            exp_id = _last_exp_id(exp_name, path)
+            if exp_id is None:
+                exp_id = 1
+            else:
+                exp_id += 1
 
         # Create new directory for output
         directory = f'{exp_name}_{exp_id}'
@@ -479,9 +483,9 @@ class DataDict(AttrDict):
             exp_name = latest_exp.rsplit('_', 1)[0]
 
         exp_name = exp_name.replace(" ", "_")
-        if not exp_id:
+        if exp_id is None:
             exp_id = _last_exp_id(exp_name, path)
-            if exp_id == 0:
+            if exp_id is None:
                 raise FileNotFoundError(f"No experiment found with "
                                         f"name '{exp_name}' in path '{path}'")
         path = f'{path}/{exp_name}_{exp_id}/'
