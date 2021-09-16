@@ -272,6 +272,9 @@ class DataDict(AttrDict):
         # Cancel if no parameters have been selected
         if dfp is None or dfp.empty is True:
             return None
+        # Remove seed parameter as the actually used seed is reported per run
+        if 'seed' in dfp:
+            del dfp['seed']
         return dfp
 
     def arrange(self, variables=False, reporters=False, parameters=False,

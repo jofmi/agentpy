@@ -163,3 +163,25 @@ def test_create_output():
     # Run id and scenario should be added to output
     assert model.output.variables.Model.reset_index()['sample_id'][0] == 1
     assert model.output.variables.Model.reset_index()['iteration'][0] == 2
+
+
+def test_report_seed():
+    model = ap.Model()
+    results = model.run(steps=0, display=False)
+    assert 'reporters' in results and 'seed' in results.reporters
+
+    model = ap.Model({'report_seed': True})
+    results = model.run(steps=0, display=False)
+    assert 'reporters' in results and 'seed' in results.reporters
+
+    model = ap.Model({'report_seed': 1})
+    results = model.run(steps=0, display=False)
+    assert 'reporters' in results and 'seed' in results.reporters
+
+    model = ap.Model({'report_seed': False})
+    results = model.run(steps=0, display=False)
+    assert not ('reporters' in results and 'seed' in results.reporters)
+
+    model = ap.Model({'report_seed': 0})
+    results = model.run(steps=0, display=False)
+    assert not ('reporters' in results and 'seed' in results.reporters)

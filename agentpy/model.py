@@ -31,8 +31,14 @@ class Model(Object):
             :class:`Range`, :class:`IntRange`, and :class:`Values`.
             The following parameters will be used automatically:
 
-            - steps: Defines the maximum number of time-steps.
-            - seed: Used to initiate the model's random number generators.
+            - steps (int, optional):
+              Defines the maximum number of time-steps.
+              If none is passed, there will be no step limit.
+            - seed (int, optional):
+              Used to initiate the model's random number generators.
+              If none is passed, a random seed will be generated.
+            - report_seed (bool, optional):
+              Whether to document the random seed used (default True).
 
         **kwargs: Will be forwarded to :func:`Model.setup`.
 
@@ -290,6 +296,8 @@ class Model(Object):
                 seed = random.getrandbits(128)
 
         # Prepare random number generators
+        if not ('report_seed' in self.p and not self.p['report_seed']):
+            self.report('seed', seed)
         self.random = random.Random(seed)
         npseed = self.random.getrandbits(128)
         self.nprandom = np.random.default_rng(seed=npseed)
