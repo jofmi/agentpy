@@ -31,14 +31,8 @@ class Model(Object):
             :class:`Range`, :class:`IntRange`, and :class:`Values`.
             The following parameters will be used automatically:
 
-            - steps (int, optional):
-              Defines the maximum number of time-steps.
-              If none is passed, there will be no step limit.
-            - seed (int, optional):
-              Used to initiate the model's random number generators.
-              If none is passed, a random seed will be generated.
-            - report_seed (bool, optional):
-              Whether to document the random seed used (default True).
+            - steps: Defines the maximum number of time-steps.
+            - seed: Used to initiate the model's random number generators.
 
         **kwargs: Will be forwarded to :func:`Model.setup`.
 
@@ -118,6 +112,8 @@ class Model(Object):
         self.t = 0
         self.running = False
         self._run_id = _run_id
+        self._total_simulation_run_time_ = 0
+        self._sim_setup_ = False
 
         # Random number generators
         # Can be re-initiated with seed by Model.run()
@@ -296,8 +292,6 @@ class Model(Object):
                 seed = random.getrandbits(128)
 
         # Prepare random number generators
-        if not ('report_seed' in self.p and not self.p['report_seed']):
-            self.report('seed', seed)
         self.random = random.Random(seed)
         npseed = self.random.getrandbits(128)
         self.nprandom = np.random.default_rng(seed=npseed)
@@ -318,6 +312,7 @@ class Model(Object):
         # Stop simulation if t too high
         if self.t >= self._steps:
             self.running = False
+        self._sim_setup_ = True
 
     def sim_step(self):
         """ Proceeds the simulation by one step, incrementing `Model.t` by 1
@@ -369,7 +364,8 @@ class Model(Object):
         """
 
         dt0 = datetime.now()
-        self.sim_setup(steps, seed)
+        if not self._sim_setup_:
+            self.sim_setup(steps, seed)
         while self.running:
             self.sim_step()
             if display:
@@ -380,12 +376,27 @@ class Model(Object):
         self.output.info['completed'] = True
         self.output.info['created_objects'] = self._id_counter
         self.output.info['completed_steps'] = self.t
-        self.output.info['run_time'] = ct = str(datetime.now() - dt0)
+        simulation_run_time = datetime.now() - dt0
+        self._total_simulation_run_time_ += simulation_run_time
+        self.output.info['run_time'] = ct = str(self._total_simulation_run_time_)
 
         if display:
-            print(f"\nRun time: {ct}\nSimulation finished")
+            print(f"\nRun time: {simulation_run_time}\nSimulation finished")
 
         return self.output
+
+    def add_simulation_steps(self, extra_steps: int):
+        """
+        To be used after a simulation has already been completely run.
+        If you desire to run the simulation further, you can add extra_steps steps, and call run again to continue
+        the simulation as if you had called (steps+extra_steps) steps to start with without losing the already
+        simulated steps.
+        :param extra_steps: Number of simulation steps to add
+        :return: total number of simulation steps
+        """
+        assert extra_steps > 0, "Extra steps need to be a strictly positive number."
+        self._steps += extra_steps
+        self.running = True
 
     # Data management ------------------------------------------------------- #
 
@@ -454,5 +465,3 @@ class Model(Object):
             if columns:
                 df = df.set_index(list(columns.keys()))
             self.output['reporters'] = df
-
-
