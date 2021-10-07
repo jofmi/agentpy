@@ -139,6 +139,7 @@ class Model(Object):
 
         # Private variables
         self._steps = None
+        self._partly_run = False
         self._setup_kwargs = kwargs
         self._set_var_ignore()
 
@@ -285,31 +286,31 @@ class Model(Object):
 
     def sim_setup(self, steps=None, seed=None):
         """ Prepares time-step 0 of the simulation.
-        Initiates steps and the two random number generators,
+        Initiates (additional) steps and the two random number generators,
         and then calls :func:`Model.setup` and :func:`Model.update`. """
 
-        # Get seed
-        if not seed:
-            if 'seed' in self.p:
-                seed = self.p['seed']  # Take seed from parameters
-            else:
-                seed = random.getrandbits(128)
-
-        # Prepare random number generators
-        if not ('report_seed' in self.p and not self.p['report_seed']):
-            self.report('seed', seed)
-        self.random = random.Random(seed)
-        npseed = self.random.getrandbits(128)
-        self.nprandom = np.random.default_rng(seed=npseed)
+        # Prepare random number generators if initial run
+        if self._partly_run is False:
+            if seed is None:
+                if 'seed' in self.p:
+                    seed = self.p['seed']  # Take seed from parameters
+                else:
+                    seed = random.getrandbits(128)
+            if not ('report_seed' in self.p and not self.p['report_seed']):
+                self.report('seed', seed)
+            self.random = random.Random(seed)
+            npseed = self.random.getrandbits(128)
+            self.nprandom = np.random.default_rng(seed=npseed)
 
         # Prepare simulation steps
         if steps is None:
             self._steps = self.p['steps'] if 'steps' in self.p else np.nan
         else:
-            self._steps = steps
+            self._steps = self.t + steps
 
         # Initiate simulation
         self.running = True
+        self._partly_run = True
 
         # Execute setup and first update
         self.setup(**self._setup_kwargs)
@@ -344,6 +345,8 @@ class Model(Object):
 
     def run(self, steps=None, seed=None, display=True):
         """ Executes the simulation of the model.
+        Can also be used to continue a partly-run simulation
+        for a given number of additional steps.
 
         It starts by calling :func:`Model.run_setup` and then calls
         :func:`Model.run_step` until the method :func:`Model.stop` is called
@@ -353,13 +356,14 @@ class Model(Object):
 
         Arguments:
             steps (int, optional):
-                Maximum number of steps for the simulation to run.
-                If none is given, the parameter 'Model.p.steps' will be used.
-                If there is no such parameter, 'steps' will be infinite.
+                Number of (additional) steps for the simulation to run.
+                If passed, the parameter 'Model.p.steps' will be ignored.
+                The simulation can still be stopped with :func:'Model.stop'.
             seed (int, optional):
-                Seed for the models random number generators.
-                If none is given, the parameter 'Model.p.seed' will be used.
+                Seed to initialize the model's random number generators.
+                If none is given, the parameter 'Model.p.seed' is used.
                 If there is no such parameter, a random seed will be used.
+                For a partly-run simulation, this argument will be ignored.
             display (bool, optional):
                 Whether to display simulation progress (default True).
 

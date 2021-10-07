@@ -51,4 +51,11 @@ def test_animation():
     animation = ap.animate(my_model, fig, ax, my_plot, skip=1)
     animation.to_jshtml()
 
-    assert True
+    # Try additional steps
+    model = ap.Model({'steps': 1})
+    animation = ap.animate(model, fig, ax, my_plot)
+    animation.to_jshtml()
+    assert model.t == 1
+    animation = ap.animate(model, fig, ax, my_plot, steps=2)
+    animation.to_jshtml()
+    assert model.t == 3

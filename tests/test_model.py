@@ -19,6 +19,13 @@ def test_run():
     model.run()
     assert model.t == 1
 
+    # Passed (additional) steps
+    model = ap.Model({'steps': 1})
+    model.run()
+    assert model.t == 1
+    model.run(steps=2)
+    assert model.t == 3
+
 
 def test_default_parameter_choice():
     parameters = {'x': ap.Range(1, 2), 'y': ap.Values(1, 2)}

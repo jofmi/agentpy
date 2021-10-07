@@ -25,9 +25,11 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
         plot (function): Function that takes the arguments `model, axs, *fargs`
             and creates the desired plots on each axis at each time-step.
         steps(int, optional):
-            Maximum number of steps for the simulation to run.
-            If none is given, the parameter 'Model.p.steps' will be used.
-            If there is no such parameter, 'steps' will be set to 10000.
+            Number of (additional) steps for the simulation to run.
+            If passed, the parameter 'Model.p.steps' will be ignored.
+            The simulation can still be stopped with :func:'Model.stop'.
+            If there is no step-limit through either this argument or
+            the parameter 'Model.p.steps', the animation will stop at t=10000.
         seed (int, optional):
             Seed for the models random number generators.
             If none is given, the parameter 'Model.p.seed' will be used.
@@ -80,7 +82,7 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
             ax.clear()
         plot(m, axs, *fargs)  # Perform plot
 
-    save_count = 10000 if model._steps is np.nan else model._steps
+    save_count = 10000 if model._steps is np.nan else model._steps + 1
 
     ani = matplotlib.animation.FuncAnimation(
         fig, update,

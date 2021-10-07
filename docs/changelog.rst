@@ -4,8 +4,18 @@
 Changelog
 =========
 
-0.1.4.dev
+0.1.5.dev
 ---------
+
+- :func:`Model.run` can now continue simulations that have already been run.
+  The steps defined in the argument 'steps' now reflect additional steps,
+  which will be added to the models current time-step.
+  Random number generators will not be re-initialized in this case.
+- :func:`animate` used to stop one step too early, which has been fixed.
+  As above, the argument 'steps' now also reflects additional steps.
+
+0.1.4 (September 2021)
+----------------------
 
 - :class:`AttrIter` now returns a new :class:`AttrIter` when called as a function.
 - :func:`gridplot` now returns an :class:`matplotlib.image.AxesImage`
