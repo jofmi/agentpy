@@ -3,11 +3,12 @@ Agentpy Visualization Module
 Content: Animations and Gridplot
 """
 
-import matplotlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from matplotlib.colors import to_rgba
+from matplotlib.animation import FuncAnimation
 from SALib.analyze import sobol
 
 from .tools import make_list, param_tuples_to_salib
@@ -84,7 +85,7 @@ def animate(model, fig, axs, plot, steps=None, seed=None,
 
     save_count = 10000 if model._steps is np.nan else model._steps + 1
 
-    ani = matplotlib.animation.FuncAnimation(
+    ani = FuncAnimation(
         fig, update,
         frames=frames,
         fargs=(model, axs, *fargs),
@@ -111,11 +112,11 @@ def _apply_colors(grid, color_dict, convert):
                 if v == 'nan':
                     return 0., 0., 0., 0.
                 else:
-                    return matplotlib.colors.to_rgba(v)
+                    return to_rgba(v)
             elif np.isnan(v):
                 return 0., 0., 0., 0.
             else:
-                return matplotlib.colors.to_rgba(v)
+                return to_rgba(v)
         grid = np.vectorize(func)(grid)
         grid = np.moveaxis(grid, 0, 2)
     return grid

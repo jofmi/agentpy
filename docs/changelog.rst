@@ -11,8 +11,10 @@ Changelog
   The steps defined in the argument 'steps' now reflect additional steps,
   which will be added to the models current time-step.
   Random number generators will not be re-initialized in this case.
-- :func:`animate` used to stop one step too early, which has been fixed.
-  As above, the argument 'steps' now also reflects additional steps.
+- :func:`animate` has been improved.
+  It used to stop the animation one step too early, which has been fixed.
+  Two faulty import statements have been corrected.
+  And, as above, the argument 'steps' now also reflects additional steps.
 
 0.1.4 (September 2021)
 ----------------------
