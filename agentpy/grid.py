@@ -8,7 +8,7 @@ import numpy as np
 import random as rd
 import collections.abc as abc
 import numpy.lib.recfunctions as rfs
-from .objects import Object
+from .objects import SpatialEnvironment
 from .tools import make_list, make_matrix, AgentpyError, ListDict
 from .sequences import AgentSet, AgentIter, AgentList
 
@@ -88,7 +88,7 @@ class GridIter(AgentIter):
         return GridIter(self._model, _IterArea(sub_area), sub_area)
 
 
-class Grid(Object):
+class Grid(SpatialEnvironment):
     """ Environment that contains agents with a discrete spatial topology,
     supporting multiple agents and attribute fields per cell.
     For a continuous spatial topology, see :class:`Space`.

@@ -252,3 +252,14 @@ def test_field():
 
     with pytest.raises(AttributeError):
         grid.grid.f2
+
+
+def test_record_positions():
+    model = ap.Model()
+    grid = ap.Grid(model, (2, 2))
+    agents = ap.AgentList(model, 3)
+    grid.add_agents(agents)
+    grid.record_positions()
+    results = model.run(0, display=False)
+
+    assert np.all(results.variables.Agent.values == [[0, 0], [0, 1], [1, 0]])

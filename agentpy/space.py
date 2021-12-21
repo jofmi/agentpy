@@ -11,12 +11,12 @@ import numpy as np
 import random as rd
 import collections.abc as abc
 from scipy import spatial
-from .objects import Object
+from .objects import SpatialEnvironment
 from .tools import make_list, make_matrix
 from .sequences import AgentList, AgentIter
 
 
-class Space(Object):
+class Space(SpatialEnvironment):
     """ Environment that contains agents with a continuous spatial topology.
     To add new space environments to a model, use :func:`Model.add_space`.
     For a discrete spatial topology, see :class:`Grid`.
