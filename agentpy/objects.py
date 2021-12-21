@@ -55,6 +55,11 @@ class Object:
                 If none is given, the values of object attributes
                 with the same name as each var_key will be used.
 
+        Notes:
+            Recording mutable objects like lists can lead to wrong results
+            if the object's content will be changed during the simulation.
+            Make a copy of the list or record each list entry seperately.
+
         Examples:
 
             Record the existing attributes `x` and `y` of an object `a`::
