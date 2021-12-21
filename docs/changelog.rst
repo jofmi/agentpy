@@ -4,8 +4,8 @@
 Changelog
 =========
 
-0.1.5.dev
----------
+0.1.5 (December 2021)
+---------------------
 
 - :func:`Experiment.run` has a new argument 'n_jobs' that allows for
   parallel processing with :func:`joblib.Parallel`.
