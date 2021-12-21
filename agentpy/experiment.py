@@ -200,7 +200,7 @@ class Experiment:
                 Will be forwarded to `joblib.Parallel`.
             pool (multiprocessing.Pool, optional):
                 [This argument is depreciated.
-                 Please use 'n_jobs' instead.]
+                Please use 'n_jobs' instead.]
                 Pool of active processes for parallel processing.
                 If none is passed, normal processing is used.
             display (bool, optional):
