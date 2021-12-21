@@ -7,8 +7,10 @@ Changelog
 0.1.5.dev
 ---------
 
-- New convenience methods :func:`Grid.record_positions`
-  and :func:`Space.record_positions` have been added to record
+- :func:`Experiment.run` has a new argument 'n_jobs' that allows for
+  parallel processing with :func:`joblib.Parallel`.
+- Two new methods - :func:`Grid.record_positions`
+  and :func:`Space.record_positions` - can be used to record
   agent positions.
 - :func:`Model.run` can now continue simulations that have already been run.
   The steps defined in the argument 'steps' now reflect additional steps,

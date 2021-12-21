@@ -218,10 +218,10 @@ class Experiment:
                 exp = ap.Experiment(MyModel, parameters)
                 results = exp.run()
 
-            To use parallel processing with all CPUs::
+            To use parallel processing on all CPUs with status updates::
 
                 exp = ap.Experiment(MyModel, parameters)
-                results = exp.run(n_jobs=-1)
+                results = exp.run(n_jobs=-1, verbose=10)
         """
 
         if display:
