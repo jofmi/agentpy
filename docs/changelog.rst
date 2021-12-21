@@ -15,6 +15,7 @@ Changelog
   It used to stop the animation one step too early, which has been fixed.
   Two faulty import statements have been corrected.
   And, as above, the argument 'steps' now also reflects additional steps.
+- :func:`Grid.add_field` has been fixed. Single values can now be passed.
 
 0.1.4 (September 2021)
 ----------------------

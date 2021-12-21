@@ -406,7 +406,7 @@ class Grid(Object):
         """
 
         if not isinstance(values, (np.ndarray, list)):
-            values = np.full(sum(self.shape), fill_value=values)
+            values = np.full(np.product(self.shape), fill_value=values)
         if len(values.shape) > 1:
             values = values.reshape(-1)
 
