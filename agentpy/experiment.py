@@ -191,13 +191,13 @@ class Experiment:
         The simulation will run the model once for each set of parameters
         and will repeat this process for the set number of iterations.
         Simulation results will be stored in `Experiment.output`.
-        Parallel processing is supported based on `joblib.Parallel`.
+        Parallel processing is supported based on :func:`joblib.Parallel`.
 
         Arguments:
             n_jobs (int, optional):
                 Number of processes to run in parallel (default 1).
                 If 1, no parallel processing is used. If -1, all CPUs are used.
-                Will be forwarded to `joblib.Parallel`.
+                Will be forwarded to :func:`joblib.Parallel`.
             pool (multiprocessing.Pool, optional):
                 [This argument is depreciated.
                 Please use 'n_jobs' instead.]
@@ -206,7 +206,7 @@ class Experiment:
             display (bool, optional):
                 Display simulation progress (default True).
             **kwargs:
-                Additional keyword arguments for `joblib.Parallel`.
+                Additional keyword arguments for :func:`joblib.Parallel`.
 
         Returns:
             DataDict: Recorded experiment data.
@@ -259,7 +259,7 @@ class Experiment:
         else:
             warnings.warn(
                 "The argument 'pool' in Experiment.run() is depreciated. "
-                "Please use 'n_runs' instead.")
+                "Please use 'n_jobs' instead.")
             if display:
                 print(f"Using parallel processing.")
                 print(f"Active processes: {pool._processes}")
