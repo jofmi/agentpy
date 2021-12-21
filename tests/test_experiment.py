@@ -36,10 +36,15 @@ def test_parallel_processing():
     exp2 = ap.Experiment(MyModel, [{'steps': 1, 'report_seed': False}] * 3)
     results2 = exp2.run()
 
+    exp3 = ap.Experiment(MyModel, [{'steps': 1, 'report_seed': False}] * 3)
+    results3 = exp3.run(n_jobs=-1)
+
     del results.info
     del results2.info
+    del results3.info
 
     assert results == results2
+    assert results2 == results3
 
 
 def test_random():

@@ -23,6 +23,7 @@ The installation includes the following packages:
 - `pandas <https://pandas.pydata.org>`_, for data manipulation
 - `networkx <https://networkx.org/documentation/>`_, for networks/graphs
 - `SALib <https://salib.readthedocs.io/>`_, for sensitivity analysis
+- `joblib <https://joblib.readthedocs.io/>`_, for parallel processing
 
 These optional packages can further be useful in combination with agentpy:
 

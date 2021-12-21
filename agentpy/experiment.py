@@ -3,6 +3,7 @@ Agentpy Experiment Module
 Content: Experiment class
 """
 
+import warnings
 import pandas as pd
 import random as rd
 
@@ -13,6 +14,8 @@ from datetime import datetime, timedelta
 from .tools import make_list
 from .datadict import DataDict
 from .sample import Sample, Range, IntRange, Values
+from joblib import Parallel,delayed
+
 
 class Experiment:
     """ Experiment that can run an agent-based model
@@ -182,18 +185,28 @@ class Experiment:
             del results['variables']  # Remove dynamic variables from record
         return results
 
-    def run(self, pool=None, display=True):
+    # TODO AgentPy 0.2.0 - Remove pool argument
+    def run(self, n_jobs=1, pool=None, display=True, **kwargs):
         """ Perform the experiment.
         The simulation will run the model once for each set of parameters
         and will repeat this process for the set number of iterations.
         Simulation results will be stored in `Experiment.output`.
+        Parallel processing is supported based on `joblib.Parallel`.
 
         Arguments:
+            n_jobs (int, optional):
+                Number of processes to run in parallel (default 1).
+                If 1, no parallel processing is used. If -1, all CPUs are used.
+                Will be forwarded to `joblib.Parallel`.
             pool (multiprocessing.Pool, optional):
+                [This argument is depreciated.
+                 Please use 'n_jobs' instead.]
                 Pool of active processes for parallel processing.
                 If none is passed, normal processing is used.
             display (bool, optional):
                 Display simulation progress (default True).
+            **kwargs:
+                Additional keyword arguments for `joblib.Parallel`.
 
         Returns:
             DataDict: Recorded experiment data.
@@ -205,13 +218,10 @@ class Experiment:
                 exp = ap.Experiment(MyModel, parameters)
                 results = exp.run()
 
-            To use parallel processing::
+            To use parallel processing with all CPUs::
 
-                import multiprocessing as mp
-                if __name__ ==  '__main__':
-                    exp = ap.Experiment(MyModel, parameters)
-                    pool = mp.Pool(mp.cpu_count())
-                    results = exp.run(pool)
+                exp = ap.Experiment(MyModel, parameters)
+                results = exp.run(n_jobs=-1)
         """
 
         if display:
@@ -220,8 +230,17 @@ class Experiment:
         t0 = datetime.now()  # Time-Stamp Start
         combined_output = {}
 
+        # Parallel processing with joblib
+        if n_jobs != 1:
+            # output_list = pool.map(self._single_sim, self.run_ids)
+            output_list = Parallel(n_jobs=n_jobs, **kwargs)(
+                delayed(self._single_sim)(i) for i in self.run_ids)
+            for single_output in output_list:
+                self._add_single_output_to_combined(
+                    single_output, combined_output)
+
         # Normal processing
-        if pool is None:
+        elif pool is None:
             i = -1
             for run_id in self.run_ids:
                 self._add_single_output_to_combined(
@@ -236,12 +255,17 @@ class Experiment:
             if display:
                 print("")  # Because the last print ended without a line-break
 
-        # Parallel processing
+        # Parallel processing with multiprocessing (TODO to depreciate)
         else:
+            warnings.warn(
+                "The argument 'pool' in Experiment.run() is depreciated. "
+                "Please use 'n_runs' instead.")
             if display:
                 print(f"Using parallel processing.")
                 print(f"Active processes: {pool._processes}")
             output_list = pool.map(self._single_sim, self.run_ids)
+            #Parallel(n_jobs=num_cores)(delayed(job)(BoidsModel,5,i) for i in tqdm(sample))
+            #Parallel(n_jobs=1)(delayed(sqrt)(i**2) for i in range(10))
             for single_output in output_list:
                 self._add_single_output_to_combined(
                     single_output, combined_output)

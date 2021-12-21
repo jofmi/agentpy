@@ -64,7 +64,8 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'salib': ('https://salib.readthedocs.io/en/latest/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'pandas': ('https://pandas.pydata.org/docs/', None)
+    'pandas': ('https://pandas.pydata.org/docs/', None),
+    'joblib': ('https://joblib.readthedocs.io/', None),
 }
 
 # Remove module name before elements
