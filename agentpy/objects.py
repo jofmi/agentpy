@@ -24,7 +24,7 @@ class Object:
         return f"{self.type} (Obj {self.id})"
 
     def __getattr__(self, key):
-        raise AttributeError(f"{self} has no attribute '{key}'.")
+        raise AttributeError(f"No attribute '{key}'.")
 
     def __getitem__(self, key):
         return getattr(self, key)
