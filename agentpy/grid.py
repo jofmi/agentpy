@@ -336,9 +336,8 @@ class Grid(SpatialEnvironment):
                 else:
                     sl_tupl = [(x_from, x_to)]
                 new_slices.append(sl_tupl)
-            list_of_slices = itertools.product(*new_slices)
             areas = []
-            for slices in list_of_slices:
+            for slices in itertools.product(*new_slices):
                 slices = tuple(slice(*sl) for sl in slices)
                 areas.append(self.grid.agents[slices])
             # TODO Exclude in every area inefficient
