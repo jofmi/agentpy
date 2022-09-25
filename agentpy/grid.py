@@ -251,23 +251,19 @@ class Grid(SpatialEnvironment):
 
     @staticmethod
     def _border_behavior(position, shape, torus):
-        position = list(position)
+                
         # Connected - Jump to other side
         if torus:
-            for i in range(len(position)):
-                while position[i] > shape[i]-1:
-                    position[i] -= shape[i]
-                while position[i] < 0:
-                    position[i] += shape[i]
+            new_position = tuple(position[i] % shape[i] 
+                                 for i in range(len(position)))
 
         # Not connected - Stop at border
         else:
-            for i in range(len(position)):
-                if position[i] > shape[i]-1:
-                    position[i] = shape[i]-1
-                elif position[i] < 0:
-                    position[i] = 0
-        return tuple(position)
+            new_position = tuple(0 if position[i] < 0
+                                 else min(position[i], shape[i]-1) 
+                                 for i in range(len(position)))
+                    
+        return new_position
 
     def move_to(self, agent, pos):
         """ Moves agent to new position.
