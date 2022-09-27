@@ -254,8 +254,8 @@ class Grid(SpatialEnvironment):
                 
         # Connected - Jump to other side
         if torus:
-            new_position = tuple(position[i] % shape[i] 
-                                 for i in range(len(position)))
+            new_position = tuple(x % x_lim for x, x_lim 
+                                 in zip(position, shape))
 
         # Not connected - Stop at border
         else:
