@@ -259,9 +259,8 @@ class Grid(SpatialEnvironment):
 
         # Not connected - Stop at border
         else:
-            new_position = tuple(0 if position[i] < 0
-                                 else min(position[i], shape[i]-1) 
-                                 for i in range(len(position)))
+            new_position = tuple(np.clip(position, 0, 
+                                         np.array(shape)-1))
                     
         return new_position
 
