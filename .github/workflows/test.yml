@@ -1,6 +1,9 @@
-name: Python package
+name: Run tests
 
 on: [push]
+
+permissions:
+  contents: read
 
 jobs:
   build:
