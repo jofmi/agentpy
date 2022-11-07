@@ -251,23 +251,18 @@ class Grid(SpatialEnvironment):
 
     @staticmethod
     def _border_behavior(position, shape, torus):
-        position = list(position)
+                
         # Connected - Jump to other side
         if torus:
-            for i in range(len(position)):
-                while position[i] > shape[i]-1:
-                    position[i] -= shape[i]
-                while position[i] < 0:
-                    position[i] += shape[i]
+            new_position = tuple(x % x_max for x, x_max
+                                 in zip(position, shape))
 
         # Not connected - Stop at border
         else:
-            for i in range(len(position)):
-                if position[i] > shape[i]-1:
-                    position[i] = shape[i]-1
-                elif position[i] < 0:
-                    position[i] = 0
-        return tuple(position)
+            new_position = tuple(np.clip(position, 0, 
+                                         np.array(shape)-1))
+                    
+        return new_position
 
     def move_to(self, agent, pos):
         """ Moves agent to new position.
@@ -327,25 +322,18 @@ class Grid(SpatialEnvironment):
             slices = [(p-distance, p+distance+1) for p in pos]
             new_slices = []
             for (x_from, x_to), x_max in zip(slices, self.shape):
-                if x_to > x_max and x_from < 0:
+                if distance >= x_max//2 :
                     sl_tupl = [(0, x_max)]
                 elif x_to > x_max:
-                    if x_to - x_max >= x_from:
-                        sl_tupl = [(0, x_max)]
-                    else:
-                        sl_tupl = [(x_from, x_max), (0, x_to - x_max)]
+                    sl_tupl = [(x_from, x_max), (0, x_to - x_max)]
                 elif x_from < 0:
-                    if x_max + x_from <= x_to:
-                        sl_tupl = [(0, x_max)]
-                    else:
-                        sl_tupl = [(x_max + x_from, x_max), (0, x_to)]
+                    sl_tupl = [(x_max + x_from, x_max), (0, x_to)]
                 else:
                     sl_tupl = [(x_from, x_to)]
                 new_slices.append(sl_tupl)
-            list_of_slices = list(itertools.product(*new_slices))
             areas = []
-            for slices in list_of_slices:
-                slices = tuple([slice(*sl) for sl in slices])
+            for slices in itertools.product(*new_slices):
+                slices = tuple(slice(*sl) for sl in slices)
                 areas.append(self.grid.agents[slices])
             # TODO Exclude in every area inefficient
             area_iters = [_IterArea(area, exclude=agent) for area in areas]
@@ -355,8 +343,8 @@ class Grid(SpatialEnvironment):
 
         # Case 2: Non-toroidal
         else:
-            slices = tuple([slice(p-distance if p-distance >= 0 else 0,
-                                  p+distance+1) for p in pos])
+            slices = tuple(slice(p-distance if p-distance >= 0 else 0,
+                                  p+distance+1) for p in pos)
             area = self.grid.agents[slices]
             # Iterator over all agents in area, exclude original agent
             return AgentIter(self.model, _IterArea(area, exclude=agent))
