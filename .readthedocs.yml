@@ -4,6 +4,7 @@ build:
   os: ubuntu-22.04 # Or ubuntu-20.04
   tools:
     python: "3.9" # Adjust based on your project
+    sphinx: "5.0" # Specify a compatible Sphinx version
 python:
   install:
     - method: pip
