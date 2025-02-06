@@ -1,5 +1,9 @@
 version: 2
 formats: all
+build:
+  os: ubuntu-22.04 # Or ubuntu-20.04
+  tools:
+    python: "3.7" # Adjust based on your project
 python:
   version: 3.7
   system_packages: true
@@ -8,4 +12,3 @@ python:
       path: .
       extra_requirements:
         - docs
-
