@@ -5,7 +5,6 @@ build:
   tools:
     python: "3.9" # Adjust based on your project
 python:
-  system_packages: true
   install:
     - method: pip
       path: .
